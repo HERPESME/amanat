@@ -100,18 +100,72 @@ TOOLS = [
 ]
 
 
+class _BadArgument(Exception):
+    """A tool argument the model sent that cannot be used."""
+
+
+def _paise(args: dict, key: str) -> int:
+    """Coerce a money argument, or refuse. Never raises past dispatch.
+
+    Tool arguments are attacker-controlled input — a compromised or
+    prompt-injected model chooses them, so they get the same treatment as a form
+    field. Floats are rejected outright rather than rounded: silently turning
+    10.5 paise into 10 or 11 is a rounding decision nobody authorised, and money
+    in this codebase is integer paise everywhere.
+    """
+    if key not in args:
+        raise _BadArgument(f"missing required argument {key!r}")
+    value = args[key]
+    if isinstance(value, bool) or value is None:
+        raise _BadArgument(f"{key!r} must be an integer number of paise")
+    if isinstance(value, float):
+        raise _BadArgument(f"{key!r} must be integer paise, not a fractional amount")
+    try:
+        return int(str(value).strip())
+    except (TypeError, ValueError):
+        raise _BadArgument(f"{key!r} is not an integer number of paise") from None
+
+
+def _text(args: dict, key: str, required: bool = True) -> str:
+    value = args.get(key)
+    if value is None:
+        if required:
+            raise _BadArgument(f"missing required argument {key!r}")
+        return ""
+    if not isinstance(value, str):
+        raise _BadArgument(f"{key!r} must be text")
+    return value
+
+
 def dispatch(session: AgentSession, name: str, args: dict) -> str:
-    """Route a model's tool call to the governed session. The only entry point."""
-    if name == "reserve_funds":
-        return session.reserve(int(args["amount_paise"]), args["payee"],
-                               args.get("reason", "")).as_tool_result()
-    if name == "debit_actual":
-        return session.debit(int(args["amount_paise"]),
-                             args.get("reason", "")).as_tool_result()
-    if name == "release_remainder":
-        return session.release(None, args.get("reason", "")).as_tool_result()
-    if name == "get_status":
-        return session.status().as_tool_result()
+    """Route a model's tool call to the governed session. The only entry point.
+
+    Returns a refusal string for anything it cannot honour, and never raises. An
+    exception escaping here would abort the turn *and skip the evidence entry* —
+    letting a malformed call go unrecorded, which is the one outcome this system
+    must not have.
+    """
+    args = args if isinstance(args, dict) else {}
+    try:
+        if name == "reserve_funds":
+            return session.reserve(_paise(args, "amount_paise"),
+                                   _text(args, "payee"),
+                                   _text(args, "reason", required=False)
+                                   ).as_tool_result()
+        if name == "debit_actual":
+            return session.debit(_paise(args, "amount_paise"),
+                                 _text(args, "reason", required=False)
+                                 ).as_tool_result()
+        if name == "release_remainder":
+            return session.release(None, _text(args, "reason", required=False)
+                                   ).as_tool_result()
+        if name == "get_status":
+            return session.status().as_tool_result()
+    except _BadArgument as exc:
+        session.record_malformed_call(name, args, str(exc))
+        return f"REFUSED: {exc}"
+
+    session.record_malformed_call(name, args, "unknown tool")
     return f"REFUSED: unknown tool {name!r}"
 
 
