@@ -16,6 +16,7 @@ import pytest
 from amanat.evidence.chain import EvidenceChain, EventType
 from amanat.policy.envelope import Envelope
 from amanat.policy.engine import PolicyEngine, Proposal, Action, LedgerState
+from amanat.rails.semantics import RAILS, SourceTier
 
 
 def _envelope(**kw):
@@ -196,10 +197,29 @@ class TestRailConformance:
         assert d.allowed is False
 
     def test_unverified_capability_is_never_permitted(self, engine):
-        """Absence of evidence is not permission."""
+        """Absence of evidence is not permission.
+
+        This used to point at `upi_otm`. On 21 Aug 2026 a Setu doc settled OTM's
+        partial debit — "If a partial debit is done, remaining funds are
+        unblocked in the customer bank A/C without any additional need for
+        refund/reversal" — so that rail became SECONDARY and stopped being a
+        valid stand-in for an unevidenced one.
+
+        `cashfree_preauth` is the honest replacement: we believe it supports
+        partial capture and we have not confirmed it. The guard below fails
+        loudly if that ever changes, rather than leaving this test silently
+        asserting nothing.
+        """
+        rail = RAILS["cashfree_preauth"]
+        assert rail.capabilities["partial_debit"].source_tier is \
+            SourceTier.UNVERIFIED, (
+                "cashfree_preauth.partial_debit is no longer unverified; point "
+                "this test at a rail that still is, or delete it"
+            )
         state = LedgerState(blocked=100_00)
         d = engine.evaluate(
-            Proposal(Action.DEBIT, 67_00, "merchant-a", "upi_otm"), _envelope(), state,
+            Proposal(Action.DEBIT, 67_00, "merchant-a", "cashfree_preauth"),
+            _envelope(), state,
         )
         assert d.allowed is False
         assert "unverified" in d.reason.lower()

@@ -244,6 +244,147 @@ _PAYU_OTM_CAPTURE = (
 )
 
 
+# ---------------------------------------------------------------------------
+# ROUND 5, 21 Aug 2026 - the PSP API references, read to settle one question:
+# is there an operation that REDUCES a standing block without revoking it?
+#
+# These are SECONDARY. A PSP doc is fact for that PSP's own behaviour, and only
+# [PARTIAL] evidence about the rail. Six merchant-side PSPs were surveyed by
+# enumerating their published API surface, not their landing pages:
+#
+#   Razorpay   llms.txt -> the three UPI Reserve Pay pages. Lifecycle APIs are
+#              exactly two: PUT /customers/:cid/tokens/:tid/cancel and
+#              DELETE /customers/:cid/tokens/:tid. No modify. Webhooks are
+#              token.confirmed and token.cancellation_initiated. No token.updated.
+#   Cashfree   llms.txt -> upi-reserve-pay. POST /pg/subscriptions/:id/manage,
+#              action enum CANCEL | PAUSE | ACTIVATE | CHANGE_PLAN, of which
+#              SBMD supports CANCEL only.
+#   PayU       readme.io ssr-props -> docs/upi-reserve-pay. No modify; PayU's
+#              own stated workaround is a scheduled revoke.
+#   Juspay     llms.txt -> one-time-mandate. Release IS revoke, explicitly.
+#   BoxPay     wp-sitemap -> upi-reservepay. One paragraph, no API surface.
+#   Setu       OpenAPI at /api-specs/payments/umap.json - the only merchant-side
+#              PSP that exposes PUT /v1/merchants/mandates/{id}/modify as an
+#              endpoint separate from PUT /v1/merchants/mandates/{id}/revoke.
+#
+# So the gap is IMPLEMENTATION, not regulation. OC-228 names modification as a
+# lifecycle event four times; five of six merchant-side PSPs do not expose it.
+# ---------------------------------------------------------------------------
+
+SETU_UPDATE = "Setu UPI (UMAP), Mandate operations - Update"
+SETU_UPDATE_URL = "https://docs.setu.co/payments/umap/mandates/generic/update"
+SETU_RESERVE_PLUS = "Setu UPI (UMAP), ReservePlus (Single block multi-debit mandate)"
+SETU_RESERVE_PLUS_URL = "https://docs.setu.co/payments/umap/mandates/reserve-plus"
+RZP_MANAGE = "Razorpay UPI Reserve Pay (SBMD), Manage Mandates and Tokens"
+RZP_MANAGE_URL = (
+    "https://razorpay.com/docs/payments/payment-gateway/s2s-integration/"
+    "recurring-payments/upi-reserve-pay/manage/"
+)
+CASHFREE_RESERVE_PAY = "Cashfree UPI Reserve Pay, Implementation Guide step 6 (Manage mandate)"
+CASHFREE_RESERVE_PAY_URL = (
+    "https://www.cashfree.com/docs/payments/upi-reserve-pay/upi-reserve-pay"
+)
+JUSPAY_OTM_RELEASE = "Juspay One Time Mandate, Release the Blocked Funds"
+JUSPAY_OTM_RELEASE_URL = (
+    "https://juspay.io/in/docs/one-time-mandate/docs/one-time-mandate/"
+    "released-the-blocked-funds"
+)
+RZP_TPAP_UPDATE = "Razorpay TPAP Pro API, Update or Revoke a Mandate"
+RZP_TPAP_UPDATE_URL = (
+    "https://razorpay.com/docs/api/payments/tpap-pro/mandate-flow/"
+    "update-revoke-mandate/"
+)
+SETU_RESERVE = "Setu UPI (UMAP), Reserve (One Time Mandates)"
+SETU_RESERVE_URL = "https://docs.setu.co/payments/umap/mandates/reserve"
+
+# OC-228, "Issuer Banks shall ensure", item 4. Re-read off the PDF page
+# rendered at 200 dpi on 21 Aug 2026, character by character.
+_OC228_ONE_BLOCK = (
+    "One mobile number (assumed as one customer) is allowed to create only one "
+    "block at a time for the particular merchant."
+)
+
+# Setu, Mandate operations > Update. Rendered on the page as a lead sentence
+# followed by a two-item bulleted list; the bullets are flattened here with
+# semicolons and are otherwise verbatim. The second sentence is a standalone
+# callout on the same page.
+_SETU_TWO_UPDATES = (
+    "There are only two updates possible on a UPI mandate: Changing the "
+    "mandate end date; Changing the mandate amount. "
+    "endDate cannot be updated for a single block multi debit mandate"
+)
+
+# Setu, Mandate operations > Update, intent-based flow. The collect-based flow
+# on the same page reads "once the customer clicks on the update mandate
+# notification and enters the mPIN on their UPI app".
+_SETU_UPDATE_MPIN = (
+    "Post this, once the customer clicks on the intent link / scans the qr code "
+    "and enters the mPIN, the merchant will receive webhooks for following "
+    "events: mandate_operation.update.initiated"
+)
+
+# Razorpay, Manage Mandates and Tokens > Cancel Tokens. The "two ways" are the
+# Cancel Token API and expiry - there is no third, and no partial release.
+_RZP_RELEASE_IS_CANCEL = (
+    "The blocked amount under a UPI Reserve Pay token can be released in two "
+    "ways: Use the Cancel Token API below to release the blocked funds. When "
+    "this API is called, all remaining funds under the token are unblocked and "
+    "credited to the customer's bank account instantly. If you do not cancel "
+    "the token and the token balance is not fully utilised before expiry, "
+    "Razorpay automatically triggers a reversal of the remaining funds 10 "
+    "minutes before the token expires."
+)
+
+# Razorpay, Manage Mandates and Tokens > Track Mandate Funds.
+_RZP_REMAINING_STAYS_BLOCKED = (
+    "To find the remaining amount available for future debits, subtract the "
+    "amount_debited from the amount_blocked. This allows you to manage customer "
+    "expectations and ensure you do not initiate a debit that exceeds the "
+    "remaining authorised limit. Ensure customers are informed that their funds "
+    "remain blocked until you explicitly release them or the token expires."
+)
+
+# Cashfree, UPI Reserve Pay implementation guide, step 6 "Manage mandate".
+# The section is headed "Release unused blocked funds back to the customer using
+# the manage subscription API" and then carries this warning.
+_CASHFREE_CANCEL_ONLY = (
+    "Only the CANCEL action is supported for SBMD subscriptions. Other "
+    "management actions like PAUSE are not available."
+)
+
+# Juspay, One Time Mandate, on the page titled "Release the Blocked Funds".
+_JUSPAY_RELEASE_IS_REVOKE = (
+    "Once the funds are blocked during the mandate registration, the funds are "
+    "released only after invoking Revoke Mandate API by the merchant. Upon "
+    "revoking the mandate, the status changes from ACTIVE to REVOKED."
+)
+
+# Razorpay TPAP Pro, PATCH /v1/upi/tpap/mandates/:umn - the PAYER-PSP side of
+# the same NPCI primitive, where action is "update | revoke". This is the
+# clearest published statement that a mandate UPDATE carries a new amount.
+_RZP_TPAP_UPDATE_AMOUNT = (
+    "The amount of the mandate. This parameter is required when the mandated "
+    "amount needs to be updated, and the request_type is set to update. Either "
+    "the validity_end or the amount must be provided."
+)
+
+# Setu, Reserve (One Time Mandates) - the SINGLE-debit sibling of SBMD. Quoted
+# because the contrast is the finding: on a one-shot block the rail hands the
+# remainder back by itself; on a multi-debit block it does not.
+_SETU_OTM_AUTO_UNBLOCK = (
+    "Reserve allows a merchant to block funds upto Rs.1 lakh for all MCCs "
+    "except 6211 and debit either the full amount or a partial amount from the "
+    "customer. If a partial debit is done, remaining funds are unblocked in the "
+    "customer bank A/C without any additional need for refund/reversal."
+)
+
+# Setu, ReservePlus > Execute mandate, request parameter table for `amount`.
+_SETU_SBMD_CUMULATIVE = (
+    "must be such that the cumulative amount debited for the given mandate post "
+    "current debit is within the amount that is blocked in customer's account"
+)
+
+
 SBMD = RailProfile(
     rail_id="sbmd",
     display_name="UPI Reserve Pay (NPCI Single Block Multiple Debit)",
@@ -378,7 +519,37 @@ SBMD = RailProfile(
                 "Rs 620 block and walk away, and Rs 150 stays stranded until the "
                 "customer-chosen end date, up to 90 days. Stranding duration is "
                 "'until someone revokes, else end-of-block', not 'until "
-                "settlement'. Price it that way."
+                "settlement'. Price it that way.\n"
+                "CORROBORATED 21 Aug 2026 by three independent PSP docs, which "
+                "matters because the primary finding was a negative one and a "
+                "negative read of a scan invites doubt. Razorpay: "
+                "'Ensure customers are informed that their funds remain blocked "
+                "until you explicitly release them or the token expires', and "
+                "the way to know what is left is to 'subtract the "
+                "amount_debited from the amount_blocked'. Setu's ReservePlus "
+                "execute API constrains the debit amount so that 'the "
+                "cumulative amount debited for the given mandate post current "
+                "debit is within the amount that is blocked'. Cashfree: 'The "
+                "remaining reserved balance reduces automatically after each "
+                "debit.' All three describe a pool that draws down and stays "
+                "blocked, not one that returns change.\n"
+                "THE ONE CONFLICTING SOURCE, and it should be disclosed rather "
+                "than dropped. PayU's Reserve Pay page asserts the opposite in "
+                "its examples - 'After finalizing the recharge (e.g., Rs.499), "
+                "the balance Rs.51 is released' - but the same page's feature "
+                "list gives the mechanism away: 'Currently, the releasing of "
+                "funds is done by remiters but PayU has built a functionality "
+                "(internal) to revoke the transactions based on end date to "
+                "minimise the funds on hold.' A scheduled revoke is not an "
+                "automatic release. Build to the stricter reading.\n"
+                "THE CONTRAST WORTH BUILDING ON. This is a MULTI-debit finding. "
+                "On the SINGLE-debit sibling - UPI OTM, Setu's 'Reserve' - the "
+                "rail does hand the remainder back by itself; see "
+                "`upi_otm.partial_debit`. If the agent commits to exactly one "
+                "debit per block, leg three is free and there is nothing to "
+                "revoke. The stranding problem is the price of keeping the pool "
+                "open for a second debit, and that is a design choice this "
+                "project makes, not a constraint the rail imposes."
             ),
         ),
         Capability(
@@ -392,8 +563,17 @@ SBMD = RailProfile(
                 "explicit update or revoke from the merchant platform. Both are "
                 "first-class lifecycle events - OC-228 issuer obligation 2 "
                 "requires notifications for 'block creation, modification, "
-                "debit, revoke and expiry' - so a block can be revised downward "
-                "as well as torn down."
+                "debit, revoke and expiry'.\n"
+                "CORRECTION, 21 Aug 2026. This note used to end '...so a block "
+                "can be revised downward as well as torn down.' That was an "
+                "inference from the word 'update', not a finding, and it is the "
+                "kind of leap this module exists to prevent. A modify operation "
+                "does exist and does preserve the block - see "
+                "`block_amount_modifiable_without_revoke` - but nothing in "
+                "either circular or in any PSP doc says it may revise an amount "
+                "DOWNWARD, and only one of six merchant-side PSPs exposes it at "
+                "all. See `block_amount_reducible_without_revoke`, which is "
+                "UNVERIFIED for exactly that reason."
             ),
         ),
         Capability(
@@ -462,6 +642,206 @@ SBMD = RailProfile(
                 "Mastercard 4 days final / 30 days preauth. Do not cite it."
             ),
         ),
+        # ------------------------------------------------------------------
+        # ROUND 5, 21 Aug 2026. The four capabilities below exist because
+        # round 4 named one assumption as the most likely to be false:
+        #
+        #   "Releasing the difference returns the money without destroying
+        #    the block."
+        #
+        # It is half false, and the half that is false is the expensive half.
+        # ------------------------------------------------------------------
+        Capability(
+            name="single_active_block_per_merchant", supported=True,
+            source_tier=SourceTier.PRIMARY,
+            citation=f"{OC228}, Issuer Banks obligation 4",
+            url=OC228_URL,
+            quote=_OC228_ONE_BLOCK,
+            notes=(
+                "The concurrency bound, and the reason a revoke is expensive "
+                "rather than free. Verified 21 Aug 2026 by re-rendering page 1 "
+                "of the OC-228 scan at 200 dpi and reading item 4 directly.\n"
+                "Consequence, and it is the whole cost of leg three: a customer "
+                "has at most ONE live block with a given merchant. Revoking to "
+                "hand back Rs 150 does not just end that block, it clears the "
+                "only slot - the next purchase needs a fresh block, which needs "
+                "a fresh UPI PIN from the customer. So the agent's choice on a "
+                "standing-wallet merchant is: strand the user's money until the "
+                "end date, or spend the user's standing authorisation to return "
+                "it. There is no third option that any merchant-side PSP "
+                "exposes today except Setu. Price both branches; do not model "
+                "release as free.\n"
+                "Scope note: the clause binds one MOBILE NUMBER to one block "
+                "PER MERCHANT. It says nothing about how many blocks a customer "
+                "may hold across different merchants, and OC-228 UPI Apps "
+                "obligation 2 requires a 'consolidated view of all active "
+                "blocks', plural, which confirms the cross-merchant case is "
+                "expected. A multi-merchant agent is not blocked by this."
+            ),
+        ),
+        Capability(
+            name="block_amount_modifiable_without_revoke", supported=True,
+            source_tier=SourceTier.SECONDARY,
+            citation=f"{SETU_UPDATE} (corroborated by {SETU_RESERVE_PLUS})",
+            url=SETU_UPDATE_URL,
+            quote=_SETU_TWO_UPDATES,
+            notes=(
+                "[PARTIAL] - a PSP doc describing a RAIL rule, per the "
+                "rail-semantics skill. It is fact for Setu and a lead, not a "
+                "fact, for the rail.\n"
+                "WHAT WAS ESTABLISHED. A modify operation exists that is "
+                "distinct from revoke. Setu's OpenAPI "
+                "(/api-specs/payments/umap.json) carries "
+                "'PUT /api/v1/merchants/mandates/{id}/modify - Modify a mandate "
+                "by id' alongside a separate "
+                "'PUT /api/v1/merchants/mandates/{id}/revoke - Revoke a mandate "
+                "by id'. The ReservePlus page - Setu's name for the single "
+                "block multi-debit product - lists 'Updating a single block "
+                "multi debit mandate' first among the operations available "
+                "'once it is LIVE'. The mandate SURVIVES: the update flow emits "
+                "'mandate.updated' and the docs warn that the updated state is "
+                "'a pseudo status. Do not update mandate status based on this.'\n"
+                "The quote above is what narrows it to the amount. Only two "
+                "fields are updatable at all, and one of them - endDate - is "
+                "explicitly excluded for SBMD. By elimination, on an SBMD "
+                "mandate a modify can change the amount and nothing else.\n"
+                "PRIMARY CORROBORATION that a modify exists at scheme level, "
+                "though never that it may decrease. OC-228 names modification "
+                "four times as a first-class lifecycle event: acquiring 5(c) "
+                f"'{_OC228_MERCHANT_REVOKE}' - update and revoke as two "
+                "things; issuer 2 requires notifications for 'block creation, "
+                "modification, debit, revoke and expiry'; acquiring 5(e) and "
+                "UPI Apps 2 both require transaction history 'including "
+                "creation, debits, modification'.\n"
+                "SECOND INDEPENDENT SOURCE, payer-PSP side. Razorpay's TPAP Pro "
+                "API exposes PATCH /v1/upi/tpap/mandates/:umn whose `action` "
+                "parameter takes the two values 'update' and 'revoke' side by "
+                "side, and documents `amount` as: "
+                f"'{_RZP_TPAP_UPDATE_AMOUNT}'\n"
+                "ADOPTION REALITY, and this is the finding that matters. Six "
+                "merchant-side PSPs were surveyed by enumerating published API "
+                "surface. Exactly ONE - Setu - exposes modify. Razorpay's "
+                "'Manage Mandates and Tokens' page has two lifecycle calls, "
+                "cancel and delete, and no modify; its Reserve Pay webhooks are "
+                "token.confirmed and token.cancellation_initiated, with no "
+                "token.updated. Cashfree's manage action enum is CANCEL | PAUSE "
+                "| ACTIVATE | CHANGE_PLAN and SBMD supports CANCEL only. PayU "
+                "and Juspay expose no modify. BoxPay publishes no API surface "
+                "for ReservePay at all. So the gap is IMPLEMENTATION, not "
+                "regulation - which is a much more interesting sentence to say "
+                "out loud than 'the rail does not allow it'."
+            ),
+        ),
+        Capability(
+            name="block_amount_reducible_without_revoke", supported=True,
+            source_tier=SourceTier.UNVERIFIED,
+            notes=(
+                "STILL UNVERIFIED AFTER A FULL PSP SURVEY, AND DELIBERATELY SO. "
+                "This is the assumption round 4 named as the most likely to be "
+                "false in the whole project. Round 5 could not settle it.\n"
+                "What is now evidenced is that a block's amount is MODIFIABLE "
+                "without revoking - see "
+                "`block_amount_modifiable_without_revoke`. What is not "
+                "evidenced anywhere is the DIRECTION. Not one of the six PSP "
+                "doc sets read on 21 Aug 2026, and neither NPCI circular, "
+                "contains a sentence stating whether a modify may lower a "
+                "block's amount, or only raise it, or whether it must stay "
+                "above the amount already drawn down.\n"
+                "The only constraints published anywhere are non-directional. "
+                "Setu's OpenAPI bounds the modify `amountLimit` by "
+                "'minimum: 100, maximum: 20000000' paise and nothing else. "
+                "Razorpay's TPAP Pro modify documents exactly one amount "
+                "failure, 'Amount must be greater than 0'. Neither forbids a "
+                "decrease. Neither permits one. Silence is not permission, so "
+                "this stays UNVERIFIED and `permits()` returns False - the "
+                "policy engine will refuse to plan around a downward revision, "
+                "which is the correct default. An agent that assumes it can "
+                "shrink a block and cannot has stranded the user's money for up "
+                "to 90 days and has no fallback that keeps the mandate alive.\n"
+                "HOW TO SETTLE IT, and it is now a one-hour test rather than a "
+                "one-day one, because the endpoint is named: on Setu staging "
+                "(umap.setu.co), create a ReservePlus mandate for Rs 500, "
+                "execute Rs 200, then "
+                "PUT /v1/merchants/mandates/{id}/modify with amountLimit 30000 "
+                "paise. Three outcomes, all informative: it succeeds (capability "
+                "becomes SECONDARY [PARTIAL], supported=True); it is rejected "
+                "with a directional error (supported=False, and the error string "
+                "is the citation); or it succeeds at the API and the issuer "
+                "declines, which is the answer that matters most and the one no "
+                "document would ever have told us."
+            ),
+        ),
+        Capability(
+            name="block_modify_requires_customer_afa", supported=True,
+            source_tier=SourceTier.SECONDARY,
+            citation=SETU_UPDATE,
+            url=SETU_UPDATE_URL,
+            quote=_SETU_UPDATE_MPIN,
+            notes=(
+                "[PARTIAL] - PSP doc describing a rail rule.\n"
+                "THE ASYMMETRY THAT DECIDES WHAT LEG THREE COSTS, and it runs "
+                "the wrong way for an autonomous agent.\n"
+                "The DESTRUCTIVE operation is unattended. Razorpay's cancel is "
+                "a server-to-server 'PUT /customers/:cid/tokens/:tid/cancel' "
+                "authenticated with the merchant key; Cashfree's is "
+                "'POST /pg/subscriptions/:id/manage' with action CANCEL. No "
+                "customer, no PIN, no app.\n"
+                "The NON-DESTRUCTIVE operation is not. Setu's modify requires "
+                "the customer to open a UPI app and enter their mPIN - by "
+                "intent link or QR for an intent mandate, by responding to a "
+                "collect notification for a collect mandate, and 'An intent "
+                "based mandate can only be updated via an intent link / qr and "
+                "a collect based mandate can only be updated via collect flow'. "
+                "Razorpay's payer-side TPAP modify carries the same cost in its "
+                "request body: 'upi_credentials: {} // Upi credentials received "
+                "from WebCL' - WebCL is the UPI Common Library, i.e. the PIN "
+                "pad.\n"
+                "So an unattended agent has exactly one lever that returns "
+                "money, and it is the one that destroys the mandate. Reducing "
+                "the block instead costs a customer interaction - which is the "
+                "same AFA the fresh block after a revoke would have cost. The "
+                "saving from modifying rather than revoking is therefore NOT "
+                "'one AFA'; it is 'one AFA now instead of one AFA at the next "
+                "purchase', plus the option value of the block surviving in "
+                "between. That is a real saving but a much smaller one than the "
+                "project's cost function currently assumes, and it should be "
+                "modelled as deferral, not avoidance."
+            ),
+        ),
+        Capability(
+            name="remainder_release_without_teardown", supported=False,
+            source_tier=SourceTier.SECONDARY,
+            citation=f"{RZP_MANAGE}; {CASHFREE_RESERVE_PAY}; {JUSPAY_OTM_RELEASE}",
+            url=RZP_MANAGE_URL,
+            quote=_RZP_RELEASE_IS_CANCEL,
+            notes=(
+                "[PARTIAL] - three PSP docs describing a rail behaviour.\n"
+                "DIRECT ANSWER TO 'is there a release-remainder or close-block-"
+                "early call?' - yes, every PSP has one, and on all three that "
+                "document it, IT IS THE REVOKE. There is no partial release.\n"
+                "Razorpay, above: the two ways to release are the Cancel Token "
+                "API and expiry. 'All remaining funds under the token' - never "
+                "some of them.\n"
+                "Cashfree heads its step 6 'Release unused blocked funds "
+                "back to the customer using the manage subscription API' and "
+                f"then warns: '{_CASHFREE_CANCEL_ONLY}'\n"
+                "Juspay, on a page literally titled 'Release the Blocked "
+                f"Funds': '{_JUSPAY_RELEASE_IS_REVOKE}'\n"
+                "PayU is the honest one. Its Reserve Pay page says under "
+                "'Amount Unblocking': 'Currently, the releasing of funds is "
+                "done by remiters but PayU has built a functionality (internal) "
+                "to revoke the transactions based on end date to minimise the "
+                "funds on hold.' A PSP whose answer to stranded funds is a "
+                "scheduled revoke has told you there is no decrease operation.\n"
+                "ONE PIECE OF GOOD NEWS the circulars do not give you. Razorpay "
+                "bounds worst-case stranding below the 90-day ceiling: 'Razorpay "
+                "automatically triggers a reversal of the remaining funds 10 "
+                "minutes before the token expires.' That is a PSP behaviour, "
+                "not a rail duty - `remainder_auto_released` stays False - but "
+                "it means the ceiling model's worst case on Razorpay is "
+                "'until the token's chosen end date', not 'indefinitely'."
+            ),
+        ),
     ],
 )
 
@@ -516,8 +896,37 @@ UPI_OTM = RailProfile(
             ),
         ),
         Capability(
-            name="partial_debit", supported=True, source_tier=SourceTier.UNVERIFIED,
-            notes="PSP docs describe native partial debit with bank-side release. Confirm.",
+            name="partial_debit", supported=True,
+            source_tier=SourceTier.SECONDARY,
+            citation=SETU_RESERVE,
+            url=SETU_RESERVE_URL,
+            quote=_SETU_OTM_AUTO_UNBLOCK,
+            notes=(
+                "[PARTIAL] - PSP doc describing a rail rule.\n"
+                "CONFIRMED 21 Aug 2026, and it is the most useful thing round 5 "
+                "found. On a ONE-SHOT block the rail returns the difference by "
+                "itself: 'If a partial debit is done, remaining funds are "
+                "unblocked in the customer bank A/C without any additional need "
+                "for refund/reversal.' No revoke, no modify, no customer AFA, "
+                "no stranded funds. That is precisely the third leg of "
+                "amount-contingent settlement, and OTM gives it away free.\n"
+                "THE PRICE. Setu's Reserve doc fixes sequenceNumber at 1 - one "
+                "debit and the mandate is spent. BoxPay says the same for OTM: "
+                "'The debit may be full or partial, but can be captured only "
+                "once. If no capture is made, the funds are automatically "
+                "released back to the customer's account at expiry.' So OTM "
+                "buys automatic release by giving up the standing pool.\n"
+                "THE STRAIGHT TRADE this project should state on camera: "
+                "SBMD keeps the mandate and strands the change; OTM returns the "
+                "change and spends the mandate. Neither gives both. Any claim "
+                "that a rail does both is a claim to check.\n"
+                "LIMITS DIFFER TOO, and Setu's figures do not match OC-228's: "
+                "'block funds upto Rs.1 lakh for all MCCs except 6211' with "
+                "'MCC 6211 - Capital Markets & Securities Brokers merchants can "
+                "block upto Rs.5 lakhs'. OC-228 caps a Reserve Pay block at "
+                "Rs 10,000 / 90 days. Do not carry a Rs 1 lakh OTM ceiling into "
+                "an SBMD argument."
+            ),
         ),
     ],
 )
