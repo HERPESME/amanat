@@ -1,0 +1,45 @@
+# docker compose run --rm demo      → the seven-act governance walkthrough
+# docker compose run --rm tests     → the containment suite
+# docker compose run --rm frontier  → the ceiling frontier on real NYC TLC fares
+#
+# `data` is a named volume so the ~100MB of TLC parquet survives between runs.
+
+services:
+  demo:
+    build:
+      context: .
+      target: demo
+    command: ["python", "-m", "amanat.demo"]
+    tty: true          # keep ANSI colour in the walkthrough
+
+  tests:
+    build:
+      context: .
+      target: ml
+    command: ["pytest", "tests/", "-q"]
+    volumes:
+      - data:/app/data
+
+  frontier:
+    build:
+      context: .
+      target: ml
+    command: ["python", "-m", "amanat.ceiling.frontier"]
+    tty: true
+    volumes:
+      - data:/app/data
+
+  # The LLM layer. Needs a key; everything above deliberately does not.
+  agent:
+    build:
+      context: .
+      target: ml
+    command: ["python", "-m", "amanat.orchestrator.cli"]
+    environment:
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:?set ANTHROPIC_API_KEY to run the agent}
+    tty: true
+    volumes:
+      - data:/app/data
+
+volumes:
+  data:
