@@ -78,6 +78,21 @@ class AgentSession:
     def status(self) -> ActionResult:
         return ActionResult(True, "current position", state=self._snapshot())
 
+    def record_malformed_call(self, tool: str, args: dict, why: str) -> None:
+        """Log a tool call that never became a proposal.
+
+        A call rejected at the argument boundary never reaches the policy
+        engine, so nothing else would record it — and an unrecorded call from an
+        untrusted model is exactly the gap the evidence chain exists to close.
+        Garbled attempts are evidence too.
+        """
+        self.chain.append(Actor.POLICY, EventType.REFUSAL, {
+            "rule": "malformed_tool_call",
+            "tool": tool,
+            "reason": why,
+            "arguments": {k: repr(v)[:120] for k, v in (args or {}).items()},
+        })
+
     def briefing(self) -> str:
         """The envelope, rendered for the model.
 
