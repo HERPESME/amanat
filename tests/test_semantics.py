@@ -166,12 +166,139 @@ class TestKnownRails:
         assert d.allowed is True
         assert "Rs.10,000 of block limit and up to 90 days" in d.quote
 
-    def test_every_sbmd_capability_is_primary(self):
-        """SBMD is fully evidenced as of 21 Aug 2026 — no vendor docs left.
+    def test_every_sbmd_capability_is_primary_or_declared_partial(self):
+        """No SBMD claim may rest on a vendor doc without saying so.
 
-        If this fails, someone added a capability without reading a circular.
-        That is exactly the failure mode this module exists to prevent.
+        Until 21 Aug 2026 this test demanded PRIMARY for every SBMD capability.
+        Round 5 had to add three that a circular cannot decide — whether a PSP
+        exposes a modify endpoint, and what it costs — so the rule is relaxed by
+        exactly one notch and no further:
+
+        - PRIMARY is always fine.
+        - SECONDARY is fine only if the notes carry the literal string
+          "[PARTIAL]", which is what the rail-semantics skill requires of a PSP
+          doc describing a *rail's* rule rather than that PSP's own behaviour.
+        - UNVERIFIED is fine and carries no quote, but must explain itself.
+        - MARKETING is never fine.
+
+        If this fails, someone claimed a rail rule from a vendor page without
+        labelling it. That is the exact failure mode this module exists for.
         """
         for cap in RAILS["sbmd"].capabilities.values():
-            assert cap.source_tier is SourceTier.PRIMARY, cap.name
-            assert cap.quote.strip(), cap.name
+            if cap.source_tier is SourceTier.PRIMARY:
+                assert cap.quote.strip(), cap.name
+            elif cap.source_tier is SourceTier.SECONDARY:
+                assert cap.quote.strip(), cap.name
+                assert "[PARTIAL]" in cap.notes, cap.name
+            elif cap.source_tier is SourceTier.UNVERIFIED:
+                assert cap.notes.strip(), cap.name
+            else:
+                pytest.fail(f"sbmd.{cap.name} rests on {cap.source_tier.name}")
+
+
+class TestBlockModification:
+    """Round 5. Does releasing the difference have to destroy the block?
+
+    Round 4 named one assumption as the most likely to be false in the whole
+    project: "releasing the difference returns the money without destroying the
+    block". These tests pin down the half of it that was settled and the half
+    that was not, so neither can quietly drift back to the convenient answer.
+    """
+
+    def test_only_one_block_per_customer_per_merchant(self):
+        """OC-228 issuer obligation 4, read off the scan at 200 dpi.
+
+        This is what makes a revoke expensive rather than free: a customer holds
+        at most one live block with a given merchant, so revoking to hand back
+        the change clears the only slot and the next purchase needs a fresh
+        block and a fresh UPI PIN.
+        """
+        rail = RAILS["sbmd"]
+        assert rail.permits("single_active_block_per_merchant") is True
+        d = rail.explain("single_active_block_per_merchant")
+        assert "only one block at a time for the particular merchant" in d.quote
+        assert d.citation.startswith("NPCI/UPI/OC-228")
+
+    def test_modify_exists_and_is_secondary_not_primary(self):
+        """A modify op exists and preserves the block — but a PSP says so, not NPCI.
+
+        OC-228 names "modification" as a notifiable lifecycle event and gives
+        merchants "update and revoke" as two things, so a modify exists at
+        scheme level. What the circular never says is what a modify may change.
+        Only Setu, of six merchant-side PSPs surveyed, publishes an endpoint —
+        PUT /v1/merchants/mandates/{id}/modify, separate from .../revoke — and
+        that is SECONDARY evidence about the rail, marked [PARTIAL].
+        """
+        rail = RAILS["sbmd"]
+        cap = rail.capabilities["block_amount_modifiable_without_revoke"]
+        assert cap.source_tier is SourceTier.SECONDARY
+        assert "[PARTIAL]" in cap.notes
+        assert "only two updates possible" in cap.quote
+        assert "endDate cannot be updated for a single block multi debit" in cap.quote
+
+    def test_reducing_a_block_is_unverified_and_therefore_refused(self):
+        """The direction of a modify is evidenced by nobody. So we refuse it.
+
+        Neither circular, and not one of six PSP doc sets read on 21 Aug 2026,
+        states whether a modify may LOWER a block's amount. The only published
+        constraints are non-directional: Setu bounds amountLimit by
+        minimum 100 / maximum 20000000 paise; Razorpay's payer-side modify
+        documents one amount failure, "Amount must be greater than 0".
+
+        Silence is not permission. An agent that assumes it can shrink a block
+        and cannot has stranded the user's money for up to 90 days with no
+        fallback that keeps the mandate alive, so the safe default is to refuse.
+        """
+        rail = RAILS["sbmd"]
+        cap = rail.capabilities["block_amount_reducible_without_revoke"]
+        assert cap.source_tier is SourceTier.UNVERIFIED
+        assert cap.supported is True, "we believe it; we have not evidenced it"
+        assert rail.permits("block_amount_reducible_without_revoke") is False
+        assert "not usable as fact" in \
+            rail.explain("block_amount_reducible_without_revoke").reason
+
+    def test_the_nondestructive_op_is_the_one_that_needs_the_customer(self):
+        """The asymmetry that decides what leg three costs.
+
+        Revoke is a merchant server-to-server call — Razorpay's
+        PUT /customers/:cid/tokens/:tid/cancel, Cashfree's manage action CANCEL
+        — with no customer present. Modify is not: Setu requires the customer to
+        enter their mPIN, and Razorpay's payer-side modify carries
+        upi_credentials from the UPI Common Library.
+
+        So an unattended agent's only money-returning lever is the destructive
+        one. Modifying instead defers an AFA rather than avoiding one, and the
+        cost model must say so.
+        """
+        rail = RAILS["sbmd"]
+        assert rail.permits("block_modify_requires_customer_afa") is True
+        assert "mPIN" in rail.explain("block_modify_requires_customer_afa").quote
+
+    def test_releasing_the_remainder_means_tearing_the_block_down(self):
+        """Every PSP has a release call, and on all of them it is the revoke.
+
+        Razorpay: "all remaining funds under the token are unblocked" — never
+        some of them. Cashfree heads its step "Release unused blocked funds" and
+        then supports only action CANCEL for SBMD. Juspay, on a page titled
+        "Release the Blocked Funds", says release happens only by revoking.
+        """
+        rail = RAILS["sbmd"]
+        assert rail.permits("remainder_release_without_teardown") is False
+        d = rail.explain("remainder_release_without_teardown")
+        assert d.allowed is False
+        assert "all remaining funds under the token are unblocked" in d.quote
+        assert "10" in d.quote and "minutes before the token expires" in d.quote
+
+    def test_one_shot_otm_does_return_the_change_by_itself(self):
+        """The straight trade, and the reason SBMD is not automatically right.
+
+        On the single-debit sibling the rail hands the remainder back with no
+        revoke, no modify and no AFA. SBMD keeps the mandate and strands the
+        change; OTM returns the change and spends the mandate. Neither gives
+        both, and a proposal that claims both is a proposal to check.
+        """
+        otm = RAILS["upi_otm"]
+        assert otm.permits("partial_debit") is True
+        q = otm.explain("partial_debit").quote
+        assert "remaining funds are unblocked in the customer bank A/C" in q
+        assert RAILS["sbmd"].permits("remainder_auto_released") is False
