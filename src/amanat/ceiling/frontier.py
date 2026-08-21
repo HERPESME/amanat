@@ -67,6 +67,61 @@ def run_for(features: list[str], name: str, calib_mode: str,
     return out
 
 
+def applicability() -> None:
+    """Where this transfers to an Indian rail, and where it does not.
+
+    The obvious objection to a ceiling model trained on New York taxi fares is
+    that the target rail is Indian. It deserves a real answer rather than a
+    slide, so this reports what carries over and computes exactly when the rail's
+    own cap starts binding.
+    """
+    from amanat.rails.semantics import RAILS
+
+    cap = RAILS["sbmd"].limit("max_block_amount")
+
+    print(f"\n\033[1m{'═' * 76}\n  APPLICABILITY\n{'═' * 76}\033[0m")
+    print("  The data is USD metered fares from NYC TLC. There is no public Indian")
+    print("  equivalent — no released metered-fare corpus and no COD-RTO dataset —")
+    print("  and generating one would make every number here circular.\n")
+    print("  \033[1mWhat transfers:\033[0m the method, and the shape of the tradeoff.")
+    print("  Conformal calibration is distribution-free, so the coverage machinery")
+    print("  works on any fare distribution. The finding that coverage degrades")
+    print("  under temporal drift is a property of drift, not of New York.")
+    print("\n  \033[1mWhat does not:\033[0m every coefficient. A model fitted here predicts")
+    print("  Manhattan fares and nothing else. Retraining on Indian trip data is a")
+    print("  data-access problem, not a modelling one.\n")
+
+    print(f"  \033[1mWhere the rail's own cap binds\033[0m — {cap.render()}, purpose code 77")
+    print(f"  \033[2m{cap.citation}: “{cap.quote}”\033[0m\n")
+    print("  A ceiling can only be blocked if it fits under the cap. So the cap")
+    print("  binds whenever the chosen quantile of the amount distribution exceeds")
+    print(f"  {cap.render()}, and the question is which categories reach that.\n")
+
+    # Typical Indian amounts by category, stated as assumptions rather than data.
+    # The cap is treated as binding once it is under 3x the typical amount: on a
+    # right-skewed fare distribution a p95 ceiling commonly lands 2-3x the
+    # median, so anything tighter than 3x has no room for the tail.
+    TAIL_MULTIPLE = 3
+    for label, typical_paise in [
+        ("metered city cab", 300_00),
+        ("intercity cab", 2_500_00),
+        ("quick-commerce basket", 800_00),
+        ("EV charging session", 600_00),
+        ("hotel stay with incidentals", 15_000_00),
+    ]:
+        headroom = cap.value / typical_paise
+        binds = ("\033[31mBINDS\033[0m" if typical_paise * TAIL_MULTIPLE > cap.value
+                 else "\033[32mclear\033[0m")
+        print(f"    {label:<30s} typical ₹{typical_paise / 100:>8,.0f}  "
+              f"cap is {headroom:>5.1f}x typical   {binds}")
+
+    print("\n  \033[2mThose typical values are stated assumptions, not measurements —")
+    print("  they position the cap, they do not forecast anything. The reading:")
+    print("  SBMD comfortably covers per-trip mobility and small baskets, and")
+    print("  cannot cover hotel folios or intercity fares at all. A ceiling model")
+    print("  is only useful where the cap leaves room for the tail it predicts.\033[0m")
+
+
 def main() -> None:
     print("\n\033[1mTHE CEILING FRONTIER\033[0m — how much money must be blocked to make")
     print("a debit succeed, measured on real NYC TLC metered fares.\n")
@@ -93,7 +148,9 @@ def main() -> None:
     print("  deployment. Calibrating on recent data narrows the gap without closing it;")
     print("  closing it needs either a slack factor or online recalibration.\n")
     print("  \033[2mRomano, Patterson & Candès, 'Conformalized Quantile Regression',")
-    print("  NeurIPS 2019, arXiv:1905.03222 — see §2 for the exchangeability condition.\033[0m\n")
+    print("  NeurIPS 2019, arXiv:1905.03222 — see §2 for the exchangeability condition.\033[0m")
+
+    applicability()
 
 
 if __name__ == "__main__":
