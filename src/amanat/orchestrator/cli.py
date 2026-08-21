@@ -1,7 +1,10 @@
 """Run the LLM agent against a governed session.
 
-    ANTHROPIC_API_KEY=... uv run --with anthropic --with cryptography \\
+    uv run --with google-genai --with cryptography \\
         python -m amanat.orchestrator.cli "Book me a cab to the airport"
+
+Reads a .env at the project root. Set GEMINI_API_KEY or ANTHROPIC_API_KEY —
+either works, because the model holds no authority here.
 
 Everything the agent does is bounded by the envelope below and recorded in the
 evidence chain, which is verified and summarised when the turn ends. The agent
@@ -49,10 +52,16 @@ def _demo_rail() -> str:
 
 
 def main() -> int:
-    if not (os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN")):
-        print("No Anthropic credentials found.\n"
-              "  Set ANTHROPIC_API_KEY, or run `ant auth login`.\n"
-              "  The governed core needs no key — try: python -m amanat.demo",
+    from amanat import env
+    from amanat.orchestrator.backends import resolve_backend
+
+    env.load()
+    backend = resolve_backend()
+    if backend is None:
+        print("No LLM credential found.\n"
+              "  Create a .env at the project root (see .env.example) with either\n"
+              "    GEMINI_API_KEY=...      or      ANTHROPIC_API_KEY=...\n"
+              "  The governed core needs neither — try: python -m amanat.demo",
               file=sys.stderr)
         return 2
 
@@ -69,12 +78,13 @@ def main() -> int:
     session = AgentSession(envelope, SimulatedRail(_demo_rail(),
                                                   customer_balance=50_000_00))
 
-    print(f"\n\033[1mENVELOPE\033[0m  budget ₹{envelope.max_total / 100:,.2f} · "
+    print(f"\n\033[1mBACKEND\033[0m   {backend.name} · {backend.model}")
+    print(f"\033[1mENVELOPE\033[0m  budget ₹{envelope.max_total / 100:,.2f} · "
           f"payees {envelope.allowed_payees} · expires in 6h")
     print(f"\033[1mPROMPT\033[0m    {prompt}\n")
 
     from amanat.orchestrator import agent
-    reply = agent.run(session, prompt)
+    reply = agent.run(session, prompt, backend=backend)
 
     print(f"\033[1mAGENT\033[0m\n{reply}\n")
     print(f"\033[1mAUDIT\033[0m  {session.summary()}")
