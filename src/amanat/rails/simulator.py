@@ -60,13 +60,36 @@ class SimulatedRail:
         return ref
 
     def release(self, ref: BlockRef, amount: int | None = None) -> BlockRef:
+        """Return unspent funds — by teardown unless the rail offers better.
+
+        Most rails do not offer better. A survey of six merchant-side PSPs found
+        exactly one (Setu) exposing a modify that preserves the mandate;
+        Razorpay, Cashfree, PayU, Juspay and BoxPay expose teardown only —
+        Cashfree: "Only the CANCEL action is supported for SBMD subscriptions."
+
+        So on a typical rail, handing back the change means revoking, which
+        returns *all* of it and kills the mandate. Since OC-228 permits only one
+        block at a time per merchant, the next purchase then needs fresh
+        authentication. That cost is real and belongs in the model, so the
+        simulator refuses to pretend otherwise.
+        """
         self._require_live(ref)
+
+        if not self.profile.permits("remainder_release_without_teardown"):
+            if amount is not None and amount < ref.available:
+                raise RailError(
+                    f"{self.profile.display_name} exposes no partial release: "
+                    f"returning any part of the block tears down all of it. "
+                    f"Release {ref.available} or nothing.")
+            ref.events.append("RELEASE via teardown (rail exposes no partial release)")
+            return self.revoke(ref)
+
         amount = ref.available if amount is None else amount
         if amount > ref.available:
             raise RailError(f"cannot release {amount}; only {ref.available} unspent")
         ref.released += amount
         self.customer_balance += amount
-        ref.events.append(f"RELEASE {amount}")
+        ref.events.append(f"RELEASE {amount} (mandate preserved)")
         if ref.available == 0:
             ref.state = BlockState.SETTLED
         return ref
