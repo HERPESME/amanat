@@ -258,3 +258,33 @@ class TestNoLLMInTheEnforcementPath:
                 _envelope(), LedgerState())
         verdicts = {engine.evaluate(*args).allowed for _ in range(20)}
         assert verdicts == {True}
+
+
+class TestRailNumericLimitsAreEnforced:
+    def test_reserve_above_the_sbmd_block_cap_is_refused_with_a_citation(self, engine):
+        """The bug this class exists for: the cap was documented, not enforced."""
+        env = _envelope(max_total=100_000_00, max_per_txn=100_000_00)
+        d = engine.evaluate(
+            Proposal(Action.RESERVE, 50_000_00, "merchant-a", "sbmd"),
+            env, LedgerState(),
+        )
+        assert d.allowed is False
+        assert "max_block_amount" in d.reason
+        assert "Rs.10,000 of block limit" in d.quote
+
+    def test_reserve_inside_the_cap_is_allowed(self, engine):
+        env = _envelope(max_total=100_000_00, max_per_txn=100_000_00)
+        d = engine.evaluate(
+            Proposal(Action.RESERVE, 6_000_00, "merchant-a", "sbmd"),
+            env, LedgerState(),
+        )
+        assert d.allowed is True
+
+    def test_the_cap_applies_to_the_cumulative_block_not_one_reserve(self, engine):
+        """Two reserves of Rs 6,000 each would breach a Rs 10,000 ceiling."""
+        env = _envelope(max_total=100_000_00, max_per_txn=100_000_00)
+        d = engine.evaluate(
+            Proposal(Action.RESERVE, 6_000_00, "merchant-a", "sbmd"),
+            env, LedgerState(blocked=6_000_00),
+        )
+        assert d.allowed is False

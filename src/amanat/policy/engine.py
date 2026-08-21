@@ -128,6 +128,16 @@ class PolicyEngine:
         if rail is None:
             return Verdict(False, f"unknown rail {p.rail_id!r}")
 
+        # Numeric bounds the rail itself enforces. Checking them here turns a
+        # downstream rejection into an explainable refusal that carries the
+        # circular deciding it — and stops the engine approving a reserve the
+        # rail was always going to decline.
+        if p.action is Action.RESERVE:
+            breach = rail.exceeds("max_block_amount", state.blocked + p.amount)
+            if breach is not None:
+                return Verdict(False, breach.reason, breach.citation,
+                               breach.url, breach.quote)
+
         # A debit for less than the standing block is a partial debit. Rails
         # differ on this, and the difference is load-bearing for the whole
         # amount-contingent design — so it is checked explicitly, with the
