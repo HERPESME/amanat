@@ -395,3 +395,34 @@ class TestObservedTier:
         cap = RAILS["setu_umap"].capabilities["api_publicly_reachable"]
         assert cap.source_tier is SourceTier.OBSERVED
         assert "self-serve signup" in cap.notes
+
+
+class TestRazorpayPartialCaptureWasMeasured:
+    """Not read — measured, on 22 Aug 2026.
+
+    A test-mode payment was driven to 'authorized' via Razorpay Checkout against
+    an order created with payment_capture=0, then a capture of 47000 was
+    attempted against 62000 authorized. The API returned HTTP 400 carrying the
+    same sentence the documentation carries, word for word.
+
+    Payment links cannot produce this state — they auto-capture — and S2S
+    payment creation is not enabled on a self-serve test account, so the
+    measurement needed a browser. Both facts are recorded because they bound
+    what any future probe can prove unaided.
+    """
+
+    def test_the_capability_rests_on_an_observation_not_a_doc(self):
+        cap = RAILS["razorpay_auth_capture"].capabilities["partial_debit"]
+        assert cap.source_tier is SourceTier.OBSERVED
+        assert "measured 22 Aug 2026" in cap.citation
+
+    def test_partial_debit_is_forbidden_on_this_rail(self):
+        d = RAILS["razorpay_auth_capture"].explain("partial_debit")
+        assert d.allowed is False
+        assert d.quote == "Capture amount must be equal to the amount authorized."
+
+    def test_the_note_says_how_to_reproduce_it(self):
+        """A measurement nobody can repeat is an anecdote."""
+        notes = RAILS["razorpay_auth_capture"].capabilities["partial_debit"].notes
+        assert "amanat.rails.authorize" in notes
+        assert "--capture" in notes
