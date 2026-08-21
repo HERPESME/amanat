@@ -1,0 +1,43 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Containment suite
+        # The governance guarantees must hold with no API key and no network.
+        # If this ever needs a credential to pass, the guarantees are not real.
+        run: uv run --extra ml --extra dev pytest tests/ -q
+
+      - name: End-to-end walkthrough runs
+        run: uv run --extra dev python -m amanat.demo
+
+      - name: Rail semantics doc has not drifted from the capability table
+        # RAIL_SEMANTICS.md is generated. If someone edits the prose to claim
+        # more than the runtime honours, this fails.
+        run: |
+          uv run --extra dev python -m amanat.rails.docgen
+          git diff --exit-code -- docs/RAIL_SEMANTICS.md \
+            || { echo "::error::docs/RAIL_SEMANTICS.md is stale — run python -m amanat.rails.docgen"; exit 1; }
+
+      - name: No unverified capability is silently permitted
+        run: |
+          uv run --extra dev python - <<'PY'
+          from amanat.rails.semantics import RAILS
+          bad = [(r.rail_id, c.name) for r in RAILS.values()
+                 for c in r.capabilities.values() if c.supported and not c.is_fact
+                 and r.permits(c.name)]
+          assert not bad, f"unverified capabilities are being permitted: {bad}"
+          print("safety property holds: absence of evidence is not permission")
+          PY
