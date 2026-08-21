@@ -11,3 +11,6 @@ data/*.parquet
 
 # Decision record and agent tooling — kept local, not published
 .claude/
+
+# Local credentials
+.env
