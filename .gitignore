@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.coverage
+htmlcov/
+data/*.csv
+data/*.parquet
+.env
+.DS_Store
+
+# Decision record and agent tooling — kept local, not published
+.claude/
