@@ -180,7 +180,7 @@ class AnthropicBackend:
             model=self.model,
             max_tokens=max_tokens,
             thinking={"type": "adaptive"},
-            system=SYSTEM,
+            system=f"{SYSTEM}\n\n{session.briefing()}",
             tools=[reserve_funds, debit_actual, release_remainder, get_status],
             messages=[{"role": "user", "content": user_input}],
         )
@@ -213,7 +213,7 @@ class GeminiBackend:
 
         interaction = client.interactions.create(
             model=self.model,
-            input=f"{SYSTEM}\n\n---\n\n{user_input}",
+            input=f"{SYSTEM}\n\n{session.briefing()}\n\n---\n\n{user_input}",
             tools=tools,
         )
 

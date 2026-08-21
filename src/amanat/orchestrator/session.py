@@ -78,6 +78,40 @@ class AgentSession:
     def status(self) -> ActionResult:
         return ActionResult(True, "current position", state=self._snapshot())
 
+    def briefing(self) -> str:
+        """The envelope, rendered for the model.
+
+        An agent that cannot see its own constraints will flail against them.
+        The first live run proved it: the model invented three payees, was
+        refused three times, and reported to the user that the envelope had no
+        allocation — none of which it could have known was wrong.
+
+        Telling it the boundary is not the same as trusting it to respect the
+        boundary. The policy engine still checks every call; this only removes
+        the guessing.
+        """
+        e = self.envelope
+        rail = self.rail.profile
+        cap = rail.limit("max_block_amount")
+        lines = [
+            "YOUR ENVELOPE — the policy engine enforces all of this regardless "
+            "of what you do:",
+            f"  total budget      {e.max_total} paise (₹{e.max_total / 100:,.2f})",
+            f"  per transaction   {e.max_per_txn} paise (₹{e.max_per_txn / 100:,.2f})",
+            f"  allowed payees    {', '.join(e.allowed_payees)}"
+            "   ← no other payee will be accepted",
+            f"  expires           {e.expires_at.isoformat()}",
+            f"  rail              {rail.display_name}",
+        ]
+        if cap is not None:
+            lines.append(f"  rail block cap    {cap.value} paise ({cap.render()}) "
+                         f"— {cap.citation}")
+        if not rail.permits("remainder_release_without_teardown"):
+            lines.append("  NOTE: this rail cannot return part of a block. Releasing "
+                         "the remainder tears the whole block down, and only one "
+                         "block per merchant may stand at a time.")
+        return "\n".join(lines)
+
     # -- the one path to the rail -----------------------------------------
 
     def _attempt(self, action: Action, amount: int, payee: str,

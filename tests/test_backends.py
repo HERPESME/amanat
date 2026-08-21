@@ -106,3 +106,40 @@ class TestEnvLoader:
         f.write_text("KEY=from-file\n")
         assert load_env(f) == []
         assert os.environ["KEY"] == "from-environment"
+
+
+class TestTheModelIsToldItsConstraints:
+    """An agent that cannot see its envelope will flail against it.
+
+    The first live run proved this: the model invented three payees, was
+    refused three times, and told the user the envelope had no allocation —
+    none of which it could have known was wrong.
+
+    Showing the boundary is not the same as trusting the model to respect it.
+    Policy still checks every call; this only removes the guessing.
+    """
+
+    def test_briefing_names_the_allowed_payees(self, session):
+        assert "citycabs" in session.briefing()
+
+    def test_briefing_states_the_budget_in_paise_and_rupees(self, session):
+        b = session.briefing()
+        assert str(session.envelope.max_total) in b
+        assert "₹" in b
+
+    def test_briefing_warns_when_the_rail_cannot_release_partially(self, session):
+        """The teardown cost is a planning fact, so the model must know it."""
+        assert "tears the whole block down" in session.briefing()
+
+    def test_briefing_carries_the_rail_block_cap_when_one_is_declared(
+            self, envelope, verified_rail):
+        from amanat.orchestrator.session import AgentSession
+        from amanat.rails.semantics import RAILS, Limit, SourceTier
+        from amanat.rails.simulator import SimulatedRail
+
+        RAILS[verified_rail].limits["max_block_amount"] = Limit(
+            name="max_block_amount", value=10_000_00, unit="paise",
+            source_tier=SourceTier.PRIMARY, citation="fixture",
+            quote="cap", url="https://example.test")
+        s = AgentSession(envelope, SimulatedRail(verified_rail))
+        assert "₹10,000" in s.briefing()
