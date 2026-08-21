@@ -13,6 +13,12 @@ error is representable in the type system instead of living in someone's head.
 
 Safety property: an UNVERIFIED capability is never permitted. Absence of
 evidence is not permission.
+
+One tier is unusual and worth explaining. OBSERVED means the assertion was
+measured against the live API rather than read anywhere, and its `quote` is the
+response the rail actually returned. A doc says what a rail is supposed to do;
+an observation says what it did. Where the two can be compared they should be,
+and `amanat.rails.probe` is what does the comparing.
 """
 from __future__ import annotations
 
@@ -27,18 +33,24 @@ class CapabilityError(ValueError):
 class SourceTier(Enum):
     """Where a capability assertion comes from, in descending authority.
 
-    PRIMARY and SECONDARY are usable as fact. MARKETING and UNVERIFIED are not,
-    and `RailProfile.permits` will refuse anything resting on them.
+    PRIMARY, OBSERVED and SECONDARY are usable as fact. MARKETING and
+    UNVERIFIED are not, and `RailProfile.permits` refuses anything resting on
+    them.
+
+    OBSERVED sits second because a measurement beats a description of a
+    measurement, but below PRIMARY because a rail can behave one way today and
+    another after a deploy, whereas a circular changes only by amendment.
     """
 
     PRIMARY = "primary"          # NPCI circular, RBI directive, network operating regs
+    OBSERVED = "observed"        # measured against the live API — the quote is its response
     SECONDARY = "secondary"      # PSP integration docs — fact for that PSP's own behaviour
     MARKETING = "marketing"      # blog posts, product pages, comparison tables. Never fact.
     UNVERIFIED = "unverified"    # believed, not confirmed. Never fact.
 
     @property
     def is_fact(self) -> bool:
-        return self in (SourceTier.PRIMARY, SourceTier.SECONDARY)
+        return self in (SourceTier.PRIMARY, SourceTier.OBSERVED, SourceTier.SECONDARY)
 
 
 @dataclass
@@ -1047,8 +1059,54 @@ CASHFREE_PREAUTH = RailProfile(
 )
 
 
+SETU_UMAP = RailProfile(
+    rail_id="setu_umap",
+    display_name="Setu UMAP (UPI mandates)",
+    capabilities=[
+        Capability(
+            name="credentials_self_serve", supported=True,
+            source_tier=SourceTier.OBSERVED,
+            citation="probed 21 Aug 2026 — accountservice.setu.co/v1/users/login",
+            url="https://docs.setu.co/payments/umap/quickstart",
+            quote="HTTP 200, access_token issued",
+            notes="Signup at bridge.setu.co is genuinely self-serve and the "
+                  "token endpoint accepts the resulting credentials.",
+        ),
+        Capability(
+            name="api_publicly_reachable", supported=False,
+            source_tier=SourceTier.OBSERVED,
+            citation="probed 21 Aug 2026 — DNS via Google 8.8.8.8 and Cloudflare 1.1.1.1",
+            url="https://docs.setu.co/payments/umap/quickstart",
+            quote="uatapi.setu.co NXDOMAIN; api.setu.co NXDOMAIN",
+            notes=(
+                "The two hosts the UMAP docs name for sandbox and production do "
+                "not exist in public DNS, while accountservice.setu.co and "
+                "bridge.setu.co resolve normally. So the API surface is gated "
+                "behind onboarding, private DNS or an allowlist — not reachable "
+                "from a self-serve signup. Invisible until you hold credentials "
+                "and try: every earlier signal, including a 200 from the token "
+                "endpoint, said the rail was reachable. Reproduce with "
+                "`python -m amanat.rails.probe`."
+            ),
+        ),
+        Capability(
+            name="block_amount_modifiable_without_revoke", supported=True,
+            source_tier=SourceTier.SECONDARY,
+            citation="Setu, Mandate operations > Update",
+            url="https://docs.setu.co/payments/umap/mandates/generic/update",
+            quote=("There are only two updates possible on a UPI mandate — "
+                   "Changing the mandate end date — Changing the mandate amount"),
+            notes="[PARTIAL] The only surveyed PSP exposing a modify that "
+                  "preserves the mandate. Direction (whether it may LOWER the "
+                  "amount) is documented nowhere and remains unverified.",
+        ),
+    ],
+)
+
+
 RAILS: dict[str, RailProfile] = {
-    r.rail_id: r for r in (SBMD, RAZORPAY_AUTH_CAPTURE, UPI_OTM, CASHFREE_PREAUTH)
+    r.rail_id: r for r in (SBMD, RAZORPAY_AUTH_CAPTURE, UPI_OTM,
+                           CASHFREE_PREAUTH, SETU_UMAP)
 }
 
 

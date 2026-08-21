@@ -282,6 +282,39 @@ Best-fit primitive found: UPI + partial capture + ~1-year window. Confirm in UAT
 Requires a support request. Fire it in hour 1; assume it does not land.
 
 
+## `setu_umap` — Setu UMAP (UPI mandates)
+
+| Capability | Permitted | Tier | Source |
+|---|---|---|---|
+| `credentials_self_serve` | yes | `OBSERVED` | probed 21 Aug 2026 — accountservice.setu.co/v1/users/login |
+| `api_publicly_reachable` | **no** | `OBSERVED` | probed 21 Aug 2026 — DNS via Google 8.8.8.8 and Cloudflare 1.1.1.1 |
+| `block_amount_modifiable_without_revoke` | yes | `SECONDARY` | Setu, Mandate operations > Update |
+
+**`credentials_self_serve`**
+
+> HTTP 200, access_token issued
+
+— probed 21 Aug 2026 — accountservice.setu.co/v1/users/login, https://docs.setu.co/payments/umap/quickstart
+
+Signup at bridge.setu.co is genuinely self-serve and the token endpoint accepts the resulting credentials.
+
+**`api_publicly_reachable`**
+
+> uatapi.setu.co NXDOMAIN; api.setu.co NXDOMAIN
+
+— probed 21 Aug 2026 — DNS via Google 8.8.8.8 and Cloudflare 1.1.1.1, https://docs.setu.co/payments/umap/quickstart
+
+The two hosts the UMAP docs name for sandbox and production do not exist in public DNS, while accountservice.setu.co and bridge.setu.co resolve normally. So the API surface is gated behind onboarding, private DNS or an allowlist — not reachable from a self-serve signup. Invisible until you hold credentials and try: every earlier signal, including a 200 from the token endpoint, said the rail was reachable. Reproduce with `python -m amanat.rails.probe`.
+
+**`block_amount_modifiable_without_revoke`**
+
+> There are only two updates possible on a UPI mandate — Changing the mandate end date — Changing the mandate amount
+
+— Setu, Mandate operations > Update, https://docs.setu.co/payments/umap/mandates/generic/update
+
+[PARTIAL] The only surveyed PSP exposing a modify that preserves the mandate. Direction (whether it may LOWER the amount) is documented nowhere and remains unverified.
+
+
 ## Outstanding verification
 
 4 capabilities are still unverified and therefore refused:

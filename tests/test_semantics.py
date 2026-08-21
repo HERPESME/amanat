@@ -357,3 +357,41 @@ class TestNumericLimits:
         d = rail.exceeds("max_block_amount", 900)
         assert d is not None
         assert "unverified evidence" in d.reason
+
+
+class TestObservedTier:
+    """OBSERVED means measured against the live API, not read anywhere.
+
+    A doc says what a rail is supposed to do; an observation says what it did.
+    The tier exists so the table can tell those apart, and so a probe result can
+    outrank a vendor's description of its own behaviour.
+    """
+
+    def test_observed_counts_as_fact(self):
+        assert SourceTier.OBSERVED.is_fact is True
+
+    def test_observed_still_requires_a_quote(self):
+        """For OBSERVED the quote is the API's actual response."""
+        with pytest.raises(CapabilityError, match="quote"):
+            Capability(name="x", supported=True, source_tier=SourceTier.OBSERVED,
+                       citation="probed", quote="")
+
+    def test_setu_credentials_work_but_the_api_does_not_resolve(self):
+        """Both halves measured 21 Aug 2026; see amanat.rails.probe.
+
+        The pairing is the finding. Signup is self-serve and the token endpoint
+        returns 200, so every signal short of a DNS lookup said the rail was
+        reachable.
+        """
+        rail = RAILS["setu_umap"]
+        assert rail.permits("credentials_self_serve") is True
+
+        d = rail.explain("api_publicly_reachable")
+        assert d.allowed is False
+        assert "NXDOMAIN" in d.quote
+
+    def test_an_unreachable_api_is_recorded_rather_than_omitted(self):
+        """Silence would read as 'not investigated'. It was investigated."""
+        cap = RAILS["setu_umap"].capabilities["api_publicly_reachable"]
+        assert cap.source_tier is SourceTier.OBSERVED
+        assert "self-serve signup" in cap.notes
