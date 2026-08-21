@@ -48,3 +48,37 @@ def envelope():
         expires_at=datetime.now(timezone.utc) + timedelta(hours=6),
         intent_text="Book a cab, cap it at 1000 rupees.",
     )
+
+
+MODIFIABLE_RAIL_ID = "_setu_like_fixture"
+
+
+@pytest.fixture
+def modifiable_rail():
+    """A rail that can return the remainder WITHOUT tearing the block down.
+
+    Stands in for Setu, the only one of six surveyed merchant-side PSPs that
+    exposes a mandate modify preserving the block. Razorpay, Cashfree, PayU,
+    Juspay and BoxPay expose teardown only, so this is the exception rather
+    than the shape to assume.
+    """
+    rail = RailProfile(
+        rail_id=MODIFIABLE_RAIL_ID, display_name="Setu-like Fixture Rail",
+        capabilities=[
+            Capability(
+                name="partial_debit", supported=True,
+                source_tier=SourceTier.PRIMARY,
+                citation="fixture", url="https://example.test",
+                quote="partial debit against a standing block is permitted",
+            ),
+            Capability(
+                name="remainder_release_without_teardown", supported=True,
+                source_tier=SourceTier.PRIMARY,
+                citation="fixture", url="https://example.test",
+                quote="the mandate amount may be changed without revoking the mandate",
+            ),
+        ],
+    )
+    RAILS[rail.rail_id] = rail
+    yield rail.rail_id
+    RAILS.pop(rail.rail_id, None)

@@ -138,3 +138,60 @@ class TestEverythingIsRecorded:
         session.release()
         actions = [e.payload.get("action") for e in session.chain.rail_transitions()]
         assert actions == ["reserve", "debit", "release"]
+
+
+class TestReturningTheRemainderCostsSomething:
+    """Leg three of amount-contingent settlement is not free, and not uniform.
+
+    A survey of six merchant-side PSPs found exactly one exposing a modify that
+    preserves the mandate. On every other rail, handing back the change means
+    revoking — which returns all of it and kills the block. OC-228 allows only
+    one block at a time per merchant, so the next purchase needs fresh
+    authentication.
+
+    A pitch that says "we just release the difference" claims a call four of six
+    PSPs do not expose. These tests keep the simulator honest about that.
+    """
+
+    def test_release_tears_the_block_down_on_a_teardown_only_rail(
+            self, envelope, verified_rail):
+        from amanat.rails.base import BlockState
+
+        s = AgentSession(envelope, SimulatedRail(verified_rail,
+                                                 customer_balance=10_000_00))
+        s.reserve(620_00, "citycabs")
+        s.debit(470_00)
+        assert s.release(reason="trip complete").ok
+        assert s.block.state is BlockState.REVOKED
+
+    def test_partial_release_is_refused_on_a_teardown_only_rail(
+            self, envelope, verified_rail):
+        """You cannot hand back some of it. It is all, or nothing."""
+        from amanat.rails.base import RailError
+
+        rail = SimulatedRail(verified_rail, customer_balance=10_000_00)
+        s = AgentSession(envelope, rail)
+        s.reserve(620_00, "citycabs")
+        s.debit(400_00)
+        with pytest.raises(RailError, match="tears down all of it"):
+            rail.release(s.block, 100_00)
+
+    def test_release_preserves_the_block_where_the_rail_supports_it(
+            self, envelope, modifiable_rail):
+        from amanat.rails.base import BlockState
+
+        s = AgentSession(envelope, SimulatedRail(modifiable_rail,
+                                                 customer_balance=10_000_00))
+        s.reserve(620_00, "citycabs")
+        s.debit(470_00)
+        s.release(reason="trip complete")
+        assert s.block.state is not BlockState.REVOKED
+
+    def test_the_customer_is_made_whole_either_way(self, envelope, verified_rail):
+        """Whichever lever is used, the money comes back. Only the mandate differs."""
+        rail = SimulatedRail(verified_rail, customer_balance=10_000_00)
+        s = AgentSession(envelope, rail)
+        s.reserve(620_00, "citycabs")
+        s.debit(470_00)
+        s.release()
+        assert rail.customer_balance == 10_000_00 - 470_00
