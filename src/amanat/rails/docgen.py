@@ -63,6 +63,20 @@ def render() -> str:
             out.append(f"| `{cap.name}` | {verdict} | `{cap.source_tier.name}` | {src} |")
         out.append("")
 
+        if rail.limits:
+            out.append("**Numeric limits** — enforced, not decorative. Unlike "
+                       "capabilities, an unverified limit is still applied: thin "
+                       "evidence means refuse more, never less.\n")
+            out.append("| Limit | Value | Tier | Source |")
+            out.append("|---|---|---|---|")
+            for lim in rail.limits.values():
+                out.append(f"| `{lim.name}` | {lim.render()} | "
+                           f"`{lim.source_tier.name}` | {lim.citation or '—'} |")
+            out.append("")
+            for lim in rail.limits.values():
+                if lim.notes:
+                    out.append(f"**`{lim.name}`** — {lim.notes.strip()}\n")
+
         for cap in rail.capabilities.values():
             if cap.quote or cap.notes:
                 out.append(f"**`{cap.name}`**")

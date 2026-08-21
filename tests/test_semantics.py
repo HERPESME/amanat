@@ -1,7 +1,7 @@
 """Rail capability encoding: every assertion cited or explicitly UNVERIFIED."""
 import pytest
 from amanat.rails.semantics import (
-    Capability, SourceTier, RailProfile, RAILS, CapabilityError,
+    Capability, SourceTier, RailProfile, RAILS, CapabilityError, Limit,
 )
 
 
@@ -302,3 +302,58 @@ class TestBlockModification:
         q = otm.explain("partial_debit").quote
         assert "remaining funds are unblocked in the customer bank A/C" in q
         assert RAILS["sbmd"].permits("remainder_auto_released") is False
+
+
+class TestNumericLimits:
+    """Booleans were not enough.
+
+    OC-228's Rs 10,000 block ceiling lived only inside a capability's quote
+    text, where no code could read it, so the policy engine would approve a
+    Rs 50,000 reserve on a rail that caps blocks at Rs 10,000. These pin the
+    numbers as enforceable rather than decorative.
+    """
+
+    def test_sbmd_declares_the_block_ceiling_as_a_number(self):
+        lim = RAILS["sbmd"].limit("max_block_amount")
+        assert lim.value == 10_000_00
+        assert lim.unit == "paise"
+        assert lim.source_tier is SourceTier.PRIMARY
+        assert "Rs.10,000 of block limit" in lim.quote
+
+    def test_a_breach_is_reported_with_the_circular_that_decides_it(self):
+        d = RAILS["sbmd"].exceeds("max_block_amount", 50_000_00)
+        assert d is not None and d.allowed is False
+        assert "OC-228" in d.citation
+        assert "Rs.10,000" in d.quote
+
+    def test_a_value_inside_the_limit_returns_no_refusal(self):
+        assert RAILS["sbmd"].exceeds("max_block_amount", 6_000_00) is None
+
+    def test_an_undeclared_limit_is_not_a_limit_of_zero(self):
+        """Absence of a stated bound must not silently refuse everything."""
+        assert RAILS["sbmd"].exceeds("max_hovercraft_eels", 10**9) is None
+
+    def test_ninety_days_and_one_block_are_declared_numerically_too(self):
+        rail = RAILS["sbmd"]
+        assert rail.limit("max_block_validity_days").value == 90
+        assert rail.limit("max_active_blocks_per_merchant").value == 1
+
+    def test_a_cited_limit_requires_a_verbatim_quote(self):
+        with pytest.raises(CapabilityError, match="quote"):
+            Limit(name="x", value=1, unit="paise",
+                  source_tier=SourceTier.PRIMARY, citation="c", quote="")
+
+    def test_unverified_limits_are_still_enforced(self):
+        """Opposite of capabilities, and deliberately so.
+
+        An unverified capability is not permitted; an unverified limit is still
+        enforced. Both resolve the same way — thin evidence means refuse more.
+        """
+        rail = RailProfile(
+            rail_id="_limit_fixture", display_name="Fixture",
+            limits=[Limit(name="max_block_amount", value=500,
+                          unit="paise", source_tier=SourceTier.UNVERIFIED)],
+        )
+        d = rail.exceeds("max_block_amount", 900)
+        assert d is not None
+        assert "unverified evidence" in d.reason

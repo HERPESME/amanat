@@ -88,18 +88,82 @@ class Decision:
 
 
 @dataclass
+class Limit:
+    """A cited numeric bound. Same evidence discipline as `Capability`.
+
+    Booleans alone were not enough. OC-228's Rs 10,000 block ceiling lived only
+    inside a capability's quote text, where no code could read it — so the
+    policy engine happily approved a Rs 50,000 reserve on a rail that caps
+    blocks at Rs 10,000. Numbers the rail enforces must be numbers this system
+    can enforce.
+
+    Safety semantics differ from `Capability`, deliberately. An unverified
+    capability is NOT permitted; an unverified limit IS still enforced. Both
+    resolve the same way — when the evidence is thin, refuse more, never less.
+    """
+
+    name: str
+    value: int
+    unit: str                      # "paise", "days", "count"
+    source_tier: SourceTier
+    citation: str = ""
+    url: str = ""
+    quote: str = ""
+    notes: str = ""
+
+    def __post_init__(self) -> None:
+        if self.source_tier is not SourceTier.UNVERIFIED and not self.quote.strip():
+            raise CapabilityError(
+                f"limit {self.name!r} claims tier {self.source_tier.value!r} "
+                f"but carries no verbatim quote; downgrade it to UNVERIFIED"
+            )
+
+    @property
+    def is_fact(self) -> bool:
+        return self.source_tier.is_fact
+
+    def render(self) -> str:
+        if self.unit == "paise":
+            return f"₹{self.value / 100:,.0f}"
+        return f"{self.value} {self.unit}"
+
+
+@dataclass
 class RailProfile:
     """One payment rail and everything we can evidence about it."""
 
     rail_id: str
     display_name: str
     capabilities: dict[str, Capability] = field(default_factory=dict)
+    limits: dict[str, Limit] = field(default_factory=dict)
 
     def __init__(self, rail_id: str, display_name: str,
-                 capabilities: list[Capability] | None = None) -> None:
+                 capabilities: list[Capability] | None = None,
+                 limits: list[Limit] | None = None) -> None:
         self.rail_id = rail_id
         self.display_name = display_name
         self.capabilities = {c.name: c for c in (capabilities or [])}
+        self.limits = {l.name: l for l in (limits or [])}
+
+    def limit(self, name: str) -> Limit | None:
+        """The declared bound, or None if this rail declares none."""
+        return self.limits.get(name)
+
+    def exceeds(self, name: str, value: int) -> Decision | None:
+        """A refusal if `value` breaches the declared limit, else None.
+
+        Returns None when the rail declares no such limit — absence of a stated
+        bound is not a bound of zero.
+        """
+        lim = self.limits.get(name)
+        if lim is None or value <= lim.value:
+            return None
+        tier = "" if lim.is_fact else f" [{lim.source_tier.value} evidence]"
+        return Decision(
+            name, False,
+            f"{value} exceeds {self.display_name} {name} of {lim.render()}{tier}",
+            lim.citation, lim.url, lim.quote,
+        )
 
     def permits(self, capability: str) -> bool:
         """True only if the rail supports it AND we can evidence that it does."""
@@ -385,9 +449,43 @@ _SETU_SBMD_CUMULATIVE = (
 )
 
 
+SBMD_LIMITS = [
+    Limit(
+        name="max_block_amount", value=10_000_00, unit="paise",
+        source_tier=SourceTier.PRIMARY, citation=OC228, url=OC228_URL,
+        quote=_OC228_BLOCK_CEILING,
+        notes=(
+            "Scoped to purpose code 77 (online goods and service delivery). "
+            "OC-200(c) gives Rs 5 lakh per transaction for code 76 (securities), "
+            "so this ceiling is not universal across SBMD. For a "
+            "ceiling-selection thesis this is the BINDING constraint: a "
+            "predicted ceiling above it cannot be blocked at all, whatever the "
+            "model says."
+        ),
+    ),
+    Limit(
+        name="max_block_validity_days", value=90, unit="days",
+        source_tier=SourceTier.PRIMARY, citation=OC228, url=OC228_URL,
+        quote=_OC228_BLOCK_CEILING,
+        notes=(
+            "Same sentence as the Rs 10,000 ceiling. Never cite the 90 days "
+            "without the amount cap — quoting the window alone reads as a much "
+            "more permissive rail than the one that exists."
+        ),
+    ),
+    Limit(
+        name="max_active_blocks_per_merchant", value=1, unit="count",
+        source_tier=SourceTier.PRIMARY, citation=OC228, url=OC228_URL,
+        quote=("One mobile number (assumed as one customer) is allowed to create "
+               "only one block at a time for the particular merchant."),
+        notes="Scoped per merchant. Blocks with different merchants may coexist.",
+    ),
+]
+
 SBMD = RailProfile(
     rail_id="sbmd",
     display_name="UPI Reserve Pay (NPCI Single Block Multiple Debit)",
+    limits=SBMD_LIMITS,
     capabilities=[
         Capability(
             name="payment_guarantee", supported=False,

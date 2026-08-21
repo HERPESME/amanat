@@ -39,6 +39,20 @@ this table, so anything unverified here is refused at runtime.
 | `block_modify_requires_customer_afa` | yes | `SECONDARY` | Setu UPI (UMAP), Mandate operations - Update |
 | `remainder_release_without_teardown` | **no** | `SECONDARY` | Razorpay UPI Reserve Pay (SBMD), Manage Mandates and Tokens; Cashfree UPI Reserve Pay, Implementation Guide step 6 (Manage mandate); Juspay One Time Mandate, Release the Blocked Funds |
 
+**Numeric limits** — enforced, not decorative. Unlike capabilities, an unverified limit is still applied: thin evidence means refuse more, never less.
+
+| Limit | Value | Tier | Source |
+|---|---|---|---|
+| `max_block_amount` | ₹10,000 | `PRIMARY` | NPCI/UPI/OC-228/2025-26, 8 October 2025 |
+| `max_block_validity_days` | 90 days | `PRIMARY` | NPCI/UPI/OC-228/2025-26, 8 October 2025 |
+| `max_active_blocks_per_merchant` | 1 count | `PRIMARY` | NPCI/UPI/OC-228/2025-26, 8 October 2025 |
+
+**`max_block_amount`** — Scoped to purpose code 77 (online goods and service delivery). OC-200(c) gives Rs 5 lakh per transaction for code 76 (securities), so this ceiling is not universal across SBMD. For a ceiling-selection thesis this is the BINDING constraint: a predicted ceiling above it cannot be blocked at all, whatever the model says.
+
+**`max_block_validity_days`** — Same sentence as the Rs 10,000 ceiling. Never cite the 90 days without the amount cap — quoting the window alone reads as a much more permissive rail than the one that exists.
+
+**`max_active_blocks_per_merchant`** — Scoped per merchant. Blocks with different merchants may coexist.
+
 **`payment_guarantee`**
 
 > The block created shall not be treated as the guarantee of payment, only the successful debit response received by the merchant (for the debit initiated by the customer action on merchant's platform) shall be considered for payment.
