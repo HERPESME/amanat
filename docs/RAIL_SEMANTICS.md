@@ -216,7 +216,7 @@ ONE PIECE OF GOOD NEWS the circulars do not give you. Razorpay bounds worst-case
 
 | Capability | Permitted | Tier | Source |
 |---|---|---|---|
-| `partial_debit` | **no** | `SECONDARY` | Razorpay capture docs |
+| `partial_debit` | **no** | `OBSERVED` | measured 22 Aug 2026 — POST /payments/{id}/capture, HTTP 400 (docs agree: razorpay.com/docs/api/payments/capture/) |
 | `funds_held_in_customer_account` | **no** | `SECONDARY` | Razorpay payment lifecycle docs |
 | `manual_capture` | yes | `SECONDARY` | Razorpay orders API (payment_capture flag) |
 
@@ -224,9 +224,9 @@ ONE PIECE OF GOOD NEWS the circulars do not give you. Razorpay bounds worst-case
 
 > Capture amount must be equal to the amount authorized.
 
-— Razorpay capture docs, https://razorpay.com/docs/api/payments/capture/
+— measured 22 Aug 2026 — POST /payments/{id}/capture, HTTP 400 (docs agree: razorpay.com/docs/api/payments/capture/), https://razorpay.com/docs/api/payments/capture/
 
-Forecloses amount-contingent settlement on this rail. Demo the negative.
+Not a documentation claim. A test-mode payment was driven to 'authorized' (captured=False) through Razorpay Checkout against an order created with payment_capture=0, then a capture of 47000 was attempted against 62000 authorized. The API returned HTTP 400 with this exact sentence — the doc and the live rail agree word for word. Reproduce with `python -m amanat.rails.authorize` then `python -m amanat.rails.probe --capture <pay_id> 47000`. Forecloses amount-contingent settlement on this rail; the negative is the thing worth demonstrating.
 
 **`funds_held_in_customer_account`**
 

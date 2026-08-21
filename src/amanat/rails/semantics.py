@@ -962,11 +962,23 @@ RAZORPAY_AUTH_CAPTURE = RailProfile(
     capabilities=[
         Capability(
             name="partial_debit", supported=False,
-            source_tier=SourceTier.SECONDARY,
-            citation="Razorpay capture docs",
+            source_tier=SourceTier.OBSERVED,
+            citation=("measured 22 Aug 2026 — POST /payments/{id}/capture, "
+                      "HTTP 400 (docs agree: razorpay.com/docs/api/payments/capture/)"),
             url="https://razorpay.com/docs/api/payments/capture/",
             quote=_RAZORPAY_FULL_CAPTURE,
-            notes="Forecloses amount-contingent settlement on this rail. Demo the negative.",
+            notes=(
+                "Not a documentation claim. A test-mode payment was driven to "
+                "'authorized' (captured=False) through Razorpay Checkout against "
+                "an order created with payment_capture=0, then a capture of "
+                "47000 was attempted against 62000 authorized. The API returned "
+                "HTTP 400 with this exact sentence — the doc and the live rail "
+                "agree word for word. Reproduce with "
+                "`python -m amanat.rails.authorize` then "
+                "`python -m amanat.rails.probe --capture <pay_id> 47000`. "
+                "Forecloses amount-contingent settlement on this rail; the "
+                "negative is the thing worth demonstrating."
+            ),
         ),
         Capability(
             name="funds_held_in_customer_account", supported=False,
