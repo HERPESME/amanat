@@ -101,6 +101,16 @@ class RazorpayTestRail:
         return self._call("POST", f"/payments/{payment_id}/capture",
                           json={"amount": amount, "currency": "INR"})
 
+    def refund(self, payment_id: str, amount: int) -> tuple[int, dict]:
+        """Refund part or all of a captured payment. Returns the raw result.
+
+        Measured to work in test mode: a partial refund returns HTTP 200 with
+        `refund_status: partial`. This is the return leg of capture-then-refund
+        settlement — see `amanat.rails.settlement`.
+        """
+        return self._call("POST", f"/payments/{payment_id}/refund",
+                          json={"amount": amount})
+
     # -- what it cannot honour ---------------------------------------------
 
     def reserve(self, ceiling: int, payee: str) -> BlockRef:
