@@ -1,3 +1,4 @@
+# docker compose up web             → the interactive demo at http://localhost:8080
 # docker compose run --rm demo      → the seven-act governance walkthrough
 # docker compose run --rm tests     → the containment suite
 # docker compose run --rm frontier  → the ceiling frontier on real NYC TLC fares
@@ -5,6 +6,16 @@
 # `data` is a named volume so the ~100MB of TLC parquet survives between runs.
 
 services:
+  # The interactive governed-core demo. http://localhost:8080
+  web:
+    build:
+      context: .
+      target: web
+    ports:
+      - "8080:8080"
+    environment:
+      PORT: 8080
+
   demo:
     build:
       context: .

@@ -8,10 +8,16 @@
 
 *Block a ceiling. Debit the actual. Prove what the money did.*
 
-[![tests](https://img.shields.io/badge/tests-163%20passing-2ea44f?style=flat-square)](#testing)
+[![tests](https://img.shields.io/badge/tests-174%20passing-2ea44f?style=flat-square)](#testing)
 [![python](https://img.shields.io/badge/python-3.11%2B-3776ab?style=flat-square)](#quick-start)
 [![rails](https://img.shields.io/badge/rails-UPI%20SBMD%20%C2%B7%20Razorpay%20%C2%B7%20Setu-6c5ce7?style=flat-square)](#the-evidence-table)
 [![credentials](https://img.shields.io/badge/core%20runs%20with-zero%20credentials-e17055?style=flat-square)](#testing)
+
+### ▶ Try it live
+
+**[Interactive demo](https://amanat-demo-699979063196.asia-south1.run.app)** — set a budget, run a settlement or attack it, watch the policy engine refuse and the signed chain verify itself.
+&nbsp;·&nbsp;
+**[Verify a signed packet](https://claude.ai/code/artifact/6edf0c30-6be8-4f60-961b-285b11af9995)** — recomputes its own hashes and signatures in your browser; press *Tamper* to watch it catch a change.
 
 </div>
 
@@ -109,7 +115,7 @@ git clone https://github.com/HERPESME/amanat && cd amanat
 # The seven-act walkthrough — the whole argument in one command
 uv run --with cryptography python -m amanat.demo
 
-# 163 tests. No API key, no network.
+# 174 tests. No API key, no network.
 uv run --with pytest --with cryptography --with numpy \
        --with scikit-learn --with pandas --with pyarrow pytest tests/ -q
 ```
@@ -121,6 +127,9 @@ uv run --with cryptography python -m amanat.compare
 # A dispute packet that verifies itself in your browser (open the file it writes)
 uv run --with cryptography python -m amanat.evidence.render
 ```
+
+> **Hosted:** the same demo runs at
+> **<https://amanat-demo-699979063196.asia-south1.run.app>** (Cloud Run, scales to zero).
 
 <details>
 <summary><b>Optional — live agent, the ML frontier, real-rail settlement</b></summary>
@@ -407,7 +416,7 @@ uv run --with pytest --with cryptography --with numpy \
        --with scikit-learn --with pandas --with pyarrow pytest tests/ -q
 ```
 
-**163 tests, no credential and no network.** If proving the agent is bounded ever
+**174 tests, no credential and no network.** If proving the agent is bounded ever
 required a live model, the agent would not be bounded.
 
 | Suite | What it pins |
