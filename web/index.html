@@ -40,9 +40,12 @@ h1{font-size:1.85rem;font-weight:600;letter-spacing:-.02em;margin:0 0 .4rem;text
 .card h2{font-size:12px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.1em;
   color:var(--dim);margin:0 0 1rem;font-weight:600}
 label{display:block;font-size:12.5px;color:var(--dim);margin:.85rem 0 .3rem}
-input{width:100%;font-family:var(--mono);font-size:14px;padding:.5rem .65rem;border-radius:8px;
+input,textarea{width:100%;font-family:var(--mono);font-size:14px;padding:.5rem .65rem;border-radius:8px;
   border:1px solid var(--line);background:var(--bg);color:var(--ink)}
-input:focus{outline:none;border-color:var(--brand)}
+textarea{font-family:var(--sans);line-height:1.5;resize:vertical}
+input:focus,textarea:focus{outline:none;border-color:var(--brand)}
+.reply{white-space:pre-wrap;font-size:14px;line-height:1.65}
+.link{color:var(--brand);font-weight:500}
 .hint{font-size:11.5px;color:var(--dim);margin-top:.25rem;font-family:var(--mono)}
 .presets{display:flex;flex-wrap:wrap;gap:.4rem;margin:.4rem 0 0}
 .presets button{font-size:12px;padding:.35rem .7rem}
@@ -145,7 +148,26 @@ pre:focus{outline:none;border-color:var(--brand)}
       <button class="run" id="run">Run through the policy engine</button>
     </div>
 
+    <div class="card" style="margin-top:1.25rem">
+      <h2>Or let a real AI agent drive it</h2>
+      <p class="hint" style="margin:0 0 .5rem;line-height:1.5">Runs Gemini live on
+        <b>your own key</b> — used for this one request, never stored. The governed core
+        still bounds it, and there is no real payment rail, so a wild prompt only produces
+        refusals.</p>
+      <label>Your Gemini API key
+        <a class="link" href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">— get one free</a></label>
+      <input id="gkey" type="password" placeholder="AIza…" autocomplete="off" spellcheck="false">
+      <label>What should the agent do?</label>
+      <textarea id="prompt" rows="4">Book a cab to the airport. The fare is metered, so reserve a sensible ceiling, then debit ₹470 when the trip ends, and release the rest.</textarea>
+      <button class="run" id="runAgent">Run the live AI agent</button>
+    </div>
+
     <div>
+      <div class="card" id="replyCard" style="display:none;margin-bottom:1.25rem">
+        <h2>What the agent said</h2>
+        <div id="reply" class="reply"></div>
+      </div>
+
       <div class="card" style="margin-bottom:1.25rem">
         <h2>What the policy engine did</h2>
         <div class="steps" id="steps"><div class="empty">Run a session to see verdicts.</div></div>
@@ -248,6 +270,33 @@ pre:focus{outline:none;border-color:var(--brand)}
     } finally { btn.disabled=false; btn.textContent='Run through the policy engine'; }
   }
   document.getElementById('run').onclick = run;
+
+  async function runAgent(){
+    const key = document.getElementById('gkey').value.trim();
+    const prompt = document.getElementById('prompt').value.trim();
+    const reply = document.getElementById('reply');
+    const card = document.getElementById('replyCard');
+    if(!key){ card.style.display='block'; reply.textContent='Paste your Gemini API key first — the link above gives you a free one.'; return; }
+    const body = {gemini_key:key, prompt,
+      envelope:{budget:paise('budget'), per_txn:paise('per_txn'),
+                payee:document.getElementById('payee').value.trim(), hours:6}};
+    const btn = document.getElementById('runAgent'); btn.disabled=true; btn.textContent='Agent is working…';
+    card.style.display='block'; reply.textContent='The agent is reasoning and calling tools…';
+    try{
+      const res = await fetch('/api/agent',{method:'POST',
+        headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+      const data = await res.json();
+      if(!res.ok){ reply.textContent = data.error || 'The agent run failed.'; return; }
+      reply.textContent = data.reply || '(the agent returned no text)';
+      document.getElementById('steps').innerHTML =
+        '<div class="empty">The agent drove this — every action it took, allowed or refused, is in the receipt below.</div>';
+      document.getElementById('summary').textContent = data.summary;
+      await setPacket(data.packet); renderEntries(); await verifyAll();
+    } catch(e){ reply.textContent = 'Network error — try again.'; }
+    finally { btn.disabled=false; btn.textContent='Run the live AI agent'; }
+  }
+  document.getElementById('runAgent').onclick = runAgent;
+
   run();  // show the happy path on load
   </script>
 </div></body></html>

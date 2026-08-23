@@ -256,13 +256,17 @@ class GeminiBackend:
 
     name = "gemini"
 
-    def __init__(self, model: str = "gemini-3.7-flash") -> None:
+    def __init__(self, model: str = "gemini-3.7-flash",
+                 api_key: str | None = None) -> None:
         self.model = model
+        # An explicit key lets a caller (e.g. the hosted demo) run on a visitor's
+        # own credential instead of the process environment. Never logged.
+        self.api_key = api_key
 
     def run(self, session: AgentSession, user_input: str) -> str:
         from google import genai
 
-        client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
+        client = genai.Client(api_key=self.api_key or os.environ["GEMINI_API_KEY"])
         tools = [{"type": "function", **t} for t in TOOLS]
 
         interaction = client.interactions.create(
