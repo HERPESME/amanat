@@ -8,7 +8,7 @@
 
 *Block a ceiling. Debit the actual. Prove what the money did.*
 
-[![tests](https://img.shields.io/badge/tests-178%20passing-2ea44f?style=flat-square)](#testing)
+[![tests](https://img.shields.io/badge/tests-205%20passing-2ea44f?style=flat-square)](#testing)
 [![python](https://img.shields.io/badge/python-3.11%2B-3776ab?style=flat-square)](#quick-start)
 [![rails](https://img.shields.io/badge/rails-UPI%20SBMD%20%C2%B7%20Razorpay%20%C2%B7%20Setu-6c5ce7?style=flat-square)](#the-evidence-table)
 [![credentials](https://img.shields.io/badge/core%20runs%20with-zero%20credentials-e17055?style=flat-square)](#testing)
@@ -115,7 +115,7 @@ git clone https://github.com/HERPESME/amanat && cd amanat
 # The seven-act walkthrough — the whole argument in one command
 uv run --with cryptography python -m amanat.demo
 
-# 178 tests. No API key, no network.
+# 205 tests. No API key, no network.
 uv run --with pytest --with cryptography --with numpy \
        --with scikit-learn --with pandas --with pyarrow pytest tests/ -q
 ```
@@ -126,6 +126,9 @@ uv run --with cryptography python -m amanat.compare
 
 # A dispute packet that verifies itself in your browser (open the file it writes)
 uv run --with cryptography python -m amanat.evidence.render
+
+# Settle against a real AP2 mandate, then dispute it three ways
+uv run --with cryptography python -m amanat.dispute.demo
 ```
 
 > **Hosted:** the same demo runs at
@@ -318,6 +321,32 @@ that no longer verifies.
 > — open it, then press **Tamper** and watch it catch the change.
 > Source: [`docs/sample/dispute-packet.html`](docs/sample/dispute-packet.html).
 
+### And the dispute the market has no answer for
+
+Google AP2, OpenAI/Stripe ACP, Coinbase x402, Visa Trusted Agent Protocol and
+Mastercard Agent Pay all establish that an agent was *permitted* to spend, and
+stop there. The contested question comes after — a cardholder says *"my agent did
+it"* — and there is no post-transaction record to settle it against. This project
+produces exactly that record, so it can adjudicate.
+
+Give it a signed packet, a real **AP2 Open Payment Mandate** (parsed from AP2's
+own schema, `vct: mandate.payment.open.1` — the envelope round-trips through it,
+it doesn't just borrow the field names), and a cardholder's claim. It verifies
+the record, then states with cited entry numbers what the evidence shows:
+
+- *"The ₹470 charged was authorized and within every bound — the AP2 mandate at
+  entry #0 grants ₹800/txn to citycabs; entry #8 debited ₹470 to citycabs."*
+- *"The disputed ₹5,000 was never charged — that attempt was refused at entry #2."*
+- *"The signed record cannot establish delivery"* — the honest limit, stated not hidden.
+
+One line governs it, and it's the one to say out loud: **this is an evidence
+finding, not an issuer decision.** Whether a dispute is *won* is issuer
+discretion; what this establishes is what the record shows. It claims no
+win-rate, because a win-rate is not the record's to claim. The output is a
+one-click, signed representment packet — authorization + evidence + finding —
+that replaces the manual evidence scramble. Run it: `python -m amanat.dispute.demo`,
+or press *dispute it* on the [live console](https://amanat-demo-699979063196.asia-south1.run.app).
+
 ---
 
 ## What building it found
@@ -400,6 +429,8 @@ src/amanat/
 ├── evidence/
 │   ├── chain.py        ← Ed25519 + SHA-256, append-only, records refusals
 │   └── render.py       ← exports a chain as a browser-verifiable HTML packet
+├── interop/ap2.py      ← reads/writes real AP2 Open Payment Mandates
+├── dispute/            ← adjudicate a chain against its AP2 authorization
 ├── ceiling/            ← conformalized quantile regression on real NYC TLC fares
 ├── orchestrator/       ← governed core + swappable Claude/Gemini backends
 ├── compare.py          ← same intent, two rails, two signed chains
@@ -416,7 +447,7 @@ uv run --with pytest --with cryptography --with numpy \
        --with scikit-learn --with pandas --with pyarrow pytest tests/ -q
 ```
 
-**178 tests, no credential and no network.** If proving the agent is bounded ever
+**205 tests, no credential and no network.** If proving the agent is bounded ever
 required a live model, the agent would not be bounded.
 
 | Suite | What it pins |
@@ -428,6 +459,9 @@ required a live model, the agent would not be bounded.
 | `test_adversarial.py` | 23 attacks — amounts, homoglyph payees, sequence, malformed calls |
 | `test_ceiling.py` | conformal guarantee holds on *exchangeable* data |
 | `test_backends.py` | a second LLM provider added no second route to money |
+| `test_ap2_interop.py` | real AP2 Open Payment Mandates round-trip through the envelope |
+| `test_adjudicate.py` | disputes adjudicated to cited findings; tamper caught first |
+| `test_properties.py` | money invariants proven over thousands of random sequences |
 | `test_settlement.py` | capture-then-refund gated; double-settlement refused |
 | `test_compare.py` | the two rails share no transition verbs |
 | `test_render.py` | the browser's hashing reproduces Python's, byte for byte |
