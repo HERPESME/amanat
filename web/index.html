@@ -170,6 +170,16 @@ pre{font-family:var(--mono);font-size:11.5px;line-height:1.5;margin:.5rem 0 0;pa
 pre:focus{outline:none;border-color:var(--brand)}
 .hash{font-family:var(--mono);font-size:10px;color:var(--faint);margin-top:.4rem;word-break:break-all}
 
+.fbanner{padding:.85rem 1.05rem;border-radius:11px;font-size:14px;border:1px solid var(--line);margin-bottom:.85rem}
+.fbanner b{font-family:var(--mono);font-size:11.5px;text-transform:uppercase;letter-spacing:.05em}
+.fbanner.ok{color:var(--ok);background:var(--ok-soft);border-color:color-mix(in srgb,var(--ok) 45%,transparent)}
+.fbanner.bad{color:var(--bad);background:var(--bad-soft);border-color:color-mix(in srgb,var(--bad) 45%,transparent)}
+.fbanner.brand{color:var(--brand);background:var(--brand-soft);border-color:color-mix(in srgb,var(--brand) 40%,transparent)}
+.fbanner.neutral{color:var(--dim)}
+.reasons{margin:0 0 .85rem;padding-left:1.15rem;font-size:13.5px;line-height:1.65}
+.reasons li{margin:.25rem 0}
+.disclaimer{font-size:12px;color:var(--faint);font-style:italic;border-left:2px solid var(--line);
+  padding-left:.75rem;margin-bottom:.95rem;line-height:1.5}
 .empty{color:var(--faint);font-size:13.5px;padding:1.5rem 0;text-align:center}
 footer{color:var(--faint);font-size:12.5px;margin-top:2.5rem;border-top:1px solid var(--line);
   padding-top:1.25rem;line-height:1.7}
@@ -264,6 +274,21 @@ footer a{color:var(--brand)}
       <div class="meta">public key <code id="pk"></code> · <span id="count"></span> · Ed25519 over SHA-256, hash-linked</div>
       <div class="rail" id="entries"></div>
     </div>
+
+    <div class="card pad" id="disputeCard" style="margin-top:1.25rem;display:none">
+      <h2>Now dispute it — the part the market has no answer for</h2>
+      <p class="sub" style="margin:0 0 1rem;line-height:1.5">A cardholder contests the charge.
+        Every agent-payment standard (AP2, Visa TAP, Mastercard Agent Pay) proves the agent was
+        <i>permitted</i> and stops there. This adjudicates the signed record against the AP2
+        authorization and states what the evidence shows — never who wins.</p>
+      <div class="attacks" style="margin-top:0">
+        <span class="lbl">Cardholder claims:</span>
+        <button class="chip-btn" data-claim="unauthorized">“I never authorized this”</button>
+        <button class="chip-btn" data-claim="amount">“Wrong amount charged”</button>
+        <button class="chip-btn" data-claim="non_delivery">“Goods never arrived”</button>
+      </div>
+      <div id="finding" style="margin-top:1.1rem"></div>
+    </div>
   </section>
 
   <footer>The real governed core — the same <code>PolicyEngine</code> and <code>EvidenceChain</code> the
@@ -319,8 +344,11 @@ footer a{color:var(--brand)}
   }
 
   /* ---- render the whole result from a packet ---- */
+  let lastPacket = null;   // the pristine server packet, for adjudication
   function num(v){return Number(v||0);}
   async function renderResult(packet, reply){
+    lastPacket = JSON.parse(JSON.stringify(packet));
+    el('disputeCard').style.display='block'; el('finding').innerHTML='';
     el('replyCard').style.display = reply ? 'block' : 'none';
     if(reply) el('reply').textContent = reply;
 
@@ -433,6 +461,40 @@ footer a{color:var(--brand)}
     finally { btn.disabled=false; btn.textContent='Run the live AI agent'; }
   }
   el('runAgent').onclick=runAgent;
+
+  /* ---- dispute adjudication ---- */
+  const FCLASS = {supports_merchant:'ok', supports_cardholder:'bad',
+    charge_not_in_chain:'brand', outside_evidence:'neutral', evidence_tampered:'bad'};
+  document.querySelectorAll('[data-claim]').forEach(b=>b.onclick=()=>runDispute(b.dataset.claim));
+
+  async function runDispute(assertion){
+    if(!lastPacket) return;
+    const body={packet:lastPacket, assertion};
+    // If a specific attempt was refused, dispute *that* amount to show it isn't in the chain.
+    const ref=lastPacket.entries.find(e=>e.event_type==='refusal' && e.payload.proposed_amount);
+    if((assertion==='unauthorized'||assertion==='amount') && ref) body.disputed_amount=ref.payload.proposed_amount;
+    el('finding').innerHTML='<div class="sub">Adjudicating against the AP2 authorization…</div>';
+    try{
+      const res=await fetch('/api/dispute',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+      if(!res.ok){ el('finding').innerHTML='<div class="sub">This packet can’t be adjudicated.</div>'; return; }
+      renderFinding(await res.json());
+    }catch(e){ el('finding').innerHTML='<div class="sub">Network error.</div>'; }
+  }
+
+  function renderFinding(d){
+    const f=d.finding, cls=FCLASS[f.finding]||'neutral';
+    el('finding').innerHTML=`
+      <div class="fbanner ${cls}"><b>${esc(f.finding.replace(/_/g,' '))}</b> — ${esc(f.headline)}</div>
+      <ul class="reasons">${f.reasons.map(r=>`<li>${esc(r)}</li>`).join('')}</ul>
+      <div class="disclaimer">${esc(f.disclaimer)}</div>
+      <button class="ghost" id="dl">Download representment packet (.json)</button>`;
+    el('dl').onclick=()=>{
+      const blob=new Blob([JSON.stringify(d.representment,null,2)],{type:'application/json'});
+      const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+      a.download='representment-packet.json'; document.body.appendChild(a); a.click();
+      a.remove(); URL.revokeObjectURL(a.href);
+    };
+  }
 
   run();  // land on a worked example
   </script>

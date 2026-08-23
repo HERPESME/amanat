@@ -147,3 +147,42 @@ class TestTheByoKeyAgentEndpoint:
         assert KEY not in r.text
         assert "secret internal detail" not in r.text
         assert "failed" in r.json()["error"].lower()
+
+
+class TestDisputeAdjudicationEndpoint:
+    """Adjudicate a run's own packet against the AP2 mandate it ran under."""
+
+    def _packet(self):
+        return sim(1_000_00, 800_00, "citycabs", HAPPY).json()["packet"]
+
+    def test_a_settled_run_adjudicates_to_supports_merchant(self):
+        r = client.post("/api/dispute", json={
+            "packet": self._packet(), "assertion": "unauthorized"})
+        assert r.status_code == 200
+        d = r.json()
+        assert d["finding"]["finding"] == "supports_merchant"
+        assert d["finding"]["disclaimer"]
+        assert d["representment"]["authorization"]["vct"].startswith("mandate.payment.open")
+
+    def test_a_refused_amount_is_reported_not_in_the_chain(self):
+        packet = sim(1_000_00, 800_00, "citycabs",
+                     [{"type": "reserve", "amount": 5_000_00, "payee": "citycabs"}]).json()["packet"]
+        r = client.post("/api/dispute", json={
+            "packet": packet, "assertion": "unauthorized", "disputed_amount": 5_000_00})
+        assert r.json()["finding"]["finding"] == "charge_not_in_chain"
+
+    def test_non_delivery_is_outside_the_evidence(self):
+        r = client.post("/api/dispute", json={
+            "packet": self._packet(), "assertion": "non_delivery"})
+        assert r.json()["finding"]["finding"] == "outside_evidence"
+
+    def test_an_unknown_assertion_is_rejected(self):
+        r = client.post("/api/dispute", json={
+            "packet": self._packet(), "assertion": "made_up"})
+        assert r.status_code == 422
+
+    def test_a_packet_without_an_envelope_is_refused_cleanly(self):
+        r = client.post("/api/dispute", json={
+            "packet": {"entries": [], "public_key": "x", "genesis_hash": "0"*64},
+            "assertion": "unauthorized"})
+        assert r.status_code == 422

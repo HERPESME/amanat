@@ -89,9 +89,62 @@ def run_simulation(body: SimulateIn) -> dict:
             "packet": session.evidence_packet()}
 
 
+class DisputeIn(BaseModel):
+    packet: dict
+    assertion: str = Field(pattern="^(unauthorized|amount|wrong_payee|non_delivery)$")
+    disputed_amount: int | None = Field(default=None, ge=0, le=MAX_PAISE)
+
+
+def _envelope_from_packet(packet: dict) -> Envelope:
+    """Rebuild the authorizing envelope from the packet's own signed record.
+
+    The envelope is entry one of any chain, so a dispute can be adjudicated
+    against the exact grant the settlement ran under, with nothing to trust
+    beyond the signed packet itself.
+    """
+    from datetime import datetime as _dt
+
+    entry = next((e for e in packet.get("entries", [])
+                  if e.get("event_type") == "envelope"), None)
+    if entry is None:
+        raise ValueError("packet carries no envelope entry to adjudicate against")
+    p = entry["payload"]
+    return Envelope(
+        subject=p.get("subject", "adjudicated"),
+        max_total=int(p["max_total"]), max_per_txn=int(p["max_per_txn"]),
+        allowed_payees=list(p["allowed_payees"]),
+        expires_at=_dt.fromisoformat(p["expires_at"]),
+        intent_text=p.get("intent_text", ""))
+
+
 @app.get("/api/health")
 def health() -> dict:
     return {"ok": True}
+
+
+@app.post("/api/dispute")
+def dispute(body: DisputeIn) -> JSONResponse:
+    """Adjudicate a settlement chain against the AP2 mandate it ran under.
+
+    The finding says what the signed evidence shows — never who wins the dispute.
+    """
+    from amanat.dispute.adjudicate import adjudicate, export_representment_packet
+    from amanat.interop.ap2 import to_open_payment_mandate
+
+    try:
+        env = _envelope_from_packet(body.packet)
+    except (ValueError, KeyError, TypeError):
+        return JSONResponse(
+            {"error": "this packet cannot be adjudicated — it has no envelope."},
+            status_code=422)
+
+    mandate = to_open_payment_mandate(env)
+    adj = adjudicate(body.packet, mandate, body.assertion,
+                     disputed_amount=body.disputed_amount)
+    return JSONResponse({
+        "finding": adj.to_dict(),
+        "representment": export_representment_packet(adj, body.packet, mandate),
+    })
 
 
 @app.post("/api/simulate")
