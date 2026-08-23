@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Amanat — try the governed core</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔏</text></svg>">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#eef1f5; --panel:#ffffff; --line:#dde2ea; --ink:#161b24; --dim:#5c6675;
+  --brand:#4f46e5; --brand-soft:rgba(79,70,229,.10);
+  --ok:#0e9f6e; --ok-soft:rgba(14,159,110,.10);
+  --bad:#e02424; --bad-soft:rgba(224,36,36,.09);
+  --mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  --sans:'IBM Plex Sans',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+}
+:root:not([data-theme="light"]){ @media (prefers-color-scheme:dark){
+  --bg:#0c0f16; --panel:#141925; --line:#232b3a; --ink:#e7ebf2; --dim:#8b97a9;
+  --brand:#8b85f5; --brand-soft:rgba(139,133,245,.14);
+  --ok:#34d399; --ok-soft:rgba(52,211,153,.13);
+  --bad:#f87171; --bad-soft:rgba(248,113,113,.13);
+}}
+:root[data-theme="dark"]{
+  --bg:#0c0f16; --panel:#141925; --line:#232b3a; --ink:#e7ebf2; --dim:#8b97a9;
+  --brand:#8b85f5; --brand-soft:rgba(139,133,245,.14);
+  --ok:#34d399; --ok-soft:rgba(52,211,153,.13);
+  --bad:#f87171; --bad-soft:rgba(248,113,113,.13);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+  font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased}
+.wrap{max-width:72rem;margin:0 auto;padding:2.5rem 1.25rem 5rem}
+.eyebrow{font-family:var(--mono);font-size:12px;font-weight:500;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--brand);margin:0 0 .5rem}
+h1{font-size:1.85rem;font-weight:600;letter-spacing:-.02em;margin:0 0 .4rem;text-wrap:balance}
+.lede{color:var(--dim);max-width:60ch;margin:0 0 2rem}
+.grid{display:grid;grid-template-columns:1fr;gap:1.25rem}
+@media(min-width:900px){.grid{grid-template-columns:22rem 1fr;align-items:start}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:1.35rem}
+.card h2{font-size:12px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.1em;
+  color:var(--dim);margin:0 0 1rem;font-weight:600}
+label{display:block;font-size:12.5px;color:var(--dim);margin:.85rem 0 .3rem}
+input{width:100%;font-family:var(--mono);font-size:14px;padding:.5rem .65rem;border-radius:8px;
+  border:1px solid var(--line);background:var(--bg);color:var(--ink)}
+input:focus{outline:none;border-color:var(--brand)}
+.hint{font-size:11.5px;color:var(--dim);margin-top:.25rem;font-family:var(--mono)}
+.presets{display:flex;flex-wrap:wrap;gap:.4rem;margin:.4rem 0 0}
+.presets button{font-size:12px;padding:.35rem .7rem}
+button{font-family:var(--sans);font-size:13.5px;font-weight:500;padding:.6rem 1.1rem;
+  border-radius:9px;border:1px solid var(--line);background:var(--panel);color:var(--ink);
+  cursor:pointer;transition:border-color .15s,color .15s}
+button:hover{border-color:var(--brand);color:var(--brand)}
+button.warn:hover{border-color:var(--bad);color:var(--bad)}
+button:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+.run{width:100%;margin-top:1.25rem;background:var(--brand);color:#fff;border-color:var(--brand);
+  font-weight:600;padding:.7rem}
+.run:hover{color:#fff;filter:brightness(1.08)}
+.steps{display:flex;flex-direction:column;gap:.55rem;margin-bottom:1.5rem}
+.step{display:flex;gap:.75rem;align-items:flex-start;padding:.75rem .9rem;border-radius:10px;
+  border:1px solid var(--line);background:var(--panel)}
+.step .verb{font-family:var(--mono);font-size:12px;font-weight:600;text-transform:uppercase;
+  letter-spacing:.04em;min-width:5.5rem}
+.step.ok{border-color:var(--ok);background:var(--ok-soft)}
+.step.no{border-color:var(--bad);background:var(--bad-soft)}
+.step .verb.ok{color:var(--ok)} .step .verb.no{color:var(--bad)}
+.step .body{flex:1;min-width:0}
+.step .detail{font-size:13.5px}
+.step .cite{font-family:var(--mono);font-size:11.5px;color:var(--dim);margin-top:.3rem;
+  word-break:break-word}
+.amt{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.banner{display:flex;align-items:center;gap:.75rem;padding:1rem 1.2rem;border-radius:12px;
+  font-weight:600;margin:0 0 1.1rem;border:1px solid var(--line);background:var(--panel);
+  transition:all .25s}
+.banner .seal{width:2rem;height:2rem;flex:none;border-radius:50%;display:grid;place-items:center;
+  border:2px solid currentColor}
+.banner .seal svg{width:1.1rem;height:1.1rem}
+.banner.ok{color:var(--ok);background:var(--ok-soft);border-color:var(--ok)}
+.banner.bad{color:var(--bad);background:var(--bad-soft);border-color:var(--bad)}
+.banner.pending{color:var(--dim)}
+.meta{display:flex;flex-wrap:wrap;gap:.35rem 1.5rem;font-size:12.5px;color:var(--dim);margin-bottom:1rem}
+.meta code{font-family:var(--mono);color:var(--ink)}
+.rail{position:relative;padding-left:1.5rem}
+.rail::before{content:"";position:absolute;left:5px;top:.4rem;bottom:.4rem;width:2px;background:var(--line)}
+.entry{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:12px;
+  padding:.95rem 1.1rem;margin-bottom:.6rem;transition:border-color .2s}
+.entry::before{content:"";position:absolute;left:-1.5rem;top:1.25rem;width:12px;height:12px;
+  border-radius:50%;background:var(--panel);border:2px solid var(--line);transform:translateX(-1px)}
+.entry.rail-t::before{border-color:var(--brand)}
+.entry.refusal::before{border-color:var(--bad)}
+.entry.broken{border-color:var(--bad)} .entry.broken::before{border-color:var(--bad);background:var(--bad)}
+.head{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap}
+.seq{font-family:var(--mono);font-size:12px;color:var(--dim)}
+.chip{font-family:var(--mono);font-size:10.5px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;
+  padding:.12rem .5rem;border-radius:6px;border:1px solid var(--line);color:var(--dim)}
+.chip.rail_transition{color:var(--brand);border-color:var(--brand);background:var(--brand-soft)}
+.chip.refusal{color:var(--bad);border-color:var(--bad);background:var(--bad-soft)}
+.actor{font-size:12px;color:var(--dim)}
+.chk{margin-left:auto;font-family:var(--mono);font-size:11px;font-weight:500;display:flex;align-items:center;gap:.35rem}
+.chk::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.chk.ok{color:var(--ok)} .chk.bad{color:var(--bad)}
+pre{font-family:var(--mono);font-size:12px;line-height:1.5;margin:.6rem 0 0;padding:.6rem .75rem;
+  background:var(--bg);border:1px solid var(--line);border-radius:8px;overflow-x:auto;
+  white-space:pre-wrap;word-break:break-word;color:var(--ink)}
+pre:focus{outline:none;border-color:var(--brand)}
+.hash{font-family:var(--mono);font-size:10px;color:var(--dim);margin-top:.5rem;word-break:break-all}
+.empty{color:var(--dim);font-size:14px;padding:2rem 0;text-align:center}
+.foot{color:var(--dim);font-size:12.5px;margin-top:2.5rem;border-top:1px solid var(--line);
+  padding-top:1.25rem;max-width:70ch;line-height:1.7}
+.foot a{color:var(--brand)}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style></head>
+<body><div class="wrap">
+  <p class="eyebrow">Amanat · governed-core demo</p>
+  <h1>Try to make the agent misbehave</h1>
+  <p class="lede">Set a budget and a payee, then run a settlement — or attack it. The
+    policy engine decides every action, and whatever happens is written to a signed
+    chain that verifies itself in your browser. No real money, no model, no credentials.</p>
+
+  <div class="grid">
+    <div class="card">
+      <h2>The session</h2>
+      <label>Budget (₹)</label>
+      <input id="budget" value="1000" inputmode="decimal">
+      <label>Per-transaction cap (₹)</label>
+      <input id="per_txn" value="800" inputmode="decimal">
+      <label>Allowed payee</label>
+      <input id="payee" value="citycabs">
+
+      <h2 style="margin-top:1.5rem">The trip</h2>
+      <label>Ceiling to block (₹)</label>
+      <input id="ceiling" value="620" inputmode="decimal">
+      <label>Actual fare (₹)</label>
+      <input id="actual" value="470" inputmode="decimal">
+      <label>Charge to</label>
+      <input id="charge" value="citycabs">
+      <div class="hint">Change “charge to” to something else to attack the allowlist.</div>
+
+      <div class="presets">
+        <button data-preset="happy">Happy path</button>
+        <button data-preset="over">Over budget</button>
+        <button data-preset="payee">Wrong payee</button>
+        <button data-preset="low">Ceiling too low</button>
+      </div>
+
+      <button class="run" id="run">Run through the policy engine</button>
+    </div>
+
+    <div>
+      <div class="card" style="margin-bottom:1.25rem">
+        <h2>What the policy engine did</h2>
+        <div class="steps" id="steps"><div class="empty">Run a session to see verdicts.</div></div>
+        <div id="summary" class="hint"></div>
+      </div>
+
+      <div class="card">
+        <h2>The receipt — verify it yourself</h2>
+        <div id="banner" class="banner pending">
+          <span class="seal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+          <span id="banner-text">Run a session to produce a signed chain.</span>
+        </div>
+        <div class="meta">
+          <span>public key <code id="pk">—</code></span>
+          <span id="count"></span>
+          <span>Ed25519 · SHA-256</span>
+        </div>
+        <div style="display:flex;gap:.6rem;margin-bottom:1.1rem;flex-wrap:wrap">
+          <button onclick="verifyAll()">Re-verify</button>
+          <button class="warn" onclick="tamper()">Tamper with a rail entry</button>
+        </div>
+        <div class="rail" id="entries"></div>
+      </div>
+    </div>
+  </div>
+
+  <p class="foot">This is the real governed core — the same <code>AgentSession</code>,
+    <code>PolicyEngine</code> and <code>EvidenceChain</code> covered by the test suite —
+    running on a settlement simulator. The live LLM agent and real Razorpay settlement
+    stay off this public page by design, because the governance guarantees do not depend
+    on them. Source and the full walkthrough:
+    <a href="https://github.com/HERPESME/amanat">github.com/HERPESME/amanat</a>.</p>
+
+  <script>
+  /*__VERIFY__*/
+
+  const rs = p => '₹' + (p/100).toLocaleString('en-IN',{minimumFractionDigits:2});
+  const paise = id => Math.round(parseFloat(document.getElementById(id).value||'0')*100);
+
+  const PRESETS = {
+    happy: {budget:1000, per_txn:800, payee:'citycabs', ceiling:620, actual:470, charge:'citycabs'},
+    over:  {budget:1000, per_txn:800, payee:'citycabs', ceiling:5000, actual:470, charge:'citycabs'},
+    payee: {budget:1000, per_txn:800, payee:'citycabs', ceiling:620, actual:470, charge:'randomcab'},
+    low:   {budget:1000, per_txn:800, payee:'citycabs', ceiling:380, actual:470, charge:'citycabs'},
+  };
+  document.querySelectorAll('[data-preset]').forEach(b =>
+    b.onclick = () => { const p = PRESETS[b.dataset.preset];
+      for (const k in p) document.getElementById(k).value = p[k]; run(); });
+
+  function label(t){return t.replace(/_/g,' ');}
+  function renderEntries(){
+    document.getElementById('pk').textContent = PACKET.public_key.slice(0,20)+'…';
+    document.getElementById('count').textContent = PACKET.entries.length+' entries';
+    document.getElementById('entries').innerHTML = PACKET.entries.map((e,i)=>{
+      const cls = e.event_type==='refusal'?'refusal':e.event_type==='rail_transition'?'rail-t':'';
+      return `<div class="entry ${cls}" id="e-${i}"><div class="head">
+        <span class="seq">#${e.seq}</span>
+        <span class="chip ${e.event_type}">${label(e.event_type)}</span>
+        <span class="actor">${e.actor}</span>
+        <span class="chk" id="chk-${i}">checking</span></div>
+        <pre id="pl-${i}" contenteditable="true" spellcheck="false">${
+          JSON.stringify(e.payload,null,2)}</pre>
+        <div class="hash">hash ${e.hash}</div></div>`;
+    }).join('');
+  }
+
+  function renderSteps(steps, summary){
+    document.getElementById('steps').innerHTML = steps.map(s=>{
+      const cls = s.ok?'ok':'no';
+      return `<div class="step ${cls}">
+        <span class="verb ${cls}">${s.ok?'✓ '+s.type:'✗ '+s.type}</span>
+        <div class="body"><div class="detail"><span class="amt">${rs(s.amount)}</span>
+          → ${s.payee} — ${s.ok?'allowed':s.detail}</div>
+          ${s.citation?`<div class="cite">${s.citation}</div>`:''}</div></div>`;
+    }).join('');
+    document.getElementById('summary').textContent = summary;
+  }
+
+  async function run(){
+    const body = {
+      envelope:{budget:paise('budget'), per_txn:paise('per_txn'),
+                payee:document.getElementById('payee').value.trim(), hours:6},
+      actions:[
+        {type:'reserve', amount:paise('ceiling'),
+         payee:document.getElementById('charge').value.trim(), reason:'ceiling for the trip'},
+        {type:'debit', amount:paise('actual'), reason:'metered fare'},
+        {type:'release', reason:'trip complete'},
+      ],
+    };
+    const btn = document.getElementById('run'); btn.disabled = true; btn.textContent='Running…';
+    try{
+      const res = await fetch('/api/simulate',{method:'POST',
+        headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+      if(!res.ok){ renderSteps([{type:'error',amount:0,payee:'',ok:false,
+        detail:'invalid input — check the amounts',citation:''}],''); return; }
+      const data = await res.json();
+      renderSteps(data.steps, data.summary);
+      await setPacket(data.packet); renderEntries(); await verifyAll();
+    } finally { btn.disabled=false; btn.textContent='Run through the policy engine'; }
+  }
+  document.getElementById('run').onclick = run;
+  run();  // show the happy path on load
+  </script>
+</div></body></html>
