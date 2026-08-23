@@ -18,6 +18,8 @@
 **[Interactive demo](https://amanat-demo-699979063196.asia-south1.run.app)** — set a budget, run a settlement or attack it, watch the policy engine refuse and the signed chain verify itself.
 &nbsp;·&nbsp;
 **[Verify a signed packet](https://claude.ai/code/artifact/6edf0c30-6be8-4f60-961b-285b11af9995)** — recomputes its own hashes and signatures in your browser; press *Tamper* to watch it catch a change.
+&nbsp;·&nbsp;
+**[Pitch deck](https://claude.ai/code/artifact/c9f7e1c2-85ed-47ce-b041-15664c3e5db0)** — the five-minute argument, presentable from the browser (`docs/pitch/deck.html`).
 
 </div>
 

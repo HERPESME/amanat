@@ -1,0 +1,402 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Amanat — Pitch</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔏</text></svg>">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Committed single-theme deck: a presentation, painted explicitly. */
+:root{
+  --bg:#0B0E15; --panel:#131826; --sunk:#0E1220; --line:#242C3E; --line2:#1A2130;
+  --ink:#EAEDF4; --dim:#93A0B4; --faint:#647089;
+  --brand:#8B85F5; --brand-soft:rgba(139,133,245,.12);
+  --ok:#34D399; --ok-soft:rgba(52,211,153,.10);
+  --bad:#F87171; --bad-soft:rgba(248,113,113,.10);
+  --amber:#F0B24A; --amber-soft:rgba(240,178,74,.10);
+  --mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  --sans:'IBM Plex Sans',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+  font-size:clamp(15px,1.35vw,19px);line-height:1.55;-webkit-font-smoothing:antialiased;
+  overflow:hidden}
+::selection{background:var(--brand);color:#0B0E15}
+
+.slide{display:none;position:absolute;inset:0;padding:5.5vh 7vw 12vh;
+  flex-direction:column;justify-content:center}
+.slide.active{display:flex}
+.eyebrow{font-family:var(--mono);font-size:.68em;font-weight:500;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--brand);margin:0 0 1.1em}
+h1{font-family:var(--mono);font-weight:700;letter-spacing:-.015em;line-height:1.12;
+  font-size:2.6em;margin:0 0 .45em;text-wrap:balance;max-width:24ch}
+h1 .q{color:var(--brand)}
+.lede{color:var(--dim);font-size:1.08em;max-width:56ch;margin:0}
+.lede b,.lede strong{color:var(--ink);font-weight:600}
+.k{font-family:var(--mono)}
+.rule{border:0;border-top:1px solid var(--line);margin:2.2em 0}
+.foot{position:absolute;left:7vw;right:7vw;bottom:9.5vh;display:flex;gap:2em;
+  color:var(--faint);font-family:var(--mono);font-size:.66em;letter-spacing:.06em}
+
+/* ---------- shared blocks ---------- */
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:1.2em;margin-top:2em}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:1.1em 1.25em}
+.tile .t{font-family:var(--mono);font-size:.7em;text-transform:uppercase;letter-spacing:.1em;color:var(--faint)}
+.tile .v{font-family:var(--mono);font-weight:600;font-size:1.5em;margin-top:.25em;font-variant-numeric:tabular-nums}
+.tile .d{color:var(--dim);font-size:.85em;margin-top:.35em;line-height:1.5}
+.tile.bad{border-color:color-mix(in srgb,var(--bad) 45%,transparent);background:var(--bad-soft)}
+.tile.bad .v{color:var(--bad)}
+.tile.ok{border-color:color-mix(in srgb,var(--ok) 45%,transparent);background:var(--ok-soft)}
+.tile.ok .v{color:var(--ok)}
+
+table{border-collapse:collapse;width:100%;margin-top:1.8em;font-size:.92em}
+th{font-family:var(--mono);font-size:.7em;text-transform:uppercase;letter-spacing:.1em;
+  color:var(--faint);text-align:left;font-weight:500;padding:.5em .9em .5em 0}
+td{padding:.62em .9em .62em 0;border-top:1px solid var(--line2);vertical-align:top}
+td.k{color:var(--ink);font-weight:500;white-space:nowrap}
+td.stop{color:var(--dim)}
+tr.gap td{color:var(--brand);font-weight:600;border-top:1px solid var(--line)}
+
+.flow{display:flex;align-items:stretch;gap:.9em;margin-top:2.2em;flex-wrap:wrap}
+.step{flex:1;min-width:8.5em;background:var(--panel);border:1px solid var(--line);
+  border-radius:12px;padding:1em 1.1em;position:relative}
+.step .n{font-family:var(--mono);font-size:.68em;letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
+.step .amt{font-family:var(--mono);font-weight:700;font-size:1.7em;margin:.2em 0 .1em;font-variant-numeric:tabular-nums}
+.step .d{color:var(--dim);font-size:.8em;line-height:1.45}
+.step.hold{border-color:var(--amber)} .step.hold .amt{color:var(--amber)}
+.step.pay{border-color:var(--ok)} .step.pay .amt{color:var(--ok)}
+.step.rec{border-color:var(--brand)} .step.rec .amt{color:var(--brand)}
+.arrow{align-self:center;color:var(--faint);font-family:var(--mono);font-size:1.1em}
+
+/* ---------- architecture ---------- */
+.arch{display:grid;grid-template-columns:1fr auto;gap:1.2em;margin-top:1.8em;align-items:stretch}
+.band{border:1px solid var(--line);border-radius:12px;padding:.85em 1.1em;margin-bottom:.8em;
+  display:flex;align-items:baseline;gap:1.1em;background:var(--panel)}
+.band:last-child{margin-bottom:0}
+.band .who{font-family:var(--mono);font-weight:600;font-size:.85em;min-width:11.5em}
+.band .does{color:var(--dim);font-size:.85em;line-height:1.5}
+.band.u{border-color:color-mix(in srgb,var(--bad) 50%,transparent)}
+.band.u .who{color:var(--bad)}
+.band.g{border-color:color-mix(in srgb,var(--ok) 50%,transparent)}
+.band.g .who{color:var(--ok)}
+.band.e{border-color:color-mix(in srgb,#6AA6FF 55%,transparent)}
+.band.e .who{color:#6AA6FF}
+.chaincol{border:1px solid var(--brand);border-radius:12px;background:var(--brand-soft);
+  padding:1em 1.1em;display:flex;flex-direction:column;justify-content:center;max-width:15em}
+.chaincol .who{font-family:var(--mono);font-weight:600;color:var(--brand);font-size:.85em}
+.chaincol .does{color:var(--dim);font-size:.8em;margin-top:.4em;line-height:1.5}
+.vline{display:flex;justify-content:center;color:var(--faint);font-family:var(--mono);
+  font-size:.8em;margin:.15em 0}
+
+/* ---------- ledger / receipts ---------- */
+.ledger{font-family:var(--mono);font-size:.92em;margin-top:1.6em}
+.lrow{display:grid;grid-template-columns:9.5em 7em 1fr;gap:1.2em;padding:.55em 0;
+  border-top:1px solid var(--line2);align-items:baseline}
+.lrow .verb{font-weight:600}
+.lrow .amt{text-align:right;font-variant-numeric:tabular-nums}
+.lrow .note{color:var(--faint);font-size:.82em;font-family:var(--sans)}
+.lrow.hd{border-top:0;color:var(--faint);text-transform:uppercase;font-size:.68em;letter-spacing:.1em}
+.v-brand{color:var(--brand)} .v-ok{color:var(--ok)} .v-bad{color:var(--bad)} .v-amber{color:var(--amber)}
+
+.quote{border-left:2px solid var(--brand);padding:.2em 0 .2em 1.1em;margin:1.6em 0 0;
+  font-family:var(--mono);font-size:.95em;color:var(--ink);max-width:58ch;line-height:1.6}
+.quote .src{display:block;color:var(--faint);font-size:.75em;margin-top:.5em;font-family:var(--sans)}
+
+.finding{border:1px solid var(--line);border-radius:12px;padding:1em 1.2em;margin-top:.9em;background:var(--panel)}
+.finding .f{font-family:var(--mono);font-weight:700;font-size:.8em;letter-spacing:.06em;text-transform:uppercase}
+.finding .h{margin-top:.3em;font-size:.95em}
+.finding .c{color:var(--faint);font-size:.8em;margin-top:.35em;font-family:var(--mono)}
+.finding.ok{border-color:color-mix(in srgb,var(--ok) 45%,transparent)} .finding.ok .f{color:var(--ok)}
+.finding.brand{border-color:color-mix(in srgb,var(--brand) 45%,transparent)} .finding.brand .f{color:var(--brand)}
+.finding.amber{border-color:color-mix(in srgb,var(--amber) 45%,transparent)} .finding.amber .f{color:var(--amber)}
+
+.limits li{margin:.55em 0;color:var(--dim)}
+.limits li b{color:var(--ink);font-weight:600}
+ul.limits{margin:1.6em 0 0;padding-left:1.2em;max-width:60ch}
+
+.big-line{font-family:var(--mono);font-weight:700;font-size:1.45em;color:var(--ink);
+  margin-top:1.8em;max-width:30ch;line-height:1.35;text-wrap:balance}
+.big-line .a{color:var(--brand)}
+
+.urls{margin-top:2em;font-family:var(--mono);font-size:.95em;line-height:2.1}
+.urls a{color:var(--brand);text-decoration:none;border-bottom:1px solid color-mix(in srgb,var(--brand) 40%,transparent)}
+.urls .lab{color:var(--faint);font-size:.75em;text-transform:uppercase;letter-spacing:.1em;margin-right:1em}
+.cmd{background:var(--sunk);border:1px solid var(--line);border-radius:10px;padding:.9em 1.1em;
+  font-family:var(--mono);font-size:.82em;color:var(--dim);margin-top:1.4em;line-height:1.9;overflow-x:auto}
+.cmd b{color:var(--ink);font-weight:500}
+
+/* ---------- chain progress (signature) ---------- */
+nav{position:fixed;left:0;right:0;bottom:0;padding:1.1em 7vw 1.4em;display:flex;
+  align-items:center;gap:0;background:linear-gradient(transparent,var(--bg) 40%)}
+.node{font-family:var(--mono);font-size:.6em;letter-spacing:.05em;color:var(--faint);
+  border:1px solid var(--line);border-radius:6px;padding:.35em .55em;cursor:pointer;
+  background:var(--bg);transition:color .15s,border-color .15s;user-select:none}
+.node:hover{color:var(--dim)}
+.node.on{color:var(--brand);border-color:var(--brand);background:var(--brand-soft)}
+.node.done{color:var(--dim)}
+.linkline{flex:1;height:1px;background:var(--line);min-width:.4em;max-width:2.2em}
+.hint{position:fixed;right:7vw;bottom:4.2em;color:var(--faint);font-family:var(--mono);
+  font-size:.6em;letter-spacing:.08em}
+button.navbtn{position:fixed;top:0;bottom:0;width:12vw;border:0;background:transparent;cursor:pointer;opacity:0}
+#prevz{left:0}#nextz{right:0}
+@media (prefers-reduced-motion:no-preference){
+  .slide.active>*{animation:up .35s ease both}
+  @keyframes up{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+}
+@media (max-width:700px){
+  .cols,.arch{grid-template-columns:1fr}
+  h1{font-size:2em}
+  .flow{flex-direction:column}
+  .arrow{transform:rotate(90deg);align-self:flex-start;margin-left:1em}
+  nav{flex-wrap:wrap;gap:.3em}.linkline{display:none}
+}
+</style></head>
+<body>
+
+<!-- #00 · title -->
+<section class="slide" data-n="00">
+  <p class="eyebrow">Razorpay AI Buildathon 2026 · Track 01 — AI Growth &amp; Agentic Commerce</p>
+  <h1 style="font-size:3.4em">Amanat <span class="q">·</span> अमानत</h1>
+  <p class="lede" style="font-size:1.2em"><i>a thing held in trust, to be returned to its owner</i></p>
+  <p class="big-line">Block a ceiling.<br>Debit the actual.<br><span class="a">Prove what the money did.</span></p>
+  <div class="foot"><span>Eeshan Singh Pokharia</span><span>eeshan.singh53@gmail.com</span><span>github.com/HERPESME/amanat</span></div>
+</section>
+
+<!-- #01 · problem -->
+<section class="slide" data-n="01">
+  <p class="eyebrow">The problem</p>
+  <h1>A human in a cab never sets a ceiling.</h1>
+  <p class="lede">They watch the meter and pay what it says. An AI agent cannot — to spend on
+    your behalf it must commit to an amount <b>before that amount exists</b>: before the meter
+    runs, before the substitutions, before the kWh.</p>
+  <div class="cols">
+    <div class="tile bad"><div class="t">Ceiling too low</div><div class="v">sale lost</div>
+      <div class="d">The debit is declined. NPCI grants zero retries for this class of decline.</div></div>
+    <div class="tile bad"><div class="t">Ceiling too high</div><div class="v">money stranded</div>
+      <div class="d">The customer's funds sit blocked for nothing — up to 90 days on the rail's own terms.</div></div>
+  </div>
+  <p class="big-line">Every agent payment is a forecast.<br><span class="a">Nobody built the settlement for that.</span></p>
+</section>
+
+<!-- #02 · market gap -->
+<section class="slide" data-n="02">
+  <p class="eyebrow">What the market lacks</p>
+  <h1>The market solved permission — and stopped.</h1>
+  <table>
+    <tr><th>Standard</th><th>What it proves</th><th>Where it stops</th></tr>
+    <tr><td class="k">Google AP2</td><td class="stop">a signed mandate — the agent <i>may</i> spend</td><td class="stop">authorization</td></tr>
+    <tr><td class="k">OpenAI / Stripe ACP</td><td class="stop">checkout of a known amount</td><td class="stop">prepay, fixed price</td></tr>
+    <tr><td class="k">Coinbase x402</td><td class="stop">machine paid per call</td><td class="stop">prepay, no contingency</td></tr>
+    <tr><td class="k">Visa TAP · MC Agent Pay</td><td class="stop">the agent's identity</td><td class="stop">identity only</td></tr>
+    <tr class="gap"><td class="k">gap 1</td><td colspan="2">settle an amount that doesn't exist yet — ceiling now, actual later</td></tr>
+    <tr class="gap"><td class="k">gap 2</td><td colspan="2">"my agent did it" — no post-transaction record to settle a dispute against</td></tr>
+  </table>
+  <p class="lede" style="margin-top:1.6em;font-size:.9em;color:var(--faint)">Gap 2 is the industry's own words — Visa and the dispute processors flag the post-authorization layer as unaddressed.</p>
+</section>
+
+<!-- #03 · solution -->
+<section class="slide" data-n="03">
+  <p class="eyebrow">The solution</p>
+  <h1>Amount-contingent settlement, on UPI's own primitive.</h1>
+  <div class="flow">
+    <div class="step"><div class="n">intent</div><div class="amt">₹1,000</div><div class="d">"cab to the airport, cap it here" — becomes a machine-checked envelope</div></div>
+    <span class="arrow">→</span>
+    <div class="step hold"><div class="n">block</div><div class="amt">₹620</div><div class="d">ceiling reserved <b>in the customer's own account</b> — visible, revocable in their UPI app</div></div>
+    <span class="arrow">→</span>
+    <div class="step pay"><div class="n">debit</div><div class="amt">₹470</div><div class="d">the actual, once it exists — never more than the ceiling</div></div>
+    <span class="arrow">→</span>
+    <div class="step"><div class="n">release</div><div class="amt">₹150</div><div class="d">the difference, returned</div></div>
+    <span class="arrow">→</span>
+    <div class="step rec"><div class="n">receipt</div><div class="amt">signed</div><div class="d">every step — including refusals — Ed25519 over a hash-linked chain</div></div>
+  </div>
+  <p class="lede" style="margin-top:2em">Rail: <b>UPI Single Block Multiple Debit</b> (Reserve Pay) —
+    semantics read from the NPCI circulars themselves, <span class="k">OC-228 / OC-200</span>, off the scanned PDFs.</p>
+</section>
+
+<!-- #04 · architecture -->
+<section class="slide" data-n="04">
+  <p class="eyebrow">Architecture</p>
+  <h1>The LLM proposes. The policy engine disposes. <span class="q">The rail enforces.</span></h1>
+  <div class="arch">
+    <div>
+      <div class="band u"><span class="who">UNTRUSTED · the model</span>
+        <span class="does">Gemini or Claude, interchangeable — holds zero authority; every tool call is only a proposal. BYO-key safe.</span></div>
+      <div class="vline">↓ proposes</div>
+      <div class="band g"><span class="who">GOVERNED · policy engine</span>
+        <span class="does">Deterministic, no model call. Checks the human's envelope, then the rail's <i>cited</i> capabilities and limits. Refusals carry the circular that decided them.</span></div>
+      <div class="vline">↓ approved actions only</div>
+      <div class="band e"><span class="who">ENFORCED · the rail</span>
+        <span class="does">UPI SBMD · Razorpay · Setu — the outermost boundary is a bank, not a prompt.</span></div>
+    </div>
+    <div class="chaincol"><span class="who">EVIDENCE CHAIN</span>
+      <span class="does">Every proposal, verdict, transition — and every <b>refusal</b> — signed and hash-linked. Verifies with zero trust in us.</span></div>
+  </div>
+  <p class="lede" style="margin-top:1.6em;font-size:.9em">No code path reaches money without a verdict —
+    pinned by test, then proven over <b>thousands of random action sequences</b> (property-based):
+    <span class="k">debited + released ≤ blocked · blocked ≤ budget</span>. No counterexample.</p>
+</section>
+
+<!-- #05 · discipline -->
+<section class="slide" data-n="05">
+  <p class="eyebrow">The discipline that makes it trustworthy</p>
+  <h1>Every capability is cited — or it is refused.</h1>
+  <div class="ledger">
+    <div class="lrow hd"><span>tier</span><span>usable as fact</span><span></span></div>
+    <div class="lrow"><span class="verb v-ok">PRIMARY</span><span class="amt v-ok">yes</span><span class="note">NPCI circular, RBI directive — quoted verbatim</span></div>
+    <div class="lrow"><span class="verb v-ok">OBSERVED</span><span class="amt v-ok">yes</span><span class="note">measured against the live API — the quote is the rail's response</span></div>
+    <div class="lrow"><span class="verb v-ok">SECONDARY</span><span class="amt v-ok">yes</span><span class="note">PSP docs, for that PSP's own behaviour</span></div>
+    <div class="lrow"><span class="verb v-bad">MARKETING</span><span class="amt v-bad">never</span><span class="note">blogs, comparison tables</span></div>
+    <div class="lrow"><span class="verb v-bad">UNVERIFIED</span><span class="amt v-bad">never</span><span class="note">absence of evidence is not permission</span></div>
+  </div>
+  <div class="quote">For one day, this system refused its own core mechanism — partial debit rested
+    on vendor docs until we read NPCI OC-228 off the scanned PDF. The gate held against us too.
+    <span class="src">That refusal is still in the test suite, as a record.</span></div>
+</section>
+
+<!-- #06 · measured -->
+<section class="slide" data-n="06">
+  <p class="eyebrow">Measured, not quoted</p>
+  <h1>A doc says what a rail should do.<br>A probe says what it did.</h1>
+  <div class="ledger">
+    <div class="lrow"><span class="verb v-bad">Razorpay</span><span class="amt">HTTP&nbsp;400</span>
+      <span class="note">"Capture amount must be equal to the amount authorized" — the live API and the docs agree word for word. Partial capture: measured, not assumed.</span></div>
+    <div class="lrow"><span class="verb v-amber">Setu UMAP</span><span class="amt">NXDOMAIN</span>
+      <span class="note">credentials accepted (HTTP 200) — but uatapi.setu.co and api.setu.co do not exist on Google or Cloudflare DNS. Invisible until you hold keys and try.</span></div>
+    <div class="lrow"><span class="verb v-ok">Razorpay, live</span><span class="amt">rfnd_TT55…</span>
+      <span class="note">real settlement on the test-mode API: capture ₹620 → refund ₹150 → merchant nets ₹470, real refund id in the signed chain.</span></div>
+    <div class="lrow"><span class="verb v-brand">NPCI OC-228</span><span class="amt">read</span>
+      <span class="note">image-only scans rendered and read page by page; ₹10,000 block cap and the debit-before-delivery rule now enforced in code, quoted in refusals.</span></div>
+  </div>
+</section>
+
+<!-- #07 · two rails -->
+<section class="slide" data-n="07">
+  <p class="eyebrow">Same intent, two rails</p>
+  <h1>The merchant nets the same ₹470. Your money's path differs.</h1>
+  <div class="cols">
+    <div class="tile" style="border-color:color-mix(in srgb,var(--ok) 40%,transparent)">
+      <div class="t">UPI SBMD · Reserve Pay</div>
+      <div class="ledger" style="margin-top:.8em;font-size:.85em">
+        <div class="lrow" style="grid-template-columns:6.5em 1fr"><span class="verb v-amber">BLOCKED</span><span class="amt">₹620.00</span></div>
+        <div class="lrow" style="grid-template-columns:6.5em 1fr"><span class="verb v-ok">DEBITED</span><span class="amt">₹470.00</span></div>
+        <div class="lrow" style="grid-template-columns:6.5em 1fr"><span class="verb">RELEASED</span><span class="amt">₹150.00</span></div>
+      </div>
+      <div class="d" style="margin-top:.8em;color:var(--ok);font-family:var(--mono);font-size:.8em">left the account: ₹470 — and that is all</div>
+    </div>
+    <div class="tile" style="border-color:color-mix(in srgb,var(--bad) 35%,transparent)">
+      <div class="t">Razorpay · capture + refund</div>
+      <div class="ledger" style="margin-top:.8em;font-size:.85em">
+        <div class="lrow" style="grid-template-columns:6.5em 1fr"><span class="verb">AUTHORIZED</span><span class="amt">₹620.00</span></div>
+        <div class="lrow" style="grid-template-columns:6.5em 1fr"><span class="verb v-bad">CAPTURED</span><span class="amt">₹620.00</span></div>
+        <div class="lrow" style="grid-template-columns:6.5em 1fr"><span class="verb">REFUNDED</span><span class="amt">₹150.00</span></div>
+      </div>
+      <div class="d" style="margin-top:.8em;color:var(--bad);font-family:var(--mono);font-size:.8em">left the account: ₹620, until the refund settles</div>
+    </div>
+  </div>
+  <p class="big-line" style="font-size:1.15em">Two different money paths — and the signed chain
+    <span class="a">proves which one actually ran.</span></p>
+</section>
+
+<!-- #08 · dispute -->
+<section class="slide" data-n="08">
+  <p class="eyebrow">The add-on the market has no answer for</p>
+  <h1>"My agent did it" — finally, a record to check.</h1>
+  <p class="lede">Adjudicate the signed chain against the real <b>AP2 Open Payment Mandate</b>
+    it ran under (parsed from AP2's own schema — it round-trips, it doesn't just borrow field names):</p>
+  <div class="finding ok"><span class="f">supports merchant</span>
+    <div class="h">"The ₹470 charged was authorized and within every bound."</div>
+    <div class="c">cites: mandate at entry #0 · debit at entry #8</div></div>
+  <div class="finding brand"><span class="f">charge not in chain</span>
+    <div class="h">"The disputed ₹5,000 was never charged — that attempt was <b>refused</b> at entry #2."</div>
+    <div class="c">refusals are evidence too — the half ordinary logs leave out</div></div>
+  <div class="finding amber"><span class="f">outside evidence</span>
+    <div class="h">"The signed record cannot establish delivery." — the honest limit, stated.</div></div>
+  <p class="big-line" style="font-size:1.15em">An <span class="a">evidence finding</span> — not an issuer decision.<br>
+    <span style="font-size:.7em;color:var(--dim);font-family:var(--sans);font-weight:400">No win-rate claimed. Win-rate is the issuer's call, not the record's.</span></p>
+</section>
+
+<!-- #09 · numbers -->
+<section class="slide" data-n="09">
+  <p class="eyebrow">Benchmarks &amp; rigor</p>
+  <h1>Numbers that match the runner.</h1>
+  <div class="cols" style="grid-template-columns:repeat(4,1fr)">
+    <div class="tile"><div class="t">tests</div><div class="v">205</div><div class="d">all pass with zero credentials and zero network</div></div>
+    <div class="tile"><div class="t">adversarial</div><div class="v">23</div><div class="d">homoglyph payees, overflow amounts, sequence attacks — all refused</div></div>
+    <div class="tile"><div class="t">property runs</div><div class="v">600+</div><div class="d">random action sequences per CI run; money invariants hold after every step</div></div>
+    <div class="tile"><div class="t">rails encoded</div><div class="v">5</div><div class="d">26 capabilities, every one cited or refused</div></div>
+  </div>
+  <hr class="rule">
+  <p class="lede"><b>The ceiling model, honestly.</b> Conformal quantile regression on
+    <span class="k">300k real NYC metered fares</span> (no public Indian dataset exists — the method
+    transfers, the coefficients don't). Finding: the coverage guarantee is distribution-free but
+    <b>not shift-free</b> — 18 of 20 configs missed nominal under a real temporal split. Recency
+    calibration narrows the gap ~10× (<span class="k">−3.55pp → +0.91pp</span>).
+    <span style="color:var(--faint)">A random split would have passed — and lied about deployment.</span></p>
+</section>
+
+<!-- #10 · live -->
+<section class="slide" data-n="10">
+  <p class="eyebrow">Running it</p>
+  <h1>Try to make it misbehave.</h1>
+  <div class="urls">
+    <div><span class="lab">console</span><a href="https://amanat-demo-699979063196.asia-south1.run.app">amanat-demo-…asia-south1.run.app</a></div>
+    <div style="color:var(--dim);font-size:.8em;font-family:var(--sans);margin:.2em 0 1em">
+      attack the envelope → watch the refusal, with its citation → dispute the charge → download the representment packet.
+      Runs the real governed core; BYO-key live Gemini agent. Cloud Run, scales to zero.</div>
+    <div><span class="lab">receipt</span><a href="https://claude.ai/code/artifact/6edf0c30-6be8-4f60-961b-285b11af9995">self-verifying evidence packet</a></div>
+    <div style="color:var(--dim);font-size:.8em;font-family:var(--sans);margin-top:.2em">
+      recomputes its own hashes and Ed25519 signatures in <i>your</i> browser — press Tamper, watch it name the broken entry.</div>
+  </div>
+  <div class="cmd"><b>uv run … python -m amanat.demo</b>            # the 7-act walkthrough<br>
+<b>uv run … python -m amanat.compare</b>         # two rails, side by side<br>
+<b>uv run … python -m amanat.dispute.demo</b>    # settle on a real AP2 mandate, then contest it<br>
+<b>uv run … python -m amanat.rails.settle</b>    # real money-shaped run on Razorpay test APIs</div>
+</section>
+
+<!-- #11 · limits + close -->
+<section class="slide" data-n="11">
+  <p class="eyebrow">Stated before you ask</p>
+  <h1>What this is <span class="q">not</span>.</h1>
+  <ul class="limits">
+    <li><b>The SBMD demo runs on a simulator</b> — every semantic cites the circular it models; the real-rail run is gated on PSP enablement, and the real Razorpay path is the different-but-honest capture-then-refund.</li>
+    <li><b>Consent binding is a stated placeholder</b> — adjudication proves the settlement conformed to the recorded grant, not that a human's key signed it; AP2's <span class="k">cnf</span> slot is where that lands.</li>
+    <li><b>No risk model of ours</b> — Razorpay ships RTO Shield; risk enters through a seam, not a rewrite.</li>
+    <li><b>No win-rate, no "first," no invented data</b> — negative findings are promoted, not buried. The two-round adversarial review that killed our own v1 thesis ships in the repo.</li>
+  </ul>
+  <p class="big-line">Agents will transact before trust does.<br><span class="a">Amanat is the trust part.</span></p>
+  <div class="foot"><span>Eeshan Singh Pokharia</span><span>eeshan.singh53@gmail.com</span><span>github.com/HERPESME/amanat</span><span>Track 01 · Razorpay AI Buildathon</span></div>
+</section>
+
+<nav id="nav" aria-label="slides"></nav>
+<div class="hint">← → navigate · F fullscreen</div>
+<button class="navbtn" id="prevz" aria-label="previous slide"></button>
+<button class="navbtn" id="nextz" aria-label="next slide"></button>
+
+<script>
+const slides=[...document.querySelectorAll('.slide')];
+const nav=document.getElementById('nav');
+slides.forEach((s,i)=>{
+  if(i>0){const l=document.createElement('span');l.className='linkline';nav.appendChild(l);}
+  const b=document.createElement('span');b.className='node';b.textContent='#'+s.dataset.n;
+  b.onclick=()=>go(i);nav.appendChild(b);
+});
+const nodes=[...nav.querySelectorAll('.node')];
+let cur=0;
+function go(i){
+  cur=Math.max(0,Math.min(slides.length-1,i));
+  slides.forEach((s,j)=>s.classList.toggle('active',j===cur));
+  nodes.forEach((n,j)=>{n.classList.toggle('on',j===cur);n.classList.toggle('done',j<cur);});
+  history.replaceState(null,'','#'+cur);
+}
+addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'||e.key===' '||e.key==='PageDown')go(cur+1);
+  else if(e.key==='ArrowLeft'||e.key==='PageUp')go(cur-1);
+  else if(e.key==='Home')go(0); else if(e.key==='End')go(slides.length-1);
+  else if(e.key==='f'||e.key==='F'){document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen();}
+});
+document.getElementById('nextz').onclick=()=>go(cur+1);
+document.getElementById('prevz').onclick=()=>go(cur-1);
+go(parseInt(location.hash.slice(1))||0);
+</script>
+</body></html>
