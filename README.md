@@ -8,7 +8,7 @@
 
 *Block a ceiling. Debit the actual. Prove what the money did.*
 
-[![tests](https://img.shields.io/badge/tests-138%20passing-2ea44f?style=flat-square)](#testing)
+[![tests](https://img.shields.io/badge/tests-163%20passing-2ea44f?style=flat-square)](#testing)
 [![python](https://img.shields.io/badge/python-3.11%2B-3776ab?style=flat-square)](#quick-start)
 [![rails](https://img.shields.io/badge/rails-UPI%20SBMD%20%C2%B7%20Razorpay%20%C2%B7%20Setu-6c5ce7?style=flat-square)](#the-evidence-table)
 [![credentials](https://img.shields.io/badge/core%20runs%20with-zero%20credentials-e17055?style=flat-square)](#testing)
@@ -81,6 +81,22 @@ This runs on **UPI Single Block Multiple Debit** (NPCI's SBMD, branded *Reserve 
 The ₹620 never leaves your account — it is blocked there, visible in your own UPI app,
 revocable by you at any moment.
 
+### Same intent, two rails — and the chain shows the difference
+
+The same ceiling settled on two rails nets the merchant the same ₹470. What differs is
+what happens to *your* money, and the signed chain records which path actually ran:
+
+| | UPI SBMD (Reserve Pay) | Razorpay (test-mode API, live) |
+|---|---|---|
+| **Chain** | `BLOCKED → DEBITED → RELEASED` | `AUTHORIZED → CAPTURED → REFUNDED` |
+| **Leaves your account** | only ₹470, ever | full ₹620, until the refund settles |
+| **How** | block ₹620, debit ₹470, release the rest | capture ₹620 (partial capture is refused), refund ₹150 |
+
+Razorpay cannot block-and-partial-debit — `Capture amount must be equal to the amount
+authorized`, measured from the live API. So the same outcome is reached the way that rail
+*does* allow, and the honest cost (money out until the refund settles; MDR on the ceiling)
+is written into the chain rather than hidden. Run it: `python -m amanat.compare`.
+
 ---
 
 ## Quick start
@@ -93,13 +109,21 @@ git clone https://github.com/HERPESME/amanat && cd amanat
 # The seven-act walkthrough — the whole argument in one command
 uv run --with cryptography python -m amanat.demo
 
-# 138 tests. No API key, no network.
+# 163 tests. No API key, no network.
 uv run --with pytest --with cryptography --with numpy \
        --with scikit-learn --with pandas --with pyarrow pytest tests/ -q
 ```
 
+```bash
+# Same intent, two rails, two signed chains — side by side
+uv run --with cryptography python -m amanat.compare
+
+# A dispute packet that verifies itself in your browser (open the file it writes)
+uv run --with cryptography python -m amanat.evidence.render
+```
+
 <details>
-<summary><b>Optional — run the live agent, the ML frontier, or probe real rails</b></summary>
+<summary><b>Optional — live agent, the ML frontier, real-rail settlement</b></summary>
 
 ```bash
 cp .env.example .env        # add GEMINI_API_KEY or ANTHROPIC_API_KEY
@@ -116,6 +140,11 @@ uv run --with numpy --with pandas --with scikit-learn --with pyarrow \
 
 # Measure a live rail instead of quoting its docs
 uv run --with httpx --with cryptography python -m amanat.rails.probe
+
+# Settle a real Razorpay test-mode payment (capture then refund, real ids)
+uv run --with httpx --with cryptography python -m amanat.rails.authorize
+uv run --with httpx --with cryptography python -m amanat.rails.settle \
+       --payment pay_XXXX --actual 47000
 ```
 
 Docker:
@@ -269,6 +298,12 @@ orchestrator**.
 That is an auditability contribution, not a payments one. It is modest, and saying so is
 what makes it credible.
 
+The artifact is real, not rhetorical: `python -m amanat.evidence.render` exports the chain
+as a **self-contained HTML file that verifies itself in the browser** — recomputing every
+hash with WebCrypto and re-checking every Ed25519 signature against the embedded key, with
+no network and no trust in whoever produced it. Edit any payload and it names the entry
+that no longer verifies. Sample: [`docs/sample/dispute-packet.html`](docs/sample/dispute-packet.html).
+
 ---
 
 ## What building it found
@@ -342,14 +377,18 @@ src/amanat/
 │   ├── semantics.py    ← the capability table. Cited or refused.
 │   ├── simulator.py    ← enforces the same table the policy engine reads
 │   ├── razorpay.py     ← real adapter; refuses what the rail cannot honour
+│   ├── settlement.py   ← capture-then-refund on Razorpay's real verbs
 │   ├── probe.py        ← measures live rails instead of quoting them
 │   └── authorize.py    ← browser harness for an authorized-but-uncaptured payment
 ├── policy/
 │   ├── envelope.py     ← the human's grant. Frozen; widening leaves a trace.
 │   └── engine.py       ← deterministic. No model call, ever.
-├── evidence/chain.py   ← Ed25519 + SHA-256, append-only, records refusals
+├── evidence/
+│   ├── chain.py        ← Ed25519 + SHA-256, append-only, records refusals
+│   └── render.py       ← exports a chain as a browser-verifiable HTML packet
 ├── ceiling/            ← conformalized quantile regression on real NYC TLC fares
 ├── orchestrator/       ← governed core + swappable Claude/Gemini backends
+├── compare.py          ← same intent, two rails, two signed chains
 ├── demo.py             ← the seven-act walkthrough
 └── doctor.py           ← which credentials work, and which do not
 ```
@@ -363,7 +402,7 @@ uv run --with pytest --with cryptography --with numpy \
        --with scikit-learn --with pandas --with pyarrow pytest tests/ -q
 ```
 
-**138 tests, no credential and no network.** If proving the agent is bounded ever
+**163 tests, no credential and no network.** If proving the agent is bounded ever
 required a live model, the agent would not be bounded.
 
 | Suite | What it pins |
@@ -375,6 +414,9 @@ required a live model, the agent would not be bounded.
 | `test_adversarial.py` | 31 attacks — amounts, homoglyph payees, sequence, malformed calls |
 | `test_ceiling.py` | conformal guarantee holds on *exchangeable* data |
 | `test_backends.py` | a second LLM provider added no second route to money |
+| `test_settlement.py` | capture-then-refund gated; double-settlement refused |
+| `test_compare.py` | the two rails share no transition verbs |
+| `test_render.py` | the browser's hashing reproduces Python's, byte for byte |
 
 CI additionally regenerates `RAIL_SEMANTICS.md` and **fails on any diff**, so the prose
 cannot claim more than the runtime honours.
