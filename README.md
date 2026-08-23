@@ -8,7 +8,7 @@
 
 *Block a ceiling. Debit the actual. Prove what the money did.*
 
-[![tests](https://img.shields.io/badge/tests-174%20passing-2ea44f?style=flat-square)](#testing)
+[![tests](https://img.shields.io/badge/tests-178%20passing-2ea44f?style=flat-square)](#testing)
 [![python](https://img.shields.io/badge/python-3.11%2B-3776ab?style=flat-square)](#quick-start)
 [![rails](https://img.shields.io/badge/rails-UPI%20SBMD%20%C2%B7%20Razorpay%20%C2%B7%20Setu-6c5ce7?style=flat-square)](#the-evidence-table)
 [![credentials](https://img.shields.io/badge/core%20runs%20with-zero%20credentials-e17055?style=flat-square)](#testing)
@@ -115,7 +115,7 @@ git clone https://github.com/HERPESME/amanat && cd amanat
 # The seven-act walkthrough — the whole argument in one command
 uv run --with cryptography python -m amanat.demo
 
-# 174 tests. No API key, no network.
+# 178 tests. No API key, no network.
 uv run --with pytest --with cryptography --with numpy \
        --with scikit-learn --with pandas --with pyarrow pytest tests/ -q
 ```
@@ -213,7 +213,7 @@ flowchart TB
 If the model is prompt-injected, compromised, or simply wrong, the worst it can produce
 is a **refusal record** — never a payment. That property is proven without a model in
 `tests/test_session.py::test_a_refused_proposal_never_reaches_the_rail`, and stress-tested
-by 31 adversarial tests.
+by 23 adversarial tests.
 
 📐 Full C4 diagrams: [`docs/architecture/`](docs/architecture/) ·
 📋 Generated rail semantics: [`docs/RAIL_SEMANTICS.md`](docs/RAIL_SEMANTICS.md)
@@ -416,7 +416,7 @@ uv run --with pytest --with cryptography --with numpy \
        --with scikit-learn --with pandas --with pyarrow pytest tests/ -q
 ```
 
-**174 tests, no credential and no network.** If proving the agent is bounded ever
+**178 tests, no credential and no network.** If proving the agent is bounded ever
 required a live model, the agent would not be bounded.
 
 | Suite | What it pins |
@@ -425,7 +425,7 @@ required a live model, the agent would not be bounded.
 | `test_policy.py` | envelope + rail limits enforced, with citations |
 | `test_evidence.py` | append-only, hash-linked, tamper detected by entry |
 | `test_session.py` | no path to money skips policy |
-| `test_adversarial.py` | 31 attacks — amounts, homoglyph payees, sequence, malformed calls |
+| `test_adversarial.py` | 23 attacks — amounts, homoglyph payees, sequence, malformed calls |
 | `test_ceiling.py` | conformal guarantee holds on *exchangeable* data |
 | `test_backends.py` | a second LLM provider added no second route to money |
 | `test_settlement.py` | capture-then-refund gated; double-settlement refused |
