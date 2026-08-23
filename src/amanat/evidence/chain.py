@@ -62,9 +62,16 @@ class EventType(Enum):
 
 
 def _canonical(payload: Any) -> bytes:
-    """Deterministic serialization. Verification depends on byte-stability."""
+    """Deterministic serialization. Verification depends on byte-stability.
+
+    `ensure_ascii=False` so the byte form matches a browser's
+    `JSON.stringify` over the same keys sorted — which lets the exported HTML
+    dispute packet (`amanat.evidence.render`) recompute these exact hashes with
+    WebCrypto and re-verify the chain client-side. Hashes are recomputed on
+    every run and never persisted, so the setting is free to choose for parity.
+    """
     return json.dumps(payload, sort_keys=True, separators=(",", ":"),
-                      default=str).encode()
+                      ensure_ascii=False, default=str).encode("utf-8")
 
 
 @dataclass
