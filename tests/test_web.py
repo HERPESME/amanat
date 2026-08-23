@@ -90,3 +90,60 @@ class TestThePageIsServed:
         assert "Amanat" in html
         assert "crypto.subtle.verify" in html   # the verify JS was injected
         assert "/*__VERIFY__*/" not in html      # ...and the placeholder is gone
+
+
+ENV = {"budget": 100_00 * 10, "per_txn": 80_000, "payee": "citycabs", "hours": 6}
+
+
+class TestTheByoKeyAgentEndpoint:
+    """The visitor's key drives a real agent, against the simulator.
+
+    The key is used once and must never appear in a response or a raised error,
+    and a hostile prompt can only ever produce refusals — there is no real rail.
+    """
+
+    def test_a_short_key_is_rejected(self):
+        r = client.post("/api/agent", json={
+            "gemini_key": "short", "prompt": "hi", "envelope": ENV})
+        assert r.status_code == 422
+
+    def test_an_over_long_prompt_is_rejected(self):
+        r = client.post("/api/agent", json={
+            "gemini_key": "x" * 30, "prompt": "a" * 3000, "envelope": ENV})
+        assert r.status_code == 422
+
+    def test_the_key_reaches_the_backend_and_never_the_response(self, monkeypatch):
+        seen = {}
+
+        class Fake:
+            def run(self, session, prompt):
+                session.reserve(620_00, "citycabs", "p95")
+                session.debit(470_00, "fare")
+                session.release(reason="done")
+                return "Booked the cab; the merchant nets ₹470."
+
+        monkeypatch.setattr("web.app._make_backend",
+                            lambda key: (seen.__setitem__("key", key), Fake())[1])
+        KEY = "AIzaFAKEfakefakefakefakefake"
+        r = client.post("/api/agent", json={
+            "gemini_key": KEY, "prompt": "book a cab", "envelope": ENV})
+        assert r.status_code == 200
+        assert seen["key"] == KEY          # passed through to the backend
+        assert KEY not in r.text           # ...but never echoed back
+        data = r.json()
+        assert "Booked" in data["reply"]
+        EvidenceChain.verify_packet(data["packet"])
+
+    def test_a_failing_backend_leaks_neither_the_key_nor_the_stack(self, monkeypatch):
+        class Boom:
+            def run(self, *a):
+                raise RuntimeError("secret internal detail")
+
+        monkeypatch.setattr("web.app._make_backend", lambda key: Boom())
+        KEY = "AIzaSECRETsecretsecretsecret"
+        r = client.post("/api/agent", json={
+            "gemini_key": KEY, "prompt": "x", "envelope": ENV})
+        assert r.status_code == 502
+        assert KEY not in r.text
+        assert "secret internal detail" not in r.text
+        assert "failed" in r.json()["error"].lower()

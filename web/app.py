@@ -49,6 +49,15 @@ class SimulateIn(BaseModel):
     actions: list[Action] = Field(max_length=MAX_ACTIONS)
 
 
+class AgentIn(BaseModel):
+    # The visitor's own Gemini key — used for this one request, never stored,
+    # never logged. Runs the real agent loop against the simulator, so the model
+    # can propose anything and the governed core still bounds what happens.
+    gemini_key: str = Field(min_length=20, max_length=200)
+    prompt: str = Field(min_length=1, max_length=2000)
+    envelope: EnvelopeIn
+
+
 def run_simulation(body: SimulateIn) -> dict:
     """Drive the real governed core. Pure function of the request."""
     env = Envelope(
@@ -88,6 +97,49 @@ def health() -> dict:
 @app.post("/api/simulate")
 def simulate(body: SimulateIn) -> JSONResponse:
     return JSONResponse(run_simulation(body))
+
+
+def _make_backend(api_key: str):
+    """Overridable in tests so the endpoint can be exercised without a real key."""
+    from amanat.orchestrator.backends import GeminiBackend
+    return GeminiBackend(api_key=api_key)
+
+
+@app.post("/api/agent")
+def agent(body: AgentIn) -> JSONResponse:
+    """Run the real LLM agent on the visitor's key, against the simulator.
+
+    The model proposes; the same policy engine and evidence chain govern what
+    actually happens, so a hostile prompt can only produce refusals — never a
+    real payment (there is no real rail here) and never a charge on our account
+    (the key is the visitor's). The key is read from the body, used once, and
+    never stored or logged.
+    """
+    env = Envelope(
+        subject="agent-demo",
+        max_total=body.envelope.budget,
+        max_per_txn=body.envelope.per_txn,
+        allowed_payees=[body.envelope.payee],
+        expires_at=datetime.now(timezone.utc) + timedelta(hours=body.envelope.hours),
+        intent_text=body.prompt,
+    )
+    session = AgentSession(env, SimulatedRail("sbmd", customer_balance=MAX_PAISE))
+
+    try:
+        reply = _make_backend(body.gemini_key).run(session, body.prompt)
+    except Exception as exc:                              # noqa: BLE001
+        # Never surface the key or a raw stack trace. The class name is enough
+        # to tell "bad key" from "network" without leaking anything.
+        return JSONResponse(
+            {"error": f"the agent run failed ({type(exc).__name__}). "
+                      "Check the key is a valid Gemini API key and try again."},
+            status_code=502)
+
+    return JSONResponse({
+        "reply": reply,
+        "summary": session.summary(),
+        "packet": session.evidence_packet(),
+    })
 
 
 @app.get("/", response_class=HTMLResponse)
