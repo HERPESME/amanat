@@ -302,7 +302,12 @@ The artifact is real, not rhetorical: `python -m amanat.evidence.render` exports
 as a **self-contained HTML file that verifies itself in the browser** — recomputing every
 hash with WebCrypto and re-checking every Ed25519 signature against the embedded key, with
 no network and no trust in whoever produced it. Edit any payload and it names the entry
-that no longer verifies. Sample: [`docs/sample/dispute-packet.html`](docs/sample/dispute-packet.html).
+that no longer verifies.
+
+> **▶ Verify one live in your browser:**
+> **[claude.ai/code/artifact/6edf0c30…](https://claude.ai/code/artifact/6edf0c30-6be8-4f60-961b-285b11af9995)**
+> — open it, then press **Tamper** and watch it catch the change.
+> Source: [`docs/sample/dispute-packet.html`](docs/sample/dispute-packet.html).
 
 ---
 
