@@ -3,6 +3,7 @@
 # Two stages so the demo image stays small: the ML extras (numpy, pandas,
 # scikit-learn, pyarrow) are ~200MB and only the frontier needs them.
 #
+#   docker build -t amanat .                           # web demo (default, Cloud Run)
 #   docker build --target demo -t amanat:demo .        # governance demo + tests
 #   docker build --target ml   -t amanat:ml   .        # + ceiling frontier
 
@@ -36,3 +37,15 @@ COPY tests/ ./tests/
 # on every run.
 VOLUME ["/app/data"]
 CMD ["python", "-m", "amanat.ceiling.frontier"]
+
+
+# ---------------------------------------------------------------- web (default)
+# The interactive governed-core demo. Credential-free, so it is safe to expose:
+# no LLM, no real payment rail, nothing that can move money or spend a quota.
+# Listens on $PORT for Cloud Run (defaults to 8080 locally).
+FROM base AS web
+RUN pip install --no-cache-dir -e ".[web]"
+COPY web/ ./web/
+ENV PYTHONPATH=/app/src:/app
+EXPOSE 8080
+CMD ["sh", "-c", "uvicorn web.app:app --host 0.0.0.0 --port ${PORT:-8080}"]
