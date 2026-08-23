@@ -2,301 +2,438 @@
 <html lang="en"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Amanat — try the governed core</title>
+<title>Amanat — the agent spending console</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔏</text></svg>">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <style>
 :root{
-  --bg:#eef1f5; --panel:#ffffff; --line:#dde2ea; --ink:#161b24; --dim:#5c6675;
-  --brand:#4f46e5; --brand-soft:rgba(79,70,229,.10);
-  --ok:#0e9f6e; --ok-soft:rgba(14,159,110,.10);
-  --bad:#e02424; --bad-soft:rgba(224,36,36,.09);
+  --bg:#eaeef3; --panel:#ffffff; --sunk:#f2f5f9; --line:#dbe1ea; --line2:#e7ecf3;
+  --ink:#161b24; --dim:#5c6675; --faint:#8a94a4;
+  --brand:#4f46e5; --brand-soft:rgba(79,70,229,.09);
+  --ok:#0b8f63; --ok-soft:rgba(11,143,99,.10);
+  --bad:#d92d20; --bad-soft:rgba(217,45,32,.08);
   --mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
   --sans:'IBM Plex Sans',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+  --shadow:0 1px 2px rgba(16,24,40,.04),0 1px 3px rgba(16,24,40,.06);
 }
 :root:not([data-theme="light"]){ @media (prefers-color-scheme:dark){
-  --bg:#0c0f16; --panel:#141925; --line:#232b3a; --ink:#e7ebf2; --dim:#8b97a9;
-  --brand:#8b85f5; --brand-soft:rgba(139,133,245,.14);
-  --ok:#34d399; --ok-soft:rgba(52,211,153,.13);
-  --bad:#f87171; --bad-soft:rgba(248,113,113,.13);
+  --bg:#0a0d13; --panel:#12161f; --sunk:#0e121a; --line:#232b39; --line2:#1c2330;
+  --ink:#e7ebf2; --dim:#8f9bad; --faint:#69748a;
+  --brand:#8b85f5; --brand-soft:rgba(139,133,245,.13);
+  --ok:#34d399; --ok-soft:rgba(52,211,153,.12);
+  --bad:#f87171; --bad-soft:rgba(248,113,113,.12);
+  --shadow:0 1px 2px rgba(0,0,0,.3);
 }}
 :root[data-theme="dark"]{
-  --bg:#0c0f16; --panel:#141925; --line:#232b3a; --ink:#e7ebf2; --dim:#8b97a9;
-  --brand:#8b85f5; --brand-soft:rgba(139,133,245,.14);
-  --ok:#34d399; --ok-soft:rgba(52,211,153,.13);
-  --bad:#f87171; --bad-soft:rgba(248,113,113,.13);
+  --bg:#0a0d13; --panel:#12161f; --sunk:#0e121a; --line:#232b39; --line2:#1c2330;
+  --ink:#e7ebf2; --dim:#8f9bad; --faint:#69748a;
+  --brand:#8b85f5; --brand-soft:rgba(139,133,245,.13);
+  --ok:#34d399; --ok-soft:rgba(52,211,153,.12);
+  --bad:#f87171; --bad-soft:rgba(248,113,113,.12);
+  --shadow:0 1px 2px rgba(0,0,0,.3);
 }
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
-  font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased}
-.wrap{max-width:72rem;margin:0 auto;padding:2.5rem 1.25rem 5rem}
-.eyebrow{font-family:var(--mono);font-size:12px;font-weight:500;letter-spacing:.12em;
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;
+  line-height:1.55;-webkit-font-smoothing:antialiased}
+.wrap{max-width:58rem;margin:0 auto;padding:2.5rem 1.25rem 5rem}
+
+/* header */
+header{margin-bottom:1.75rem}
+.eyebrow{font-family:var(--mono);font-size:11.5px;font-weight:500;letter-spacing:.14em;
   text-transform:uppercase;color:var(--brand);margin:0 0 .5rem}
-h1{font-size:1.85rem;font-weight:600;letter-spacing:-.02em;margin:0 0 .4rem;text-wrap:balance}
-.lede{color:var(--dim);max-width:60ch;margin:0 0 2rem}
-.grid{display:grid;grid-template-columns:1fr;gap:1.25rem}
-@media(min-width:900px){.grid{grid-template-columns:22rem 1fr;align-items:start}}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:1.35rem}
-.card h2{font-size:12px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.1em;
-  color:var(--dim);margin:0 0 1rem;font-weight:600}
-label{display:block;font-size:12.5px;color:var(--dim);margin:.85rem 0 .3rem}
-input,textarea{width:100%;font-family:var(--mono);font-size:14px;padding:.5rem .65rem;border-radius:8px;
-  border:1px solid var(--line);background:var(--bg);color:var(--ink)}
+h1{font-size:1.7rem;font-weight:600;letter-spacing:-.02em;margin:0 0 .35rem;text-wrap:balance}
+.tagline{color:var(--dim);margin:0;max-width:54ch}
+.safe{display:inline-flex;align-items:center;gap:.4rem;font-size:12px;color:var(--dim);
+  font-family:var(--mono);margin-top:.9rem;padding:.25rem .6rem;border:1px solid var(--line);
+  border-radius:20px;background:var(--panel)}
+.safe .g{width:6px;height:6px;border-radius:50%;background:var(--ok)}
+
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow)}
+.pad{padding:1.35rem 1.4rem}
+.card h2{font-size:11.5px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.1em;
+  color:var(--faint);margin:0 0 1rem;font-weight:600}
+
+/* segmented control */
+.seg{display:inline-flex;background:var(--sunk);border:1px solid var(--line);border-radius:10px;
+  padding:3px;gap:2px;margin-bottom:1.25rem}
+.seg button{font-family:var(--sans);font-size:13.5px;font-weight:500;padding:.45rem 1rem;border:0;
+  border-radius:7px;background:transparent;color:var(--dim);cursor:pointer;transition:.15s}
+.seg button[aria-selected="true"]{background:var(--panel);color:var(--ink);box-shadow:var(--shadow)}
+
+/* fields */
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:.9rem 1rem}
+.field{display:flex;flex-direction:column}
+.field.full{grid-column:1/-1}
+label{font-size:12px;color:var(--dim);margin:0 0 .3rem;display:flex;justify-content:space-between}
+.link{color:var(--brand);font-weight:500;text-decoration:none}
+.link:hover{text-decoration:underline}
+input,textarea{width:100%;font-family:var(--mono);font-size:14px;padding:.55rem .7rem;border-radius:9px;
+  border:1px solid var(--line);background:var(--sunk);color:var(--ink);transition:border-color .15s}
 textarea{font-family:var(--sans);line-height:1.5;resize:vertical}
-input:focus,textarea:focus{outline:none;border-color:var(--brand)}
-.reply{white-space:pre-wrap;font-size:14px;line-height:1.65}
-.link{color:var(--brand);font-weight:500}
-.hint{font-size:11.5px;color:var(--dim);margin-top:.25rem;font-family:var(--mono)}
-.presets{display:flex;flex-wrap:wrap;gap:.4rem;margin:.4rem 0 0}
-.presets button{font-size:12px;padding:.35rem .7rem}
-button{font-family:var(--sans);font-size:13.5px;font-weight:500;padding:.6rem 1.1rem;
-  border-radius:9px;border:1px solid var(--line);background:var(--panel);color:var(--ink);
-  cursor:pointer;transition:border-color .15s,color .15s}
-button:hover{border-color:var(--brand);color:var(--brand)}
-button.warn:hover{border-color:var(--bad);color:var(--bad)}
-button:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
-.run{width:100%;margin-top:1.25rem;background:var(--brand);color:#fff;border-color:var(--brand);
-  font-weight:600;padding:.7rem}
-.run:hover{color:#fff;filter:brightness(1.08)}
-.steps{display:flex;flex-direction:column;gap:.55rem;margin-bottom:1.5rem}
-.step{display:flex;gap:.75rem;align-items:flex-start;padding:.75rem .9rem;border-radius:10px;
-  border:1px solid var(--line);background:var(--panel)}
-.step .verb{font-family:var(--mono);font-size:12px;font-weight:600;text-transform:uppercase;
-  letter-spacing:.04em;min-width:5.5rem}
-.step.ok{border-color:var(--ok);background:var(--ok-soft)}
-.step.no{border-color:var(--bad);background:var(--bad-soft)}
-.step .verb.ok{color:var(--ok)} .step .verb.no{color:var(--bad)}
-.step .body{flex:1;min-width:0}
-.step .detail{font-size:13.5px}
-.step .cite{font-family:var(--mono);font-size:11.5px;color:var(--dim);margin-top:.3rem;
-  word-break:break-word}
-.amt{font-family:var(--mono);font-variant-numeric:tabular-nums}
-.banner{display:flex;align-items:center;gap:.75rem;padding:1rem 1.2rem;border-radius:12px;
-  font-weight:600;margin:0 0 1.1rem;border:1px solid var(--line);background:var(--panel);
-  transition:all .25s}
-.banner .seal{width:2rem;height:2rem;flex:none;border-radius:50%;display:grid;place-items:center;
+input:focus,textarea:focus{outline:none;border-color:var(--brand);background:var(--panel)}
+.sub{font-size:11.5px;color:var(--faint);margin:.35rem 0 0}
+fieldset{border:0;padding:0;margin:1.4rem 0 0}
+fieldset legend{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.09em;
+  color:var(--faint);padding:0;margin:0 0 .7rem}
+.attacks{display:flex;flex-wrap:wrap;gap:.4rem;margin-top:1.1rem}
+.attacks .lbl{font-size:11.5px;color:var(--faint);align-self:center;margin-right:.15rem;font-family:var(--mono)}
+.chip-btn{font-size:12px;padding:.35rem .7rem;border-radius:20px;border:1px solid var(--line);
+  background:var(--panel);color:var(--dim);cursor:pointer;transition:.15s}
+.chip-btn:hover{border-color:var(--bad);color:var(--bad)}
+.run{width:100%;margin-top:1.35rem;background:var(--brand);color:#fff;border:1px solid var(--brand);
+  border-radius:10px;font-family:var(--sans);font-weight:600;font-size:14.5px;padding:.7rem;cursor:pointer;
+  transition:.15s}
+.run:hover{filter:brightness(1.07)} .run:disabled{opacity:.6;cursor:default}
+.run:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+
+/* result */
+#result{margin-top:1.5rem;display:none}
+#result.show{display:block;animation:rise .3s ease}
+@keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.reply{margin-bottom:1.25rem}
+.reply .who{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;
+  color:var(--brand);margin-bottom:.5rem}
+.reply .txt{white-space:pre-wrap;font-size:14px;line-height:1.6}
+
+.verdict{display:flex;align-items:center;gap:.75rem;padding:.95rem 1.15rem;border-radius:12px;
+  font-weight:600;margin-bottom:1.1rem;border:1px solid var(--line);background:var(--panel)}
+.verdict.ok{color:var(--ok);background:var(--ok-soft);border-color:color-mix(in srgb,var(--ok) 45%,transparent)}
+.verdict.warn{color:var(--bad);background:var(--bad-soft);border-color:color-mix(in srgb,var(--bad) 45%,transparent)}
+.verdict .ico{width:1.9rem;height:1.9rem;flex:none;border-radius:50%;display:grid;place-items:center;
   border:2px solid currentColor}
-.banner .seal svg{width:1.1rem;height:1.1rem}
-.banner.ok{color:var(--ok);background:var(--ok-soft);border-color:var(--ok)}
-.banner.bad{color:var(--bad);background:var(--bad-soft);border-color:var(--bad)}
+.verdict .ico svg{width:1rem;height:1rem}
+
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:.75rem;margin-bottom:1.25rem}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:.85rem .95rem;box-shadow:var(--shadow)}
+.tile .k{font-size:11px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em;color:var(--faint)}
+.tile .v{font-family:var(--mono);font-size:1.15rem;font-weight:600;font-variant-numeric:tabular-nums;margin-top:.25rem}
+.tile.bad .v{color:var(--bad)} .tile.brand .v{color:var(--brand)}
+
+/* decisions */
+.decisions{display:flex;flex-direction:column;gap:.5rem}
+.decision{display:flex;gap:.7rem;align-items:baseline;padding:.65rem .85rem;border-radius:10px;
+  border:1px solid var(--line);background:var(--panel)}
+.decision.ok{border-left:3px solid var(--ok)} .decision.no{border-left:3px solid var(--bad)}
+.decision .tag{font-family:var(--mono);font-size:10.5px;font-weight:600;text-transform:uppercase;
+  letter-spacing:.04em;min-width:4.2rem}
+.decision.ok .tag{color:var(--ok)} .decision.no .tag{color:var(--bad)}
+.decision .msg{flex:1;font-size:13.5px}
+.decision .cite{display:block;font-family:var(--mono);font-size:11px;color:var(--faint);margin-top:.25rem;word-break:break-word}
+
+/* receipt / timeline */
+.receipt-head{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:1rem}
+.banner{display:flex;align-items:center;gap:.65rem;padding:.7rem .95rem;border-radius:10px;font-weight:600;
+  font-size:13.5px;border:1px solid var(--line);background:var(--panel);flex:1;min-width:15rem}
+.banner .seal{width:1.6rem;height:1.6rem;flex:none;border-radius:50%;display:grid;place-items:center;border:2px solid currentColor}
+.banner .seal svg{width:.9rem;height:.9rem}
+.banner.ok{color:var(--ok);background:var(--ok-soft);border-color:color-mix(in srgb,var(--ok) 45%,transparent)}
+.banner.bad{color:var(--bad);background:var(--bad-soft);border-color:color-mix(in srgb,var(--bad) 45%,transparent)}
 .banner.pending{color:var(--dim)}
-.meta{display:flex;flex-wrap:wrap;gap:.35rem 1.5rem;font-size:12.5px;color:var(--dim);margin-bottom:1rem}
-.meta code{font-family:var(--mono);color:var(--ink)}
-.rail{position:relative;padding-left:1.5rem}
-.rail::before{content:"";position:absolute;left:5px;top:.4rem;bottom:.4rem;width:2px;background:var(--line)}
-.entry{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:12px;
-  padding:.95rem 1.1rem;margin-bottom:.6rem;transition:border-color .2s}
-.entry::before{content:"";position:absolute;left:-1.5rem;top:1.25rem;width:12px;height:12px;
-  border-radius:50%;background:var(--panel);border:2px solid var(--line);transform:translateX(-1px)}
-.entry.rail-t::before{border-color:var(--brand)}
-.entry.refusal::before{border-color:var(--bad)}
-.entry.broken{border-color:var(--bad)} .entry.broken::before{border-color:var(--bad);background:var(--bad)}
-.head{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap}
-.seq{font-family:var(--mono);font-size:12px;color:var(--dim)}
-.chip{font-family:var(--mono);font-size:10.5px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;
-  padding:.12rem .5rem;border-radius:6px;border:1px solid var(--line);color:var(--dim)}
-.chip.rail_transition{color:var(--brand);border-color:var(--brand);background:var(--brand-soft)}
-.chip.refusal{color:var(--bad);border-color:var(--bad);background:var(--bad-soft)}
-.actor{font-size:12px;color:var(--dim)}
-.chk{margin-left:auto;font-family:var(--mono);font-size:11px;font-weight:500;display:flex;align-items:center;gap:.35rem}
-.chk::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.rhs{display:flex;gap:.5rem}
+.ghost{font-size:12.5px;padding:.5rem .8rem;border-radius:8px;border:1px solid var(--line);
+  background:var(--panel);color:var(--dim);cursor:pointer;transition:.15s}
+.ghost:hover{border-color:var(--brand);color:var(--brand)}
+.ghost.warn:hover{border-color:var(--bad);color:var(--bad)}
+.meta{font-family:var(--mono);font-size:11px;color:var(--faint);margin-bottom:1rem}
+.meta code{color:var(--dim)}
+
+.rail{position:relative;padding-left:1.4rem}
+.rail::before{content:"";position:absolute;left:5px;top:.5rem;bottom:.5rem;width:2px;background:var(--line2)}
+.entry{position:relative;padding:.6rem 0 .6rem .3rem}
+.entry::before{content:"";position:absolute;left:-1.4rem;top:.95rem;width:11px;height:11px;border-radius:50%;
+  background:var(--panel);border:2px solid var(--line);transform:translateX(-1px)}
+.entry.rail-t::before{border-color:var(--brand);background:var(--brand)}
+.entry.refusal::before{border-color:var(--bad);background:var(--bad)}
+.entry.ok-d::before{border-color:var(--ok)}
+.entry.broken .erow{color:var(--bad)}
+.erow{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap}
+.chip{font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;
+  padding:.1rem .45rem;border-radius:5px;border:1px solid var(--line);color:var(--faint)}
+.chip.rail_transition{color:var(--brand);border-color:color-mix(in srgb,var(--brand) 40%,transparent)}
+.chip.refusal{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 40%,transparent)}
+.chip.policy_decision{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 40%,transparent)}
+.summ{font-size:13.5px;flex:1;min-width:8rem}
+.summ .amt{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.chk{font-family:var(--mono);font-size:10.5px;font-weight:500;display:flex;align-items:center;gap:.3rem;color:var(--faint)}
+.chk::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
 .chk.ok{color:var(--ok)} .chk.bad{color:var(--bad)}
-pre{font-family:var(--mono);font-size:12px;line-height:1.5;margin:.6rem 0 0;padding:.6rem .75rem;
-  background:var(--bg);border:1px solid var(--line);border-radius:8px;overflow-x:auto;
-  white-space:pre-wrap;word-break:break-word;color:var(--ink)}
+details.inspect{margin:.4rem 0 0}
+details.inspect summary{font-family:var(--mono);font-size:11px;color:var(--faint);cursor:pointer;
+  list-style:none;user-select:none;padding-left:.1rem}
+details.inspect summary::-webkit-details-marker{display:none}
+details.inspect summary::before{content:"▸ ";color:var(--faint)}
+details.inspect[open] summary::before{content:"▾ "}
+pre{font-family:var(--mono);font-size:11.5px;line-height:1.5;margin:.5rem 0 0;padding:.6rem .75rem;
+  background:var(--sunk);border:1px solid var(--line);border-radius:8px;overflow-x:auto;white-space:pre-wrap;
+  word-break:break-word;color:var(--ink)}
 pre:focus{outline:none;border-color:var(--brand)}
-.hash{font-family:var(--mono);font-size:10px;color:var(--dim);margin-top:.5rem;word-break:break-all}
-.empty{color:var(--dim);font-size:14px;padding:2rem 0;text-align:center}
-.foot{color:var(--dim);font-size:12.5px;margin-top:2.5rem;border-top:1px solid var(--line);
-  padding-top:1.25rem;max-width:70ch;line-height:1.7}
-.foot a{color:var(--brand)}
-@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+.hash{font-family:var(--mono);font-size:10px;color:var(--faint);margin-top:.4rem;word-break:break-all}
+
+.empty{color:var(--faint);font-size:13.5px;padding:1.5rem 0;text-align:center}
+footer{color:var(--faint);font-size:12.5px;margin-top:2.5rem;border-top:1px solid var(--line);
+  padding-top:1.25rem;line-height:1.7}
+footer a{color:var(--brand)}
+@media(max-width:560px){.fields{grid-template-columns:1fr}.tiles{grid-template-columns:1fr 1fr}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style></head>
 <body><div class="wrap">
-  <p class="eyebrow">Amanat · governed-core demo</p>
-  <h1>Try to make the agent misbehave</h1>
-  <p class="lede">Set a budget and a payee, then run a settlement — or attack it. The
-    policy engine decides every action, and whatever happens is written to a signed
-    chain that verifies itself in your browser. No real money, no model, no credentials.</p>
+  <header>
+    <p class="eyebrow">Amanat · governed-core console</p>
+    <h1>Give an AI agent a budget. Watch it get held to it.</h1>
+    <p class="tagline">Set a spending envelope, then run a settlement — or attack it. The policy
+      engine decides every action and signs the result into a receipt that verifies itself, right
+      here in your browser.</p>
+    <span class="safe"><span class="g"></span> no real money · no stored keys · the real governed core</span>
+  </header>
 
-  <div class="grid">
-    <div class="card">
-      <h2>The session</h2>
-      <label>Budget (₹)</label>
-      <input id="budget" value="1000" inputmode="decimal">
-      <label>Per-transaction cap (₹)</label>
-      <input id="per_txn" value="800" inputmode="decimal">
-      <label>Allowed payee</label>
-      <input id="payee" value="citycabs">
+  <div class="card pad">
+    <div class="seg" role="tablist">
+      <button id="tab-manual" role="tab" aria-selected="true" onclick="mode('manual')">Manual</button>
+      <button id="tab-agent" role="tab" aria-selected="false" onclick="mode('agent')">AI agent</button>
+    </div>
 
-      <h2 style="margin-top:1.5rem">The trip</h2>
-      <label>Ceiling to block (₹)</label>
-      <input id="ceiling" value="620" inputmode="decimal">
-      <label>Actual fare (₹)</label>
-      <input id="actual" value="470" inputmode="decimal">
-      <label>Charge to</label>
-      <input id="charge" value="citycabs">
-      <div class="hint">Change “charge to” to something else to attack the allowlist.</div>
-
-      <div class="presets">
-        <button data-preset="happy">Happy path</button>
-        <button data-preset="over">Over budget</button>
-        <button data-preset="payee">Wrong payee</button>
-        <button data-preset="low">Ceiling too low</button>
+    <div id="panel-manual">
+      <div class="fields">
+        <div class="field"><label>Budget (₹)</label><input id="budget" value="1000" inputmode="decimal"></div>
+        <div class="field"><label>Per-transaction cap (₹)</label><input id="per_txn" value="800" inputmode="decimal"></div>
+        <div class="field full"><label>Allowed payee</label><input id="payee" value="citycabs"></div>
       </div>
-
+      <fieldset>
+        <legend>The trip — the amount isn't known until it ends</legend>
+        <div class="fields">
+          <div class="field"><label>Ceiling to block (₹)</label><input id="ceiling" value="620" inputmode="decimal"></div>
+          <div class="field"><label>Actual fare (₹)</label><input id="actual" value="470" inputmode="decimal"></div>
+          <div class="field full"><label>Charge to</label><input id="charge" value="citycabs">
+            <p class="sub">Change this to a payee that isn't allowed, to attack the allowlist.</p></div>
+        </div>
+      </fieldset>
+      <div class="attacks">
+        <span class="lbl">Try to break it:</span>
+        <button class="chip-btn" data-preset="over">Over budget</button>
+        <button class="chip-btn" data-preset="payee">Wrong payee</button>
+        <button class="chip-btn" data-preset="low">Ceiling too low</button>
+        <button class="chip-btn" data-preset="happy">Reset</button>
+      </div>
       <button class="run" id="run">Run through the policy engine</button>
     </div>
 
-    <div class="card" style="margin-top:1.25rem">
-      <h2>Or let a real AI agent drive it</h2>
-      <p class="hint" style="margin:0 0 .5rem;line-height:1.5">Runs Gemini live on
-        <b>your own key</b> — used for this one request, never stored. The governed core
-        still bounds it, and there is no real payment rail, so a wild prompt only produces
-        refusals.</p>
-      <label>Your Gemini API key
-        <a class="link" href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">— get one free</a></label>
-      <input id="gkey" type="password" placeholder="AIza…" autocomplete="off" spellcheck="false">
-      <label>What should the agent do?</label>
-      <textarea id="prompt" rows="4">Book a cab to the airport. The fare is metered, so reserve a sensible ceiling, then debit ₹470 when the trip ends, and release the rest.</textarea>
+    <div id="panel-agent" hidden>
+      <div class="fields">
+        <div class="field"><label>Budget (₹)</label><input id="a_budget" value="1000" inputmode="decimal"></div>
+        <div class="field"><label>Allowed payee</label><input id="a_payee" value="citycabs"></div>
+        <div class="field full"><label>Your Gemini API key
+          <a class="link" href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">get one free →</a></label>
+          <input id="gkey" type="password" placeholder="AIza…" autocomplete="off" spellcheck="false">
+          <p class="sub">Used for this one request, never stored. A wild prompt can only produce refusals — there's no real rail here.</p></div>
+        <div class="field full"><label>What should the agent do?</label>
+          <textarea id="prompt" rows="3">Book a cab to the airport. The fare is metered, so reserve a sensible ceiling, then debit ₹470 when the trip ends, and release the rest.</textarea></div>
+      </div>
       <button class="run" id="runAgent">Run the live AI agent</button>
-    </div>
-
-    <div>
-      <div class="card" id="replyCard" style="display:none;margin-bottom:1.25rem">
-        <h2>What the agent said</h2>
-        <div id="reply" class="reply"></div>
-      </div>
-
-      <div class="card" style="margin-bottom:1.25rem">
-        <h2>What the policy engine did</h2>
-        <div class="steps" id="steps"><div class="empty">Run a session to see verdicts.</div></div>
-        <div id="summary" class="hint"></div>
-      </div>
-
-      <div class="card">
-        <h2>The receipt — verify it yourself</h2>
-        <div id="banner" class="banner pending">
-          <span class="seal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-            stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
-          <span id="banner-text">Run a session to produce a signed chain.</span>
-        </div>
-        <div class="meta">
-          <span>public key <code id="pk">—</code></span>
-          <span id="count"></span>
-          <span>Ed25519 · SHA-256</span>
-        </div>
-        <div style="display:flex;gap:.6rem;margin-bottom:1.1rem;flex-wrap:wrap">
-          <button onclick="verifyAll()">Re-verify</button>
-          <button class="warn" onclick="tamper()">Tamper with a rail entry</button>
-        </div>
-        <div class="rail" id="entries"></div>
-      </div>
     </div>
   </div>
 
-  <p class="foot">This is the real governed core — the same <code>AgentSession</code>,
-    <code>PolicyEngine</code> and <code>EvidenceChain</code> covered by the test suite —
-    running on a settlement simulator. The live LLM agent and real Razorpay settlement
-    stay off this public page by design, because the governance guarantees do not depend
-    on them. Source and the full walkthrough:
-    <a href="https://github.com/HERPESME/amanat">github.com/HERPESME/amanat</a>.</p>
+  <section id="result">
+    <div class="card pad reply" id="replyCard" style="display:none">
+      <div class="who">What the agent said</div>
+      <div class="txt" id="reply"></div>
+    </div>
+
+    <div class="verdict" id="verdict"><span class="ico" id="verdict-ico"></span><span id="verdict-text"></span></div>
+
+    <div class="tiles" id="tiles"></div>
+
+    <div class="card pad" style="margin-bottom:1.25rem">
+      <h2>Every decision the policy engine made</h2>
+      <div class="decisions" id="decisions"></div>
+    </div>
+
+    <div class="card pad">
+      <h2>The signed receipt — verify it yourself</h2>
+      <div class="receipt-head">
+        <div class="banner pending" id="banner">
+          <span class="seal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+            stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+          <span id="banner-text">Verifying…</span>
+        </div>
+        <div class="rhs">
+          <button class="ghost" onclick="verifyAll()">Re-verify</button>
+          <button class="ghost warn" onclick="onTamper()">Tamper</button>
+        </div>
+      </div>
+      <div class="meta">public key <code id="pk"></code> · <span id="count"></span> · Ed25519 over SHA-256, hash-linked</div>
+      <div class="rail" id="entries"></div>
+    </div>
+  </section>
+
+  <footer>The real governed core — the same <code>PolicyEngine</code> and <code>EvidenceChain</code> the
+    test suite covers — on a settlement simulator. The live LLM agent runs only on your key; real Razorpay
+    settlement stays in the terminal. Source: <a href="https://github.com/HERPESME/amanat">github.com/HERPESME/amanat</a>.</footer>
 
   <script>
   /*__VERIFY__*/
 
-  const rs = p => '₹' + (p/100).toLocaleString('en-IN',{minimumFractionDigits:2});
+  const rs = p => '₹' + (Number(p)/100).toLocaleString('en-IN',{maximumFractionDigits:2});
   const paise = id => Math.round(parseFloat(document.getElementById(id).value||'0')*100);
+  const el = id => document.getElementById(id);
+  // Payee and reason fields are typed by the visitor; escape them before they
+  // reach innerHTML so a "<…>" payee is shown, not run.
+  const esc = s => String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
+  /* ---- mode toggle ---- */
+  function mode(m){
+    const manual = m==='manual';
+    el('tab-manual').setAttribute('aria-selected',manual);
+    el('tab-agent').setAttribute('aria-selected',!manual);
+    el('panel-manual').hidden = !manual;
+    el('panel-agent').hidden = manual;
+  }
+
+  /* ---- attack presets ---- */
   const PRESETS = {
-    happy: {budget:1000, per_txn:800, payee:'citycabs', ceiling:620, actual:470, charge:'citycabs'},
-    over:  {budget:1000, per_txn:800, payee:'citycabs', ceiling:5000, actual:470, charge:'citycabs'},
-    payee: {budget:1000, per_txn:800, payee:'citycabs', ceiling:620, actual:470, charge:'randomcab'},
-    low:   {budget:1000, per_txn:800, payee:'citycabs', ceiling:380, actual:470, charge:'citycabs'},
+    happy:{budget:1000,per_txn:800,payee:'citycabs',ceiling:620,actual:470,charge:'citycabs'},
+    over: {budget:1000,per_txn:800,payee:'citycabs',ceiling:5000,actual:470,charge:'citycabs'},
+    payee:{budget:1000,per_txn:800,payee:'citycabs',ceiling:620,actual:470,charge:'randomcab'},
+    low:  {budget:1000,per_txn:800,payee:'citycabs',ceiling:380,actual:470,charge:'citycabs'},
   };
-  document.querySelectorAll('[data-preset]').forEach(b =>
-    b.onclick = () => { const p = PRESETS[b.dataset.preset];
-      for (const k in p) document.getElementById(k).value = p[k]; run(); });
+  document.querySelectorAll('[data-preset]').forEach(b=>b.onclick=()=>{
+    const p=PRESETS[b.dataset.preset]; for(const k in p) el(k).value=p[k]; run();
+  });
 
-  function label(t){return t.replace(/_/g,' ');}
+  /* ---- readable summary of one chain entry ---- */
+  function summarize(e){
+    const p=e.payload||{};
+    switch(e.event_type){
+      case 'intent': return '“'+esc(p.text)+'”';
+      case 'envelope': return 'budget '+rs(p.max_total)+' · payee '+esc((p.allowed_payees||[]).join(', '));
+      case 'proposal': return 'agent proposes <b>'+esc(p.action)+'</b> <span class="amt">'+rs(p.amount)+'</span> → '+esc(p.payee)+(p.reason?' — '+esc(p.reason):'');
+      case 'policy_decision': return 'allowed <b>'+esc(p.action)+'</b> <span class="amt">'+rs(p.proposed_amount)+'</span>';
+      case 'refusal': return '<b>refused</b> — '+esc(p.reason||p.rule||'');
+      case 'rail_transition': {
+        const verb=esc((p.transition||p.action||'').toString());
+        const tail=(p.outcome&&p.outcome!=='applied')?' — '+esc(p.outcome):'';
+        return '<b>'+verb+'</b> <span class="amt">'+rs(p.amount||0)+'</span>'+tail;
+      }
+      default: return '';
+    }
+  }
+
+  /* ---- render the whole result from a packet ---- */
+  function num(v){return Number(v||0);}
+  async function renderResult(packet, reply){
+    el('replyCard').style.display = reply ? 'block' : 'none';
+    if(reply) el('reply').textContent = reply;
+
+    const ents = packet.entries;
+    const railBy = v => ents.filter(e=>e.event_type==='rail_transition' &&
+      ((e.payload.action||e.payload.transition||'').toString().toLowerCase().includes(v)));
+    const sum = arr => arr.reduce((a,e)=>a+num(e.payload.amount),0);
+    const blocked = sum(railBy('reserve').concat(railBy('block')));
+    const debited = sum(railBy('debit'));
+    const returned = sum(railBy('release').concat(railBy('refund')));
+    const refusals = ents.filter(e=>e.event_type==='refusal');
+
+    // verdict
+    const v=el('verdict'), vt=el('verdict-text'), vi=el('verdict-ico');
+    if(debited>0 && refusals.length===0){
+      v.className='verdict ok';
+      vi.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+      vt.textContent='Settled — the merchant nets '+rs(debited)+', within every bound you set.';
+    } else if(debited>0){
+      v.className='verdict ok';
+      vi.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+      vt.textContent='Settled '+rs(debited)+' — after refusing '+refusals.length+' action'+(refusals.length>1?'s':'')+' that broke a bound.';
+    } else {
+      v.className='verdict warn';
+      vi.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>';
+      vt.textContent='Nothing settled — the policy engine refused '+refusals.length+' action'+(refusals.length>1?'s':'')+'. No money moved.';
+    }
+
+    // tiles
+    el('tiles').innerHTML=[
+      ['Blocked',rs(blocked),''],['Debited',rs(debited),'brand'],
+      ['Returned',rs(returned),''],['Refused',String(refusals.length),refusals.length?'bad':''],
+    ].map(([k,val,c])=>`<div class="tile ${c}"><div class="k">${k}</div><div class="v">${val}</div></div>`).join('');
+
+    // decisions (allow / refuse rows)
+    const decs=ents.filter(e=>e.event_type==='policy_decision'||e.event_type==='refusal');
+    el('decisions').innerHTML = decs.length ? decs.map(e=>{
+      const ok=e.event_type==='policy_decision';
+      const p=e.payload; const cite=p.citation?`<span class="cite">${esc(p.citation)}</span>`:'';
+      const msg = ok ? `allowed ${esc(p.action)} ${rs(p.proposed_amount)} → ${esc(p.payee)}`
+                     : esc(p.reason||p.rule||'refused');
+      return `<div class="decision ${ok?'ok':'no'}"><span class="tag">${ok?'allow':'refuse'}</span>
+        <span class="msg">${msg}${cite}</span></div>`;
+    }).join('') : '<div class="empty">No decisions recorded.</div>';
+
+    // signed receipt timeline
+    await setPacket(packet); renderEntries();
+    await verifyAll();
+    el('result').classList.add('show');
+  }
+
   function renderEntries(){
-    document.getElementById('pk').textContent = PACKET.public_key.slice(0,20)+'…';
-    document.getElementById('count').textContent = PACKET.entries.length+' entries';
-    document.getElementById('entries').innerHTML = PACKET.entries.map((e,i)=>{
-      const cls = e.event_type==='refusal'?'refusal':e.event_type==='rail_transition'?'rail-t':'';
-      return `<div class="entry ${cls}" id="e-${i}"><div class="head">
-        <span class="seq">#${e.seq}</span>
-        <span class="chip ${e.event_type}">${label(e.event_type)}</span>
-        <span class="actor">${e.actor}</span>
-        <span class="chk" id="chk-${i}">checking</span></div>
-        <pre id="pl-${i}" contenteditable="true" spellcheck="false">${
-          JSON.stringify(e.payload,null,2)}</pre>
-        <div class="hash">hash ${e.hash}</div></div>`;
+    el('pk').textContent = PACKET.public_key.slice(0,18)+'…';
+    el('count').textContent = PACKET.entries.length+' entries';
+    el('entries').innerHTML = PACKET.entries.map((e,i)=>{
+      const cls = e.event_type==='refusal'?'refusal':e.event_type==='rail_transition'?'rail-t':
+                  e.event_type==='policy_decision'?'ok-d':'';
+      return `<div class="entry ${cls}" id="e-${i}">
+        <div class="erow">
+          <span class="chip ${e.event_type}">${e.event_type.replace(/_/g,' ')}</span>
+          <span class="summ">${summarize(e)}</span>
+          <span class="chk" id="chk-${i}">…</span>
+        </div>
+        <details class="inspect"><summary>inspect signed bytes</summary>
+          <pre id="pl-${i}" contenteditable="true" spellcheck="false">${JSON.stringify(e.payload,null,2)}</pre>
+          <div class="hash">hash ${e.hash}</div>
+        </details></div>`;
     }).join('');
   }
 
-  function renderSteps(steps, summary){
-    document.getElementById('steps').innerHTML = steps.map(s=>{
-      const cls = s.ok?'ok':'no';
-      return `<div class="step ${cls}">
-        <span class="verb ${cls}">${s.ok?'✓ '+s.type:'✗ '+s.type}</span>
-        <div class="body"><div class="detail"><span class="amt">${rs(s.amount)}</span>
-          → ${s.payee} — ${s.ok?'allowed':s.detail}</div>
-          ${s.citation?`<div class="cite">${s.citation}</div>`:''}</div></div>`;
-    }).join('');
-    document.getElementById('summary').textContent = summary;
+  function onTamper(){
+    const idx = PACKET.entries.findIndex(e=>e.event_type==='rail_transition');
+    if(idx>=0){ const d=el('e-'+idx).querySelector('details'); if(d) d.open=true;
+      el('e-'+idx).scrollIntoView({block:'center'}); }
+    tamper();
   }
 
+  /* ---- runners ---- */
   async function run(){
-    const body = {
-      envelope:{budget:paise('budget'), per_txn:paise('per_txn'),
-                payee:document.getElementById('payee').value.trim(), hours:6},
+    const body={envelope:{budget:paise('budget'),per_txn:paise('per_txn'),
+      payee:el('payee').value.trim(),hours:6},
       actions:[
-        {type:'reserve', amount:paise('ceiling'),
-         payee:document.getElementById('charge').value.trim(), reason:'ceiling for the trip'},
-        {type:'debit', amount:paise('actual'), reason:'metered fare'},
-        {type:'release', reason:'trip complete'},
-      ],
-    };
-    const btn = document.getElementById('run'); btn.disabled = true; btn.textContent='Running…';
+        {type:'reserve',amount:paise('ceiling'),payee:el('charge').value.trim(),reason:'ceiling for the trip'},
+        {type:'debit',amount:paise('actual'),reason:'metered fare'},
+        {type:'release',reason:'trip complete'}]};
+    const btn=el('run'); btn.disabled=true; btn.textContent='Running…';
     try{
-      const res = await fetch('/api/simulate',{method:'POST',
-        headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
-      if(!res.ok){ renderSteps([{type:'error',amount:0,payee:'',ok:false,
-        detail:'invalid input — check the amounts',citation:''}],''); return; }
-      const data = await res.json();
-      renderSteps(data.steps, data.summary);
-      await setPacket(data.packet); renderEntries(); await verifyAll();
+      const res=await fetch('/api/simulate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+      if(!res.ok){ el('result').classList.add('show'); el('verdict').className='verdict warn';
+        el('verdict-text').textContent='Invalid input — check the amounts.'; return; }
+      await renderResult((await res.json()).packet, null);
     } finally { btn.disabled=false; btn.textContent='Run through the policy engine'; }
   }
-  document.getElementById('run').onclick = run;
+  el('run').onclick=run;
 
   async function runAgent(){
-    const key = document.getElementById('gkey').value.trim();
-    const prompt = document.getElementById('prompt').value.trim();
-    const reply = document.getElementById('reply');
-    const card = document.getElementById('replyCard');
-    if(!key){ card.style.display='block'; reply.textContent='Paste your Gemini API key first — the link above gives you a free one.'; return; }
-    const body = {gemini_key:key, prompt,
-      envelope:{budget:paise('budget'), per_txn:paise('per_txn'),
-                payee:document.getElementById('payee').value.trim(), hours:6}};
-    const btn = document.getElementById('runAgent'); btn.disabled=true; btn.textContent='Agent is working…';
-    card.style.display='block'; reply.textContent='The agent is reasoning and calling tools…';
+    const key=el('gkey').value.trim();
+    if(!key){ mode('agent'); el('gkey').focus(); return; }
+    const body={gemini_key:key,prompt:el('prompt').value.trim(),
+      envelope:{budget:paise('a_budget'),per_txn:paise('a_budget'),payee:el('a_payee').value.trim(),hours:6}};
+    const btn=el('runAgent'); btn.disabled=true; btn.textContent='Agent is working…';
+    el('result').classList.add('show'); el('replyCard').style.display='block';
+    el('reply').textContent='The agent is reasoning and calling tools…';
     try{
-      const res = await fetch('/api/agent',{method:'POST',
-        headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
-      const data = await res.json();
-      if(!res.ok){ reply.textContent = data.error || 'The agent run failed.'; return; }
-      reply.textContent = data.reply || '(the agent returned no text)';
-      document.getElementById('steps').innerHTML =
-        '<div class="empty">The agent drove this — every action it took, allowed or refused, is in the receipt below.</div>';
-      document.getElementById('summary').textContent = data.summary;
-      await setPacket(data.packet); renderEntries(); await verifyAll();
-    } catch(e){ reply.textContent = 'Network error — try again.'; }
+      const res=await fetch('/api/agent',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+      const data=await res.json();
+      if(!res.ok){ el('reply').textContent=data.error||'The agent run failed.'; return; }
+      await renderResult(data.packet, data.reply||'(the agent returned no text)');
+    } catch(e){ el('reply').textContent='Network error — try again.'; }
     finally { btn.disabled=false; btn.textContent='Run the live AI agent'; }
   }
-  document.getElementById('runAgent').onclick = runAgent;
+  el('runAgent').onclick=runAgent;
 
-  run();  // show the happy path on load
+  run();  // land on a worked example
   </script>
 </div></body></html>
