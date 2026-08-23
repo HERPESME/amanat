@@ -33,8 +33,9 @@ from amanat.evidence.chain import EvidenceChain
 # #banner-text, #pk, #count — so any DOM that provides them can reuse it.
 # --------------------------------------------------------------------------
 _VERIFY_JS = r"""
-const PACKET = JSON.parse(document.getElementById('packet').textContent);
-const GENESIS = PACKET.genesis_hash;
+// The packet is set once for a static page and re-set per run for the live demo.
+let PACKET = null, GENESIS = null;
+async function setPacket(p) { PACKET = p; GENESIS = p.genesis_hash; await loadKey(); }
 
 // Canonical JSON matching Python json.dumps(sort_keys=True,
 // separators=(',',':'), ensure_ascii=False).
@@ -111,7 +112,9 @@ function tamper() {
 }
 """
 
-_INIT_JS = "(async () => { render(); await loadKey(); await verifyAll(); })();"
+_INIT_JS = ("(async () => { await setPacket(JSON.parse("
+            "document.getElementById('packet').textContent)); "
+            "render(); await verifyAll(); })();")
 
 
 # --------------------------------------------------------------------------
