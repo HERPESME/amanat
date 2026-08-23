@@ -269,11 +269,14 @@ function arrow(s, x1, y1, x2, y2, color = "6E6A63") {
   const cy = 1.58, ch = 1.72;
   card(s, ML, cy, 4.1, ch);
   s.addText("For one day, it refused its own mechanism", {
-    x: ML + 0.25, y: cy + 0.16, w: 3.65, h: 0.5, margin: 0,
-    fontFace: MONO, bold: true, fontSize: 10.5, color: INK });
+    x: ML + 0.25, y: cy + 0.16, w: 3.65, h: 0.3, margin: 0,
+    fontFace: MONO, bold: true, fontSize: 10, color: INK });
   s.addText("Partial debit rested on vendor docs. Tier UNVERIFIED — so permits() returned False, for us too. Absence of evidence is not permission.", {
-    x: ML + 0.25, y: cy + 0.68, w: 3.65, h: 0.95, margin: 0, valign: "top",
+    x: ML + 0.25, y: cy + 0.52, w: 3.65, h: 0.72, margin: 0, valign: "top",
       fontFace: SANS, fontSize: 10, color: MUTED });
+  s.addText("SourceTier.UNVERIFIED  →  permits() == False", {
+    x: ML + 0.25, y: cy + 1.28, w: 3.65, h: 0.3, margin: 0, valign: "top",
+    fontFace: MONO, fontSize: 8.8, color: FAINT });
   const rx = ML + 4.4;
   card(s, rx, cy, 4.1, ch);
   s.addText("Then we read the circular", {
