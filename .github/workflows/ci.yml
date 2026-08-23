@@ -18,7 +18,7 @@ jobs:
       - name: Containment suite
         # The governance guarantees must hold with no API key and no network.
         # If this ever needs a credential to pass, the guarantees are not real.
-        run: uv run --extra ml --extra dev pytest tests/ -q
+        run: uv run --extra ml --extra web --extra dev pytest tests/ -q
 
       - name: End-to-end walkthrough runs
         run: uv run --extra dev python -m amanat.demo
