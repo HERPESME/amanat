@@ -3,191 +3,113 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Amanat — dispute packet</title>
 <style>
-  :root {
-    --bg:#0f1115; --card:#171a21; --line:#262b36; --ink:#e8eaed; --dim:#9aa3b2;
-    --ok:#3fb950; --bad:#f85149; --warn:#d29922; --accent:#7c72ff;
-  }
-  * { box-sizing:border-box; }
-  body { margin:0; background:var(--bg); color:var(--ink);
-         font:15px/1.6 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif; }
-  .wrap { max-width:56rem; margin:0 auto; padding:2.5rem 1.25rem 4rem; }
-  h1 { font-size:1.5rem; margin:0 0 .25rem; letter-spacing:-.01em; }
-  .sub { color:var(--dim); margin:0 0 1.75rem; }
-  .banner { padding:1rem 1.25rem; border-radius:10px; font-weight:600;
-            display:flex; align-items:center; gap:.6rem; margin-bottom:1.5rem; }
-  .banner.ok { background:rgba(63,185,80,.12); border:1px solid var(--ok); color:var(--ok); }
-  .banner.bad { background:rgba(248,81,73,.12); border:1px solid var(--bad); color:var(--bad); }
-  .dot { width:.7rem; height:.7rem; border-radius:50%; background:currentColor; }
-  .meta { display:flex; flex-wrap:wrap; gap:.5rem 1.5rem; color:var(--dim);
-          font-size:13px; margin-bottom:1.5rem; }
-  .meta code { color:var(--ink); }
-  .entry { background:var(--card); border:1px solid var(--line); border-radius:10px;
-           padding:1rem 1.15rem; margin-bottom:.75rem; position:relative; }
-  .entry.refusal { border-color:var(--bad); }
-  .entry.rail { border-color:var(--accent); }
-  .row { display:flex; align-items:center; gap:.6rem; flex-wrap:wrap; }
-  .seq { color:var(--dim); font-variant-numeric:tabular-nums; font-size:12px;
-         min-width:1.5rem; }
-  .tag { font-size:11px; text-transform:uppercase; letter-spacing:.04em;
-         padding:.1rem .5rem; border-radius:20px; border:1px solid var(--line);
-         color:var(--dim); }
-  .tag.refusal { color:var(--bad); border-color:var(--bad); }
-  .tag.rail_transition { color:var(--accent); border-color:var(--accent); }
-  .actor { color:var(--dim); font-size:13px; }
-  .chk { margin-left:auto; font-size:12px; font-weight:600; }
-  .chk.ok { color:var(--ok); } .chk.bad { color:var(--bad); }
-  pre { margin:.6rem 0 0; padding:.6rem .75rem; background:#0b0d11; border-radius:7px;
-        overflow-x:auto; font-size:12.5px; color:#c3cad6; white-space:pre-wrap;
-        word-break:break-word; }
-  .hash { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:11px;
-          color:var(--dim); margin-top:.5rem; word-break:break-all; }
-  button { font:inherit; font-size:13px; padding:.5rem 1rem; border-radius:7px;
-           border:1px solid var(--line); background:var(--card); color:var(--ink);
-           cursor:pointer; }
-  button:hover { border-color:var(--accent); }
-  .bar { display:flex; gap:.6rem; margin-bottom:1.5rem; flex-wrap:wrap; }
-  .note { color:var(--dim); font-size:12.5px; margin-top:2rem; }
-  [contenteditable] { outline:none; }
-  [contenteditable]:focus { box-shadow:0 0 0 1px var(--accent); border-radius:4px; }
-</style></head>
-<body><div class="wrap">
-  <h1>Amanat — evidence packet</h1>
-  <p class="sub">Subject <code>cab-7742</code>. This page verifies itself in your
-     browser, with no network and no trust in whoever produced it.</p>
-
-  <div id="banner" class="banner"><span class="dot"></span><span id="banner-text">Verifying…</span></div>
-
-  <div class="meta">
-    <span>public key <code id="pk"></code></span>
-    <span id="count"></span>
-  </div>
-
-  <div class="bar">
-    <button onclick="verifyAll()">Re-verify</button>
-    <button onclick="tamper()">Tamper with a rail entry</button>
-    <button onclick="location.reload()">Reset</button>
-  </div>
-
+  body{margin:0;background:#0f1115;color:#e8eaed;font:15px/1.6 system-ui,sans-serif}
+  .wrap{max-width:52rem;margin:0 auto;padding:2rem 1rem 4rem}
+  .banner{padding:1rem;border-radius:8px;font-weight:600;margin:1rem 0}
+  .banner.ok{background:rgba(63,185,80,.12);border:1px solid #3fb950;color:#3fb950}
+  .banner.bad{background:rgba(248,81,73,.12);border:1px solid #f85149;color:#f85149}
+  .entry{background:#171a21;border:1px solid #262b36;border-radius:8px;padding:1rem;margin:.5rem 0}
+  .entry.broken{border-color:#f85149}
+  .chk.ok{color:#3fb950}.chk.bad{color:#f85149}
+  pre{background:#0b0d11;padding:.5rem;border-radius:6px;overflow-x:auto;white-space:pre-wrap;word-break:break-word}
+  .hash{font-family:ui-monospace,monospace;font-size:11px;color:#9aa3b2;word-break:break-all}
+  button{font:inherit;padding:.5rem 1rem;border-radius:6px;border:1px solid #262b36;background:#171a21;color:#e8eaed;cursor:pointer;margin-right:.5rem}
+</style></head><body><div class="wrap">
+  <h1>Evidence packet — <code>cab-7742</code></h1>
+  <div id="banner" class="banner"><span id="banner-text">Verifying…</span></div>
+  <p>public key <code id="pk"></code> · <span id="count"></span></p>
+  <div><button onclick="verifyAll()">Re-verify</button>
+       <button onclick="tamper()">Tamper</button>
+       <button onclick="location.reload()">Reset</button></div>
   <div id="entries"></div>
-
-  <p class="note">Each entry's hash is recomputed here (SHA-256 over the same
-     canonical bytes Python hashed) and its Ed25519 signature checked against the
-     embedded public key. Edit any payload below — it is editable — and re-verify:
-     the entry it belongs to turns red, because the signature no longer matches
-     what you are now claiming it said. Refusals are evidence too, and appear in
-     the chain like any other entry.</p>
-
-  <script id="packet" type="application/json">{"version": 1, "subject": "cab-7742", "public_key": "074c00b8c6ae3929f1e02bbbdae3500318ea494a4aa089b73dda0ce0e33fec23", "genesis_hash": "0000000000000000000000000000000000000000000000000000000000000000", "entries": [{"seq": 0, "prev_hash": "0000000000000000000000000000000000000000000000000000000000000000", "timestamp": "2026-08-23T04:55:42.809057+00:00", "actor": "human", "event_type": "envelope", "payload": {"subject": "cab-7742", "max_total": 100000, "max_per_txn": 80000, "allowed_payees": ["citycabs"], "expires_at": "2026-08-23T10:55:42.802967+00:00", "intent_text": "Book a cab to the airport, cap it at \u20b91,000."}, "hash": "9dda3b8b61be9c03b86417189f30daaa2ff09484ff6e7dfafdd013cc2b3f0e54", "signature": "d83b3eab9332d8668b5de930f4627683783298dd77b42a59a0e220555afc2456b21a30ebc5379873ee7bc174773be7401001393d63f124d699d5f383aa931702"}, {"seq": 1, "prev_hash": "9dda3b8b61be9c03b86417189f30daaa2ff09484ff6e7dfafdd013cc2b3f0e54", "timestamp": "2026-08-23T04:55:42.810206+00:00", "actor": "agent", "event_type": "proposal", "payload": {"action": "reserve", "amount": 500000, "payee": "citycabs", "reason": "greedy over-block"}, "hash": "4788bd4ab74cdbfd4fba6f4f407665f3b8b7639db87a694d34ec572c3d13b808", "signature": "ed8fad3d9b4cf3dad215b7370ebd740bd706bc3379cfff5bdec41f81a05505150510f634eaf3480345946fcb04d0adf101e6dea24cb1dc2520123a6cf02e1f03"}, {"seq": 2, "prev_hash": "4788bd4ab74cdbfd4fba6f4f407665f3b8b7639db87a694d34ec572c3d13b808", "timestamp": "2026-08-23T04:55:42.810349+00:00", "actor": "policy", "event_type": "refusal", "payload": {"action": "reserve", "proposed_amount": 500000, "payee": "citycabs", "rail": "sbmd", "allowed": false, "reason": "reserving 500000 would exceed the envelope budget 100000 (already blocked 0)", "citation": "", "quote": ""}, "hash": "539bd2b6f7b2ca2e2ce3bfda150623a3565b442d84265cb1c1ad163ccbe3f172", "signature": "b1554af7513256fd4b1fc78cedbc488e884ee8bf007f566f7e0b100cdc1561f8cddbae4029b68db1a3bf817d7a1fb4197d18ce2e660254df21562a596def5809"}, {"seq": 3, "prev_hash": "539bd2b6f7b2ca2e2ce3bfda150623a3565b442d84265cb1c1ad163ccbe3f172", "timestamp": "2026-08-23T04:55:42.810482+00:00", "actor": "agent", "event_type": "proposal", "payload": {"action": "reserve", "amount": 10000, "payee": "randomcab", "reason": "wrong payee"}, "hash": "34f787363bf5a03ff3ce9c418e19c1a7726f0b3b1f9341022c1f8f70866e6ee2", "signature": "141fbf18a77d877fe8cab8f50f2f041b5e02e757b162a785328ea6cb2989cc54728747e9ff438192577d246a2d3a676df383fb3085c8a4b77cd59f941eb53f0d"}, {"seq": 4, "prev_hash": "34f787363bf5a03ff3ce9c418e19c1a7726f0b3b1f9341022c1f8f70866e6ee2", "timestamp": "2026-08-23T04:55:42.810607+00:00", "actor": "policy", "event_type": "refusal", "payload": {"action": "reserve", "proposed_amount": 10000, "payee": "randomcab", "rail": "sbmd", "allowed": false, "reason": "payee 'randomcab' is not in the envelope's allowed payees", "citation": "", "quote": ""}, "hash": "9b87a237ae1363d46acbd96e8421e26aacb43683dcf85417a07562b1532ea7f7", "signature": "6672a5fb9baeaf1f1b11e24679f9e4a00010ba93e435374d745ee27e4c0aaad714bfa106e333adecdbb9be2510b9370114204006e6b80db56ecaa33607c47e02"}, {"seq": 5, "prev_hash": "9b87a237ae1363d46acbd96e8421e26aacb43683dcf85417a07562b1532ea7f7", "timestamp": "2026-08-23T04:55:42.810732+00:00", "actor": "agent", "event_type": "proposal", "payload": {"action": "reserve", "amount": 62000, "payee": "citycabs", "reason": "p95 of the fare distribution"}, "hash": "bfc591e177aa3d2734a448c068bf436b925bd662a9c2b0456768560b3b51c9f8", "signature": "31b4274067f91904355795f88570337ab0a8827bb02b92bea7a70c30ecbe4235ca8a0d84940f3966b437e1b6d247af2ca0266268307c984f7f0856f43f551f08"}, {"seq": 6, "prev_hash": "bfc591e177aa3d2734a448c068bf436b925bd662a9c2b0456768560b3b51c9f8", "timestamp": "2026-08-23T04:55:42.810857+00:00", "actor": "policy", "event_type": "policy_decision", "payload": {"action": "reserve", "proposed_amount": 62000, "payee": "citycabs", "rail": "sbmd", "allowed": true, "reason": "permitted on UPI Reserve Pay (NPCI Single Block Multiple Debit)", "citation": "", "quote": ""}, "hash": "7b34693de6c546851d9e3ef72a524b2b0ab5346d085cfaa4e1589502f6eddaac", "signature": "42e5d21d35e03479270b3fa352515adf4ad9d4d627d3c486d6a58df6fe020a65db9810852188236652d9921b43cfd86719fadd6db2570e06fde1b3596232190c"}, {"seq": 7, "prev_hash": "7b34693de6c546851d9e3ef72a524b2b0ab5346d085cfaa4e1589502f6eddaac", "timestamp": "2026-08-23T04:55:42.810987+00:00", "actor": "rail", "event_type": "rail_transition", "payload": {"action": "reserve", "amount": 62000, "outcome": "applied", "block_id": "blk_1"}, "hash": "91c59f5d646b7a57478bd07b6698ed24f85690d93f3a973709a263eb68e19dca", "signature": "5c860cae9126de95b8ff869d2cac43363ef10dec4a86f31c37d9122129d3e4f0523fc7029fad1f66955b4fdd3942c365908bd19173b63a8af5ba9ceb0bb0bd08"}, {"seq": 8, "prev_hash": "91c59f5d646b7a57478bd07b6698ed24f85690d93f3a973709a263eb68e19dca", "timestamp": "2026-08-23T04:55:42.811110+00:00", "actor": "agent", "event_type": "proposal", "payload": {"action": "debit", "amount": 47000, "payee": "citycabs", "reason": "metered fare"}, "hash": "266ef9d9b22cc523be1d47959108b2c763d96a7dbc336090d45866731ccd1df8", "signature": "bdf90d5cf04e1712bfe5b284e4749930518eb5a4e93b7caf8b5a3a5eb812688ccd27b38720d4043b2b24b5d5ad0843ffe92d09ef6604e3c47fe93091b1eb7f0f"}, {"seq": 9, "prev_hash": "266ef9d9b22cc523be1d47959108b2c763d96a7dbc336090d45866731ccd1df8", "timestamp": "2026-08-23T04:55:42.811237+00:00", "actor": "policy", "event_type": "policy_decision", "payload": {"action": "debit", "proposed_amount": 47000, "payee": "citycabs", "rail": "sbmd", "allowed": true, "reason": "permitted on UPI Reserve Pay (NPCI Single Block Multiple Debit)", "citation": "", "quote": ""}, "hash": "07f25a3cc184f3381e632df6ab1b9dd9459f3cd00b9b2b7c18f3265c2b76d636", "signature": "37ed54978fc10d0ee87bd339cad24104949dd9f180138124512902ed672bb13c143ea6f32ee31b2b2f83d00536c86ed9b28a5b7ce78b2bd6743ab728cf1c2a03"}, {"seq": 10, "prev_hash": "07f25a3cc184f3381e632df6ab1b9dd9459f3cd00b9b2b7c18f3265c2b76d636", "timestamp": "2026-08-23T04:55:42.811361+00:00", "actor": "rail", "event_type": "rail_transition", "payload": {"action": "debit", "amount": 47000, "outcome": "applied", "block_id": "blk_1"}, "hash": "3b64a5f7c1cd6aea322ee41f4091d41ae326ece5882cc563b2480ef1c094910d", "signature": "185f87d0b5c325a906810e2a3d182bf05fddac223b162a25fc6c447522f787b282464d2a07934fcc7c4907612fadf5fdede0bab896b5f434f2e086aa2c957004"}, {"seq": 11, "prev_hash": "3b64a5f7c1cd6aea322ee41f4091d41ae326ece5882cc563b2480ef1c094910d", "timestamp": "2026-08-23T04:55:42.811510+00:00", "actor": "agent", "event_type": "proposal", "payload": {"action": "release", "amount": 15000, "payee": "citycabs", "reason": "trip complete"}, "hash": "aac38c62b274adf2c12b0237648f17e177afade4039c9bfd55be8d41864e1e92", "signature": "3bb00a6367c3479755fe4497f6b1e42d547281e5cb18d304282941dc1904684e7bf5c5b6be8dd601d22ca369e7a4c56dae22b82f7e7b83049e2908ad940d8b04"}, {"seq": 12, "prev_hash": "aac38c62b274adf2c12b0237648f17e177afade4039c9bfd55be8d41864e1e92", "timestamp": "2026-08-23T04:55:42.811658+00:00", "actor": "policy", "event_type": "policy_decision", "payload": {"action": "release", "proposed_amount": 15000, "payee": "citycabs", "rail": "sbmd", "allowed": true, "reason": "permitted on UPI Reserve Pay (NPCI Single Block Multiple Debit)", "citation": "", "quote": ""}, "hash": "f8f71cff1e4f02d1154f3f881acf2798ad4af574f186266e83fc5f57cf0ec9c2", "signature": "47a49d60ea7301cb3737db38dcff0f3df527a95e7511004599ebbbb776813aba4025327f9d2475c4c74fecbb9317185d2db2dbd788bb2584d2e5274f4f662104"}, {"seq": 13, "prev_hash": "f8f71cff1e4f02d1154f3f881acf2798ad4af574f186266e83fc5f57cf0ec9c2", "timestamp": "2026-08-23T04:55:42.811790+00:00", "actor": "rail", "event_type": "rail_transition", "payload": {"action": "release", "amount": 15000, "outcome": "applied", "block_id": "blk_1"}, "hash": "434165f117912b93de9865e0720582c4cf55569e5ef4a7dbadcc9b58f77eee5c", "signature": "ca9cac7e28da35d7befdd89d27af32bc9864dba80f9b06167445b452348307153b339327fc03020ee387058726c1867c1b055e6f16b52bbbff1abf30f0d5480d"}]}</script>
+  <script id="packet" type="application/json">{"version": 1, "subject": "cab-7742", "public_key": "2241b1d3b1df2b3c49f9bffbc9ef01b94a4ae19dad7cabbe7de1a89ffb0035f5", "genesis_hash": "0000000000000000000000000000000000000000000000000000000000000000", "entries": [{"seq": 0, "prev_hash": "0000000000000000000000000000000000000000000000000000000000000000", "timestamp": "2026-08-23T05:08:15.074189+00:00", "actor": "human", "event_type": "envelope", "payload": {"subject": "cab-7742", "max_total": 100000, "max_per_txn": 80000, "allowed_payees": ["citycabs"], "expires_at": "2026-08-23T11:08:15.072501+00:00", "intent_text": "Book a cab to the airport, cap it at \u20b91,000."}, "hash": "8fa7f988df78715b9128c080939e5b0d9d05376e0d25cc83f8173ee13861ba81", "signature": "e37a80d9433a67e01fd9ba2cc61fbce6d573a54098a5bc9562cf3f4140c48696a974a4875e8c39e5fc7255149514c6088f3743b1a93f5845a795c1bcb0a50a04"}, {"seq": 1, "prev_hash": "8fa7f988df78715b9128c080939e5b0d9d05376e0d25cc83f8173ee13861ba81", "timestamp": "2026-08-23T05:08:15.074612+00:00", "actor": "agent", "event_type": "proposal", "payload": {"action": "reserve", "amount": 500000, "payee": "citycabs", "reason": "greedy over-block"}, "hash": "76f1a8e7a05ba571672304454d3f91db1953776da46e0dc34c49c3107d5f6b2b", "signature": "0d9c16e432a5fba9acb79b0713d8487bc0d8504040bac0a4191966980f876785aa1d960a25aa2a30d429c9c769efa9d911261cbc901cf296c672d57d9b27f30f"}, {"seq": 2, "prev_hash": "76f1a8e7a05ba571672304454d3f91db1953776da46e0dc34c49c3107d5f6b2b", "timestamp": "2026-08-23T05:08:15.074754+00:00", "actor": "policy", "event_type": "refusal", "payload": {"action": "reserve", "proposed_amount": 500000, "payee": "citycabs", "rail": "sbmd", "allowed": false, "reason": "reserving 500000 would exceed the envelope budget 100000 (already blocked 0)", "citation": "", "quote": ""}, "hash": "0324cec7b702db8173af9d490c5698902d0b46a8154f4900b5fe0e123b60966c", "signature": "8300cd81d6c2e9c85aab173c6734bae108357d3433f489c75a41445b9ddb7aa8ff16e588c3ffc94d035f76918d9cb10927cd94c2da85369478e2735efda4c103"}, {"seq": 3, "prev_hash": "0324cec7b702db8173af9d490c5698902d0b46a8154f4900b5fe0e123b60966c", "timestamp": "2026-08-23T05:08:15.074905+00:00", "actor": "agent", "event_type": "proposal", "payload": {"action": "reserve", "amount": 10000, "payee": "randomcab", "reason": "wrong payee"}, "hash": "de36ce738fb83a417f25106dc683163b9d879cd2bdc30270ef252dfbb119f63f", "signature": "9bd25f06183084b8ee3520599247cbddd4fae45140c923cd54fab9ac69f2566c88fb7701b7a1c0cc1eea94230cb18d574a0adea6806acaf477f2237fcf332403"}, {"seq": 4, "prev_hash": "de36ce738fb83a417f25106dc683163b9d879cd2bdc30270ef252dfbb119f63f", "timestamp": "2026-08-23T05:08:15.075051+00:00", "actor": "policy", "event_type": "refusal", "payload": {"action": "reserve", "proposed_amount": 10000, "payee": "randomcab", "rail": "sbmd", "allowed": false, "reason": "payee 'randomcab' is not in the envelope's allowed payees", "citation": "", "quote": ""}, "hash": "d84a72cc00845591beee167d2ff9770aed45ddcc109446d571019453b3c85ae9", "signature": "33c474e056f9267213869e516fd81273476de94e8aab6191769153ad2d7965538b239080806de0173afcaa1b358d1b1b4bd88aab87555a54f211139802c6e708"}, {"seq": 5, "prev_hash": "d84a72cc00845591beee167d2ff9770aed45ddcc109446d571019453b3c85ae9", "timestamp": "2026-08-23T05:08:15.075185+00:00", "actor": "agent", "event_type": "proposal", "payload": {"action": "reserve", "amount": 62000, "payee": "citycabs", "reason": "p95 of the fare distribution"}, "hash": "8e28bbc574ecdbf92cf9e824d45389310cd19013205a2c6595ba8febe702be01", "signature": "9fa544d69a530073c9f8c74ae3bd09ab27689807f73bb508cc00384fe01fd2008f178672f89fd7b091f13c3aca8eb99a2e60fe90ebe2a156c4ba25318fabc003"}, {"seq": 6, "prev_hash": "8e28bbc574ecdbf92cf9e824d45389310cd19013205a2c6595ba8febe702be01", "timestamp": "2026-08-23T05:08:15.075315+00:00", "actor": "policy", "event_type": "policy_decision", "payload": {"action": "reserve", "proposed_amount": 62000, "payee": "citycabs", "rail": "sbmd", "allowed": true, "reason": "permitted on UPI Reserve Pay (NPCI Single Block Multiple Debit)", "citation": "", "quote": ""}, "hash": "7803e20d2d04cd2a0da11df5b96b0a0d82ddbe0b276c85a45013de73fe13eb7c", "signature": "f197287f71799eafaa8de1dc267169f6b7f7b44a3e726b276951bf3a7e096525d9d7dcfe7bff31232e3ed591ba9f10ee4a251ba387b7dded8664b6b5b1aec502"}, {"seq": 7, "prev_hash": "7803e20d2d04cd2a0da11df5b96b0a0d82ddbe0b276c85a45013de73fe13eb7c", "timestamp": "2026-08-23T05:08:15.075445+00:00", "actor": "rail", "event_type": "rail_transition", "payload": {"action": "reserve", "amount": 62000, "outcome": "applied", "block_id": "blk_1"}, "hash": "0e9a524901c19bbb22ade7b3a7594d86e81904617fd6f0027a42b5e404a46467", "signature": "248533f95014918b85884e0aa7bb69d362a122e87f52a47a7864461e57aec1ff6d78e29450b3def3a5c0c9e4087e12ea118fda4e6af5698d5899ad07cf182705"}, {"seq": 8, "prev_hash": "0e9a524901c19bbb22ade7b3a7594d86e81904617fd6f0027a42b5e404a46467", "timestamp": "2026-08-23T05:08:15.075569+00:00", "actor": "agent", "event_type": "proposal", "payload": {"action": "debit", "amount": 47000, "payee": "citycabs", "reason": "metered fare"}, "hash": "8f4523c549cd50fb77426e1354e9ab928894650927c0efdb6fadd243e29dc8ea", "signature": "a19bc865a0383b02a5e9664ae7444457ce2ab9d3c6b286d631124ab4a7bf7c06b0c2fa58a03771ee52e93af070fdf3c2b0d692404b194cb4a98ff5d60287f00f"}, {"seq": 9, "prev_hash": "8f4523c549cd50fb77426e1354e9ab928894650927c0efdb6fadd243e29dc8ea", "timestamp": "2026-08-23T05:08:15.075694+00:00", "actor": "policy", "event_type": "policy_decision", "payload": {"action": "debit", "proposed_amount": 47000, "payee": "citycabs", "rail": "sbmd", "allowed": true, "reason": "permitted on UPI Reserve Pay (NPCI Single Block Multiple Debit)", "citation": "", "quote": ""}, "hash": "4b71039c144f0f5df1eb75d847b85572499655f5b531cbda92e7537718540972", "signature": "46f20ed37fe97f290b2410e5641f61257bc7258cac3f2ba2fc11a58cf9f1d9b556bd29afc97386aaacf29e486cc5621a075ca48f272a6e9ad272d5a60b1bb206"}, {"seq": 10, "prev_hash": "4b71039c144f0f5df1eb75d847b85572499655f5b531cbda92e7537718540972", "timestamp": "2026-08-23T05:08:15.075818+00:00", "actor": "rail", "event_type": "rail_transition", "payload": {"action": "debit", "amount": 47000, "outcome": "applied", "block_id": "blk_1"}, "hash": "a405f1fc477e209ff6d48535fa7f847b0d08d7c47f1af7ef1f49b40e1e34fc2d", "signature": "43536d47288c94c6a4a19ba79720515090248bf13d9a02ef10d928a768965edc5ad543b17a4b803c7f3eb2b69c72da49b7789d4d77318656f57397c350d5fe0b"}, {"seq": 11, "prev_hash": "a405f1fc477e209ff6d48535fa7f847b0d08d7c47f1af7ef1f49b40e1e34fc2d", "timestamp": "2026-08-23T05:08:15.075947+00:00", "actor": "agent", "event_type": "proposal", "payload": {"action": "release", "amount": 15000, "payee": "citycabs", "reason": "trip complete"}, "hash": "35c5d4f8f04d6ef35a0c675a6115b5589cc715a3c075a93b83b019858e6e81d0", "signature": "7293d82869467d525fa7b8115ee19b907bd3698e917be32d1e242b2fef66592b50a594d1a9a8b6f3893e6f50b87ceead8c7786394f8dbf8a78b42d0b0b2b040a"}, {"seq": 12, "prev_hash": "35c5d4f8f04d6ef35a0c675a6115b5589cc715a3c075a93b83b019858e6e81d0", "timestamp": "2026-08-23T05:08:15.076070+00:00", "actor": "policy", "event_type": "policy_decision", "payload": {"action": "release", "proposed_amount": 15000, "payee": "citycabs", "rail": "sbmd", "allowed": true, "reason": "permitted on UPI Reserve Pay (NPCI Single Block Multiple Debit)", "citation": "", "quote": ""}, "hash": "13a6b02727d49444b05e2651d828a01442e23c996e318cf701d20dc1c56d36b6", "signature": "b79f26a0fec89fabaffdd1094641b53ba85bebd38eb1681d448da71a6ce005dcd9a19f8b4516c98317221315a141a30212007fa3eb78f1f115037ee2974adc0e"}, {"seq": 13, "prev_hash": "13a6b02727d49444b05e2651d828a01442e23c996e318cf701d20dc1c56d36b6", "timestamp": "2026-08-23T05:08:15.076193+00:00", "actor": "rail", "event_type": "rail_transition", "payload": {"action": "release", "amount": 15000, "outcome": "applied", "block_id": "blk_1"}, "hash": "7f9fe224aa3b825b8d37b86f1b7120da37c9d88b4aa49b8e3584913fdae2431b", "signature": "ec82f365b679f70b8741bd89cd511d66e1b2f8be5c039ab33e43bfd25b596ebe31752d8ccb72d76b8665217ec0cf89eb096f5940823b03cb73c84cb95677fc06"}]}</script>
   <script>
-  const PACKET = JSON.parse(document.getElementById('packet').textContent);
-  const GENESIS = PACKET.genesis_hash;
+  
+const PACKET = JSON.parse(document.getElementById('packet').textContent);
+const GENESIS = PACKET.genesis_hash;
 
-  // Canonical JSON matching Python json.dumps(sort_keys=True,
-  // separators=(',',':'), ensure_ascii=False).
-  function canonical(v) {
-    if (v === null || typeof v !== 'object') return JSON.stringify(v);
-    if (Array.isArray(v)) return '[' + v.map(canonical).join(',') + ']';
-    const keys = Object.keys(v).sort();
-    return '{' + keys.map(k => JSON.stringify(k) + ':' + canonical(v[k])).join(',') + '}';
+// Canonical JSON matching Python json.dumps(sort_keys=True,
+// separators=(',',':'), ensure_ascii=False).
+function canonical(v) {
+  if (v === null || typeof v !== 'object') return JSON.stringify(v);
+  if (Array.isArray(v)) return '[' + v.map(canonical).join(',') + ']';
+  return '{' + Object.keys(v).sort()
+    .map(k => JSON.stringify(k) + ':' + canonical(v[k])).join(',') + '}';
+}
+function hexToBytes(h) {
+  const a = new Uint8Array(h.length / 2);
+  for (let i = 0; i < a.length; i++) a[i] = parseInt(h.substr(i * 2, 2), 16);
+  return a;
+}
+async function sha256hex(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
+}
+let pubKey = null, ed25519 = true;
+async function loadKey() {
+  try {
+    pubKey = await crypto.subtle.importKey('raw', hexToBytes(PACKET.public_key),
+      { name: 'Ed25519' }, false, ['verify']);
+  } catch (e) { ed25519 = false; }
+}
+function digestInput(e) {
+  return canonical({ seq: e.seq, prev_hash: e.prev_hash, timestamp: e.timestamp,
+    actor: e.actor, event_type: e.event_type, payload: e.payload });
+}
+async function verifyEntry(e, expectedPrev) {
+  const hashOK = (await sha256hex(digestInput(e))) === e.hash;
+  const linkOK = e.prev_hash === expectedPrev;
+  let sigOK = true;
+  if (ed25519 && pubKey)
+    sigOK = await crypto.subtle.verify({ name: 'Ed25519' }, pubKey,
+      hexToBytes(e.signature), hexToBytes(e.hash));
+  return { hashOK, linkOK, sigOK, ok: hashOK && linkOK && sigOK };
+}
+function readEntriesFromDOM() {
+  return PACKET.entries.map((e, i) => {
+    const el = document.querySelector('#pl-' + i);
+    if (el) { try { e.payload = JSON.parse(el.textContent); } catch (_) {} }
+    return e;
+  });
+}
+async function verifyAll() {
+  const entries = readEntriesFromDOM();
+  let prev = GENESIS, allOK = true, brokenAt = null;
+  for (let i = 0; i < entries.length; i++) {
+    const r = await verifyEntry(entries[i], prev);
+    const chk = document.querySelector('#chk-' + i);
+    chk.textContent = r.ok ? 'signed & linked'
+      : (!r.hashOK ? 'content altered' : !r.linkOK ? 'broken link' : 'bad signature');
+    chk.className = 'chk ' + (r.ok ? 'ok' : 'bad');
+    document.querySelector('#e-' + i).classList.toggle('broken', !r.ok);
+    if (!r.ok && brokenAt === null) { brokenAt = i; allOK = false; }
+    prev = entries[i].hash;
   }
-  function hexToBytes(h) {
-    const a = new Uint8Array(h.length / 2);
-    for (let i = 0; i < a.length; i++) a[i] = parseInt(h.substr(i * 2, 2), 16);
-    return a;
-  }
-  async function sha256hex(str) {
-    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
-    return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
-  }
+  const b = document.getElementById('banner'), t = document.getElementById('banner-text');
+  b.className = 'banner ' + (allOK ? 'ok' : 'bad');
+  t.textContent = allOK
+    ? (ed25519 ? 'Verified — every entry signed, hashed and linked'
+               : 'Hash-linked — signatures unchecked (this browser lacks Ed25519)')
+    : 'Tampered — entry ' + brokenAt + ' no longer matches its signature';
+}
+function tamper() {
+  const idx = PACKET.entries.findIndex(e => e.event_type === 'rail_transition');
+  if (idx < 0) return;
+  const el = document.querySelector('#pl-' + idx);
+  const p = JSON.parse(el.textContent);
+  if ('amount' in p) p.amount = 1; else p._tampered = true;
+  el.textContent = JSON.stringify(p, null, 2);
+  verifyAll();
+}
 
-  let pubKey = null, ed25519 = true;
-  async function loadKey() {
-    try {
-      pubKey = await crypto.subtle.importKey('raw', hexToBytes(PACKET.public_key),
-        { name: 'Ed25519' }, false, ['verify']);
-    } catch (e) { ed25519 = false; }
+  function render(){
+    document.getElementById('pk').textContent=PACKET.public_key.slice(0,16)+'…';
+    document.getElementById('count').textContent=PACKET.entries.length+' entries';
+    document.getElementById('entries').innerHTML=PACKET.entries.map((e,i)=>
+      `<div class="entry" id="e-${i}"><b>#${e.seq}</b> ${e.event_type} · ${e.actor}
+       <span class="chk" id="chk-${i}">…</span>
+       <pre id="pl-${i}" contenteditable="true">${JSON.stringify(e.payload,null,2)}</pre>
+       <div class="hash">${e.hash}</div></div>`).join('');
   }
-
-  function digestInput(e) {
-    return canonical({ seq: e.seq, prev_hash: e.prev_hash, timestamp: e.timestamp,
-      actor: e.actor, event_type: e.event_type, payload: e.payload });
-  }
-
-  async function verifyEntry(e, expectedPrev) {
-    const recomputed = await sha256hex(digestInput(e));
-    const hashOK = recomputed === e.hash;
-    const linkOK = e.prev_hash === expectedPrev;
-    let sigOK = true;
-    if (ed25519 && pubKey) {
-      sigOK = await crypto.subtle.verify({ name: 'Ed25519' }, pubKey,
-        hexToBytes(e.signature), hexToBytes(e.hash));
-    }
-    return { hashOK, linkOK, sigOK, ok: hashOK && linkOK && sigOK };
-  }
-
-  function readEntriesFromDOM() {
-    // Re-read editable payloads so tampering is reflected.
-    return PACKET.entries.map((e, i) => {
-      const el = document.querySelector(`#pl-${i}`);
-      if (el) { try { e.payload = JSON.parse(el.textContent); } catch (_) {} }
-      return e;
-    });
-  }
-
-  async function verifyAll() {
-    const entries = readEntriesFromDOM();
-    let prev = GENESIS, allOK = true, brokenAt = null;
-    for (let i = 0; i < entries.length; i++) {
-      const r = await verifyEntry(entries[i], prev);
-      const chk = document.querySelector(`#chk-${i}`);
-      chk.textContent = r.ok ? '✓ signed & linked'
-        : (!r.hashOK ? '✗ content altered' : !r.linkOK ? '✗ broken link' : '✗ bad signature');
-      chk.className = 'chk ' + (r.ok ? 'ok' : 'bad');
-      document.querySelector(`#e-${i}`).style.opacity = r.ok ? '1' : '1';
-      if (!r.ok && brokenAt === null) { brokenAt = i; allOK = false; }
-      prev = entries[i].hash;
-    }
-    const b = document.getElementById('banner'), t = document.getElementById('banner-text');
-    if (allOK) { b.className = 'banner ok';
-      t.textContent = ed25519 ? 'VERIFIED — all entries signed, hashed and linked'
-        : 'HASH-LINKED — signatures not checked (this browser lacks Ed25519)'; }
-    else { b.className = 'banner bad';
-      t.textContent = `TAMPERED — entry ${brokenAt} does not verify`; }
-  }
-
-  function tamper() {
-    const idx = PACKET.entries.findIndex(e => e.event_type === 'rail_transition');
-    if (idx < 0) return;
-    const el = document.querySelector(`#pl-${idx}`);
-    const p = JSON.parse(el.textContent);
-    if ('amount' in p) p.amount = 1; else p._tampered = true;
-    el.textContent = JSON.stringify(p, null, 2);
-    verifyAll();
-  }
-
-  function render() {
-    document.getElementById('pk').textContent =
-      PACKET.public_key.slice(0, 16) + '…';
-    document.getElementById('count').textContent =
-      PACKET.entries.length + ' entries';
-    const host = document.getElementById('entries');
-    host.innerHTML = PACKET.entries.map((e, i) => {
-      const cls = e.event_type === 'refusal' ? 'refusal'
-        : e.event_type === 'rail_transition' ? 'rail' : '';
-      return `<div class="entry ${cls}" id="e-${i}">
-        <div class="row">
-          <span class="seq">#${e.seq}</span>
-          <span class="tag ${e.event_type}">${e.event_type.replace(/_/g,' ')}</span>
-          <span class="actor">${e.actor}</span>
-          <span class="chk" id="chk-${i}">…</span>
-        </div>
-        <pre id="pl-${i}" contenteditable="true">${
-          JSON.stringify(e.payload, null, 2)}</pre>
-        <div class="hash">hash ${e.hash}</div>
-      </div>`;
-    }).join('');
-  }
-
   (async () => { render(); await loadKey(); await verifyAll(); })();
-  </script>
-</div></body></html>
+  </script></div></body></html>
