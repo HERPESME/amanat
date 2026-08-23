@@ -460,7 +460,7 @@ required a live model, the agent would not be bounded.
 | `test_ceiling.py` | conformal guarantee holds on *exchangeable* data |
 | `test_backends.py` | a second LLM provider added no second route to money |
 | `test_ap2_interop.py` | real AP2 Open Payment Mandates round-trip through the envelope |
-| `test_adjudicate.py` | disputes adjudicated to cited findings; tamper caught first |
+| `test_adjudicate.py` | disputes adjudicated to cited findings; tamper caught before any finding |
 | `test_properties.py` | money invariants proven over thousands of random sequences |
 | `test_settlement.py` | capture-then-refund gated; double-settlement refused |
 | `test_compare.py` | the two rails share no transition verbs |
