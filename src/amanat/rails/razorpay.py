@@ -111,6 +111,18 @@ class RazorpayTestRail:
         return self._call("POST", f"/payments/{payment_id}/refund",
                           json={"amount": amount})
 
+    def fetch_payment_authoritative(self, payment_id: str) -> dict:
+        """A payment dict carrying the rail's own captured/refunded totals.
+
+        Razorpay reports `amount` (authorized), `amount_refunded`, and a
+        `captured` flag; a fully-captured manual-capture payment has captured ==
+        amount. Normalised here into the shape `reconcile` expects, so the
+        reconciliation never has to know Razorpay's field names.
+        """
+        p = self.fetch_payment(payment_id)
+        p["amount_captured"] = p["amount"] if p.get("captured") else 0
+        return p
+
     # -- what it cannot honour ---------------------------------------------
 
     def reserve(self, ceiling: int, payee: str) -> BlockRef:
