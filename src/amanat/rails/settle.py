@@ -38,15 +38,25 @@ def main() -> int:
     print("\n\033[1mLIVE SETTLEMENT — Razorpay test mode (capture then refund)\033[0m")
     result = settle_capture_refund(rail, payment_id, actual)
 
-    print(f"\n  {result.summary()}\n")
+    colour = "33" if result.compensation_required else ("32" if result.ok else "31")
+    print(f"\n  \033[{colour}m{result.summary()}\033[0m\n")
     for e in result.chain.rail_transitions():
         p = e.payload
-        print(f"  \033[1m{p['transition']:<11s}\033[0m ₹{p['amount'] / 100:>9,.2f}  "
-              f"ref {p.get('ref', '')}")
+        bad = p.get("outcome") == "refund_failed"
+        print(f"  \033[{'31' if bad else '1'}m{p['transition']:<15s}\033[0m "
+              f"₹{p['amount'] / 100:>9,.2f}  ref {p.get('ref', '')}"
+              + (f"  attempt {p['attempt']}" if bad else ""))
         if p.get("note"):
             print(f"    \033[2m{p['note']}\033[0m")
     for e in result.chain.refusals():
         print(f"  \033[31mREFUSED\033[0m {e.payload.get('rule')}")
+    from amanat.evidence.chain import EventType
+    for e in result.chain.entries:
+        if e.event_type is EventType.COMPENSATION:
+            p = e.payload
+            print(f"  \033[1;33mCOMPENSATION OWED\033[0m captured ₹{p['captured'] / 100:,.2f}, "
+                  f"refund due ₹{p['refund_due'] / 100:,.2f} after {p['attempts']} attempts")
+            print(f"    \033[2m{p['note']}\033[0m")
 
     from amanat.evidence.chain import EvidenceChain
     EvidenceChain.verify_packet(result.chain.export_packet())

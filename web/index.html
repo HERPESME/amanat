@@ -334,6 +334,7 @@ footer a{color:var(--brand)}
       case 'proposal': return 'agent proposes <b>'+esc(p.action)+'</b> <span class="amt">'+rs(p.amount)+'</span> → '+esc(p.payee)+(p.reason?' — '+esc(p.reason):'');
       case 'policy_decision': return 'allowed <b>'+esc(p.action)+'</b> <span class="amt">'+rs(p.proposed_amount)+'</span>';
       case 'refusal': return '<b>refused</b> — '+esc(p.reason||p.rule||'');
+      case 'compensation': return '<b>compensation owed</b> — '+rs(p.refund_due||0)+' captured but not yet returned after '+esc(p.attempts)+' refund attempts';
       case 'rail_transition': {
         const verb=esc((p.transition||p.action||'').toString());
         const tail=(p.outcome&&p.outcome!=='applied')?' — '+esc(p.outcome):'';

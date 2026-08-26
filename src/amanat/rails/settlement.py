@@ -13,13 +13,24 @@ merchant pays MDR on the ceiling rather than the actual. Naming this chain
 AUTHORIZED → CAPTURED → REFUNDED, rather than borrowing SBMD's verbs, is what
 keeps that difference legible — which is the whole point of the evidence chain.
 
+Two calls means two ways to be half-done, and the dangerous one is the second:
+the capture has succeeded, the customer's full ceiling is gone, and the refund
+fails. This module treats that as what it is — money owed — rather than as a
+log line. The refund is retried within a bound, and if it still fails a
+COMPENSATION entry records exactly what was captured and what is due, so the
+obligation survives the process that failed to meet it. Running settlement
+again later completes the refund without touching the capture; running it after
+success is an idempotent no-op.
+
 The settlement talks to anything exposing `fetch_payment`, `capture` and
 `refund`; the live path passes `RazorpayTestRail`, the tests pass a fake. No
 float touches money.
 """
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass
+from typing import Callable
 
 from amanat.evidence.chain import Actor, EventType, EvidenceChain
 from amanat.rails.semantics import RAILS
@@ -38,8 +49,14 @@ class SettlementResult:
     net: int = 0
     payment_id: str = ""
     refund_id: str = ""
+    compensation_required: bool = False
+    refund_due: int = 0
 
     def summary(self) -> str:
+        if self.compensation_required:
+            return (f"captured ₹{self.ceiling / 100:,.2f} — refund of "
+                    f"₹{self.refund_due / 100:,.2f} FAILED and is OWED "
+                    f"(compensation recorded; re-run settle to complete)")
         if not self.ok:
             return f"REFUSED: {self.detail}"
         return (f"captured ₹{self.ceiling / 100:,.2f} → "
@@ -48,11 +65,18 @@ class SettlementResult:
 
 
 def settle_capture_refund(rail, payment_id: str, actual: int, *,
-                          chain: EvidenceChain | None = None) -> SettlementResult:
+                          chain: EvidenceChain | None = None,
+                          refund_attempts: int = 3,
+                          sleep: Callable[[float], None] = time.sleep,
+                          ) -> SettlementResult:
     """Settle an authorized/captured payment down to `actual` via capture+refund.
 
     Every money action is gated and recorded. The gate that matters is the
     amount-contingent invariant: you cannot settle for more than the ceiling.
+
+    `refund_attempts` bounds the retry on the return leg; `sleep` is injectable
+    so tests need not wait. Re-running on a payment whose refund already
+    completed is a no-op success; re-running after a failed refund resumes it.
     """
     chain = chain or EvidenceChain.new(subject=payment_id)
     profile = RAILS.get(getattr(rail, "rail_id", "razorpay_auth_capture"))
@@ -61,17 +85,6 @@ def settle_capture_refund(rail, payment_id: str, actual: int, *,
     ceiling = int(payment["amount"])
     status = payment.get("status", "")
     already_refunded = int(payment.get("amount_refunded", 0) or 0)
-
-    # Settling a payment that was already partly refunded would make the
-    # ceiling/net arithmetic wrong — the difference is computed against the
-    # original amount, not what remains. Refuse rather than report a bad number.
-    if already_refunded > 0:
-        detail = (f"payment {payment_id} already has {already_refunded} refunded; "
-                  "settling it again would misstate the net. Use a fresh payment.")
-        chain.append(Actor.POLICY, EventType.REFUSAL,
-                     {"rule": "already_partly_refunded",
-                      "amount_refunded": already_refunded, "payment_id": payment_id})
-        return SettlementResult(False, detail, chain, ceiling=ceiling)
 
     if status not in _PAYABLE:
         detail = f"payment {payment_id} is {status!r}, not settleable"
@@ -88,6 +101,30 @@ def settle_capture_refund(rail, payment_id: str, actual: int, *,
         chain.append(Actor.POLICY, EventType.REFUSAL,
                      {"rule": "actual_exceeds_ceiling",
                       "actual": actual, "ceiling": ceiling})
+        return SettlementResult(False, detail, chain, ceiling=ceiling, actual=actual)
+
+    difference = ceiling - actual
+
+    # Idempotency. A prior refund equal to what this settlement would return
+    # means the work is already done — say so and touch nothing. A prior refund
+    # of any other size means someone settled this to a different actual;
+    # proceeding would misstate the net, so refuse.
+    if already_refunded > 0:
+        if already_refunded == difference:
+            chain.append(Actor.POLICY, EventType.POLICY_DECISION, {
+                "rule": "settlement_already_complete", "payment_id": payment_id,
+                "refunded": already_refunded, "net_to_merchant": actual})
+            return SettlementResult(
+                True, "already settled to this amount; nothing to do", chain,
+                ceiling=ceiling, actual=actual, refunded=already_refunded,
+                net=actual, payment_id=payment_id)
+        detail = (f"payment {payment_id} already has {already_refunded} refunded, "
+                  f"which does not match the {difference} this settlement implies; "
+                  "refusing rather than misstating the net")
+        chain.append(Actor.POLICY, EventType.REFUSAL,
+                     {"rule": "prior_refund_mismatch",
+                      "amount_refunded": already_refunded,
+                      "expected": difference, "payment_id": payment_id})
         return SettlementResult(False, detail, chain, ceiling=ceiling, actual=actual)
 
     # Record the authorized starting point.
@@ -113,23 +150,52 @@ def settle_capture_refund(rail, payment_id: str, actual: int, *,
             "citation": rule.citation if rule else "",
             "quote": rule.quote if rule else "",
         })
-    else:  # already captured (e.g. via a payment link, which auto-captures)
+    else:  # already captured — a resumed settlement, or a payment-link payment
         chain.append(Actor.RAIL, EventType.RAIL_TRANSITION, {
             "transition": "CAPTURED", "amount": ceiling, "ref": payment_id,
             "note": "payment was already captured on arrival",
         })
 
-    difference = ceiling - actual
+    # The return leg. From here the customer's full ceiling is gone, so a
+    # failure is not a refusal — it is money owed. Retry within a bound, then
+    # record the debt explicitly rather than let it live only in a log line.
     refund_id = ""
     if difference > 0:
-        sc, body = rail.refund(payment_id, difference)
-        if sc != 200:
-            detail = f"refund failed ({sc}): {body}"
-            chain.append(Actor.POLICY, EventType.REFUSAL,
-                         {"rule": "refund_failed", "response": str(body)[:200]})
-            return SettlementResult(False, detail, chain, ceiling=ceiling,
-                                    actual=actual)
-        refund_id = body.get("id", "")
+        last_body: dict = {}
+        for attempt in range(1, refund_attempts + 1):
+            sc, body = rail.refund(payment_id, difference)
+            if sc == 200:
+                refund_id = body.get("id", "")
+                break
+            last_body = body
+            chain.append(Actor.RAIL, EventType.RAIL_TRANSITION, {
+                "transition": "REFUND_ATTEMPT", "amount": difference,
+                "ref": payment_id, "attempt": attempt, "outcome": "refund_failed",
+                "response": str(body)[:160],
+            })
+            if attempt < refund_attempts:
+                sleep(0.5 * attempt)
+        else:
+            chain.append(Actor.POLICY, EventType.COMPENSATION, {
+                "rule": "refund_failed_after_capture",
+                "payment_id": payment_id,
+                "captured": ceiling,
+                "refund_due": difference,
+                "attempts": refund_attempts,
+                "last_response": str(last_body)[:160],
+                "note": ("the customer's full ceiling was captured and the "
+                         "difference could not be returned; this obligation is "
+                         "recorded here and is completed by re-running settlement"),
+            })
+            return SettlementResult(
+                False,
+                f"capture succeeded but the refund of {difference} failed after "
+                f"{refund_attempts} attempts; compensation of {difference} is "
+                "owed and recorded",
+                chain, ceiling=ceiling, actual=actual, net=ceiling,
+                payment_id=payment_id, compensation_required=True,
+                refund_due=difference)
+
         chain.append(Actor.RAIL, EventType.RAIL_TRANSITION, {
             "transition": "REFUNDED", "amount": difference, "ref": refund_id,
             "note": "the difference between ceiling and actual, returned",

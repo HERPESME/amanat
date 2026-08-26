@@ -59,6 +59,7 @@ class EventType(Enum):
     POLICY_DECISION = "policy_decision"  # the engine's independent verdict
     RAIL_TRANSITION = "rail_transition"  # block / debit / release / revoke
     REFUSAL = "refusal"                  # a boundary the system declined to cross
+    COMPENSATION = "compensation"        # money moved, the follow-up failed: owed, not forgotten
 
 
 def _canonical(payload: Any) -> bytes:
