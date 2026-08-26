@@ -112,3 +112,37 @@ class TestRepresentmentExport:
         a = adjudicate(s.evidence_packet(), _mandate(), "unauthorized")
         pkt = export_representment_packet(a, s.evidence_packet(), _mandate())
         EvidenceChain.verify_packet(pkt["evidence"])
+
+
+class TestAdjudicationChecksWhoSignedTheGrant:
+    """Conformance to a grant is only worth something if the grant is real."""
+
+    def _signed_mandate(self, key=None):
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+        from amanat.interop.ap2 import sign_mandate
+        return sign_mandate(_mandate(), key or Ed25519PrivateKey.generate())
+
+    def test_a_verified_user_signature_is_stated_in_the_finding(self):
+        s = _settled_session()
+        a = adjudicate(s.evidence_packet(), self._signed_mandate(), "unauthorized")
+        assert a.finding is Finding.SUPPORTS_MERCHANT
+        assert a.authorized["consent_binding"] == "verified"
+        assert any("signed" in r.lower() and "key" in r.lower() for r in a.reasons)
+
+    def test_a_tampered_mandate_stops_adjudication_before_any_reasoning(self):
+        s = _settled_session()
+        m = self._signed_mandate()
+        for c in m["constraints"]:
+            if c["type"] == "payment.amount_range":
+                c["max"] = 1                 # grant rewritten after signing
+        a = adjudicate(s.evidence_packet(), m, "unauthorized")
+        assert a.finding is Finding.MANDATE_UNVERIFIED
+        assert a.cited_seqs == []
+
+    def test_an_unsigned_mandate_still_adjudicates_but_says_so(self):
+        """The web demo has no user key. That must be visible, not silent."""
+        s = _settled_session()
+        a = adjudicate(s.evidence_packet(), _mandate(), "unauthorized")
+        assert a.finding is Finding.SUPPORTS_MERCHANT
+        assert a.authorized["consent_binding"] == "absent"
+        assert any("not signed" in r.lower() or "unsigned" in r.lower() for r in a.reasons)

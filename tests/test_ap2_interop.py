@@ -98,3 +98,53 @@ class TestEmittingAMandate:
         assert back.max_per_txn == env.max_per_txn
         assert back.allowed_payees == env.allowed_payees
         assert back.expires_at == env.expires_at
+
+
+class TestConsentBinding:
+    """The mandate's cnf slot stops being a placeholder.
+
+    Real AP2 binds a mandate to the user's key (cnf, RFC 7800) inside an SD-JWT.
+    This mirrors the structure honestly — the user's Ed25519 public key sits in
+    cnf.jwk and the mandate carries a signature over its canonical bytes — so
+    the adjudicator can check that the grant it reasons against was signed by
+    the party who supposedly granted it, using a key that is NOT the
+    orchestrator's. Two keys, two parties; the adjudicator trusts neither.
+    """
+
+    def _signed(self):
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+        from amanat.interop.ap2 import sign_mandate
+        user_key = Ed25519PrivateKey.generate()
+        return sign_mandate(dict(REAL_MANDATE), user_key), user_key
+
+    def test_signing_binds_the_users_public_key_into_cnf(self):
+        m, user_key = self._signed()
+        assert m["cnf"]["jwk"]["kty"] == "OKP"
+        assert m["cnf"]["jwk"]["crv"] == "Ed25519"
+        assert m["cnf"]["jwk"]["x"] == user_key.public_key().public_bytes_raw().hex()
+        assert m["signature"]
+
+    def test_a_signed_mandate_verifies(self):
+        from amanat.interop.ap2 import verify_mandate
+        m, _ = self._signed()
+        assert verify_mandate(m) is True
+
+    def test_altering_a_constraint_after_signing_breaks_verification(self):
+        from amanat.interop.ap2 import verify_mandate
+        m, _ = self._signed()
+        for c in m["constraints"]:
+            if c["type"] == "payment.budget":
+                c["max"] = 999_999_00        # a quietly widened grant
+        assert verify_mandate(m) is False
+
+    def test_a_signature_from_a_key_other_than_cnf_fails(self):
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+        from amanat.interop.ap2 import sign_mandate, verify_mandate
+        m, _ = self._signed()
+        impostor = sign_mandate(dict(REAL_MANDATE), Ed25519PrivateKey.generate())
+        m["signature"] = impostor["signature"]   # someone else's signature, our cnf
+        assert verify_mandate(m) is False
+
+    def test_an_unsigned_mandate_is_reported_as_unbound_not_invalid(self):
+        from amanat.interop.ap2 import verify_mandate
+        assert verify_mandate(dict(REAL_MANDATE)) is None

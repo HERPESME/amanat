@@ -111,9 +111,9 @@ def _parse_iso(s: str) -> datetime:
 def to_open_payment_mandate(env: "Envelope") -> dict:
     """Emit a valid AP2 Open Payment Mandate from an envelope.
 
-    The `cnf` key-binding claim is a placeholder — this project signs its
-    *evidence*, not the mandate itself; emitting a mandate is for round-tripping
-    and for showing the authorization the adjudicator reasons against.
+    Emitted unsigned: the `cnf` slot is filled, and the document bound to a
+    user's key, by `sign_mandate` — which is a separate step because the party
+    that signs a grant is the user, never the orchestrator that emits it.
     """
     return {
         "vct": VCT_OPEN,
@@ -130,3 +130,60 @@ def to_open_payment_mandate(env: "Envelope") -> dict:
         "cnf": {"note": "amanat signs evidence, not mandates; placeholder"},
         "intent_text": env.intent_text,
     }
+
+
+# ---------------------------------------------------------------------------
+# Consent binding. Real AP2 binds a mandate to the user's key via `cnf`
+# (RFC 7800) inside an SD-JWT. This mirrors that structure honestly — the
+# user's Ed25519 public key sits in cnf.jwk and the mandate carries a signature
+# over its canonical bytes — without claiming to be SD-JWT. The point is
+# structural: the grant is signed by a key that is NOT the orchestrator's, so
+# the adjudicator can check who granted it while trusting neither party.
+# ---------------------------------------------------------------------------
+import json as _json
+
+from cryptography.exceptions import InvalidSignature as _InvalidSignature
+from cryptography.hazmat.primitives.asymmetric.ed25519 import (
+    Ed25519PrivateKey as _Priv, Ed25519PublicKey as _Pub,
+)
+
+
+def _mandate_bytes(mandate: dict) -> bytes:
+    """Canonical bytes of the mandate minus its own signature field."""
+    body = {k: v for k, v in mandate.items() if k != "signature"}
+    return _json.dumps(body, sort_keys=True, separators=(",", ":"),
+                       ensure_ascii=False, default=str).encode("utf-8")
+
+
+def sign_mandate(mandate: dict, user_key: _Priv) -> dict:
+    """Return a copy of `mandate` bound to and signed by `user_key`.
+
+    Deep-copies the input so the caller's document is never mutated.
+    """
+    m = _json.loads(_json.dumps(mandate, default=str))
+    m.pop("signature", None)
+    m["cnf"] = {"jwk": {"kty": "OKP", "crv": "Ed25519",
+                        "x": user_key.public_key().public_bytes_raw().hex()}}
+    m["signature"] = user_key.sign(_mandate_bytes(m)).hex()
+    return m
+
+
+def verify_mandate(mandate: dict) -> bool | None:
+    """True if the mandate's signature verifies against the key in its cnf.
+
+    False if it is signed but does not verify (tampered, or signed by a key
+    other than the one it names). None if it carries no signature at all —
+    unbound, which is a different fact from invalid and is reported as such.
+    """
+    sig = mandate.get("signature")
+    if not sig:
+        return None
+    x = (mandate.get("cnf") or {}).get("jwk", {}).get("x")
+    if not x:
+        return False
+    try:
+        pub = _Pub.from_public_bytes(bytes.fromhex(x))
+        pub.verify(bytes.fromhex(sig), _mandate_bytes(mandate))
+        return True
+    except (ValueError, _InvalidSignature):
+        return False
