@@ -186,3 +186,47 @@ class TestDisputeAdjudicationEndpoint:
             "packet": {"entries": [], "public_key": "x", "genesis_hash": "0"*64},
             "assertion": "unauthorized"})
         assert r.status_code == 422
+
+
+class TestRateLimiting:
+    """A public, credential-free endpoint must not be an open firehose.
+
+    Limits are per client address, in-memory (Cloud Run runs one instance at a
+    time for this service), and generous enough that a judge clicking around
+    never hits them — only a script would.
+    """
+
+    def _fresh_client(self):
+        from web import app as webapp
+        webapp.LIMITER.reset()
+        return TestClient(app)
+
+    def test_normal_use_is_never_limited(self):
+        c = self._fresh_client()
+        for _ in range(10):
+            assert c.post("/api/simulate", json={
+                "envelope": {"budget": 100_00, "per_txn": 80_00, "payee": "p", "hours": 6},
+                "actions": []}).status_code == 200
+
+    def test_a_burst_past_the_limit_gets_429_with_retry_after(self):
+        from web import app as webapp
+        c = self._fresh_client()
+        for _ in range(webapp.SIMULATE_LIMIT):
+            c.post("/api/simulate", json={
+                "envelope": {"budget": 100_00, "per_txn": 80_00, "payee": "p", "hours": 6},
+                "actions": []})
+        r = c.post("/api/simulate", json={
+            "envelope": {"budget": 100_00, "per_txn": 80_00, "payee": "p", "hours": 6},
+            "actions": []})
+        assert r.status_code == 429
+        assert "Retry-After" in r.headers
+        assert "slow down" in r.json()["error"].lower()
+
+    def test_the_agent_endpoint_has_a_tighter_limit(self):
+        from web import app as webapp
+        assert webapp.AGENT_LIMIT < webapp.SIMULATE_LIMIT
+
+    def test_health_is_never_limited(self):
+        c = self._fresh_client()
+        for _ in range(200):
+            assert c.get("/api/health").status_code == 200
