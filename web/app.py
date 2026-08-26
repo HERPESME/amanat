@@ -14,7 +14,11 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from fastapi import FastAPI
+import threading
+import time
+from collections import defaultdict, deque
+
+from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel, Field
 
@@ -28,6 +32,53 @@ MAX_ACTIONS = 20
 app = FastAPI(title="Amanat — governed-core demo", docs_url=None, redoc_url=None)
 
 _PAGE = ""
+
+# Per-client rate limits, sliding window, in memory. Generous enough that a
+# person clicking around never meets them; only a script does. In-memory is
+# correct here because this service runs one instance at a time and holds no
+# state worth coordinating — the point is to keep a public, credential-free
+# surface from being an open firehose, not to meter a product.
+SIMULATE_LIMIT = 60      # requests per window, /api/simulate and /api/dispute
+AGENT_LIMIT = 10         # /api/agent — each one is a live model run on the caller's key
+WINDOW_SECONDS = 60
+
+
+class _Limiter:
+    def __init__(self) -> None:
+        self._hits: dict[str, deque] = defaultdict(deque)
+        self._lock = threading.Lock()
+
+    def check(self, key: str, limit: int, window: float = WINDOW_SECONDS
+              ) -> tuple[bool, int]:
+        """Returns (allowed, retry_after_seconds)."""
+        now = time.monotonic()
+        with self._lock:
+            q = self._hits[key]
+            while q and now - q[0] > window:
+                q.popleft()
+            if len(q) >= limit:
+                return False, max(1, int(window - (now - q[0])) + 1)
+            q.append(now)
+            return True, 0
+
+    def reset(self) -> None:
+        with self._lock:
+            self._hits.clear()
+
+
+LIMITER = _Limiter()
+
+
+def _limited(request: Request, bucket: str, limit: int) -> JSONResponse | None:
+    """A 429 response if this client is over the limit for `bucket`, else None."""
+    host = request.client.host if request.client else "unknown"
+    ok, retry = LIMITER.check(f"{bucket}:{host}", limit)
+    if ok:
+        return None
+    return JSONResponse(
+        {"error": f"slow down — this endpoint allows {limit} requests per "
+                  f"{WINDOW_SECONDS}s per client; try again in {retry}s"},
+        status_code=429, headers={"Retry-After": str(retry)})
 
 
 class Action(BaseModel):
@@ -123,11 +174,13 @@ def health() -> dict:
 
 
 @app.post("/api/dispute")
-def dispute(body: DisputeIn) -> JSONResponse:
+def dispute(body: DisputeIn, request: Request) -> JSONResponse:
     """Adjudicate a settlement chain against the AP2 mandate it ran under.
 
     The finding says what the signed evidence shows — never who wins the dispute.
     """
+    if (limited := _limited(request, "dispute", SIMULATE_LIMIT)) is not None:
+        return limited
     from amanat.dispute.adjudicate import adjudicate, export_representment_packet
     from amanat.interop.ap2 import to_open_payment_mandate
 
@@ -148,7 +201,9 @@ def dispute(body: DisputeIn) -> JSONResponse:
 
 
 @app.post("/api/simulate")
-def simulate(body: SimulateIn) -> JSONResponse:
+def simulate(body: SimulateIn, request: Request) -> JSONResponse:
+    if (limited := _limited(request, "simulate", SIMULATE_LIMIT)) is not None:
+        return limited
     return JSONResponse(run_simulation(body))
 
 
@@ -159,7 +214,7 @@ def _make_backend(api_key: str):
 
 
 @app.post("/api/agent")
-def agent(body: AgentIn) -> JSONResponse:
+def agent(body: AgentIn, request: Request) -> JSONResponse:
     """Run the real LLM agent on the visitor's key, against the simulator.
 
     The model proposes; the same policy engine and evidence chain govern what
@@ -168,6 +223,8 @@ def agent(body: AgentIn) -> JSONResponse:
     (the key is the visitor's). The key is read from the body, used once, and
     never stored or logged.
     """
+    if (limited := _limited(request, "agent", AGENT_LIMIT)) is not None:
+        return limited
     env = Envelope(
         subject="agent-demo",
         max_total=body.envelope.budget,
