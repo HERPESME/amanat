@@ -8,6 +8,15 @@ exactly that record — a signed chain of what the money did, refusals included 
 so this module reads the chain against the AP2 mandate that authorized it and
 states, with citations, what the evidence shows.
 
+Two things are checked before any reasoning happens, because a finding is only
+as good as what it rests on: the evidence chain must verify (nobody altered the
+record), and — where the mandate is signed — the mandate must verify against
+the user key named in its `cnf` (nobody altered the grant, and the party who
+supposedly granted it did). Those are two different keys held by two different
+parties; the adjudicator trusts neither. An unsigned mandate is adjudicated but
+the finding says so, because "conformed to the recorded grant" and "conformed to
+what the user actually signed" are different claims.
+
 One line governs the whole module, and it is the line to say out loud:
 
     This is an evidence finding, not an issuer decision.
@@ -22,7 +31,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 
 from amanat.evidence.chain import ChainVerificationError, EvidenceChain
-from amanat.interop.ap2 import from_open_payment_mandate
+from amanat.interop.ap2 import from_open_payment_mandate, verify_mandate
 
 DISCLAIMER = ("This is an evidence finding, not an issuer decision. It states "
               "what the signed record shows about authorization and settlement; "
@@ -41,6 +50,7 @@ class Finding(Enum):
     CHARGE_NOT_IN_CHAIN = "charge_not_in_chain"    # the disputed charge never settled
     OUTSIDE_EVIDENCE = "outside_evidence"          # the chain cannot speak to this
     EVIDENCE_TAMPERED = "evidence_tampered"        # the record itself failed to verify
+    MANDATE_UNVERIFIED = "mandate_unverified"      # the grant itself failed to verify
 
 
 @dataclass
@@ -88,6 +98,38 @@ def adjudicate(packet: dict, mandate: dict, assertion: str, *,
             "The evidence itself does not verify — it cannot be adjudicated.",
             [f"Verification failed at entry #{exc.seq}: {exc}"], [], 0, {})
 
+    # 1. So does the grant. A signed mandate that fails its own signature is a
+    #    grant that was altered after the user signed it, or was never signed by
+    #    the key it names. Nothing can be adjudicated against that.
+    bound = verify_mandate(mandate)
+    if bound is False:
+        return Adjudication(
+            assertion, Finding.MANDATE_UNVERIFIED,
+            "The authorization itself does not verify against the key it names.",
+            ["The mandate carries a signature, but it does not match its cnf key "
+             "over the mandate's current contents — the grant was altered after "
+             "signing, or signed by someone other than the key it names. Nothing "
+             "can be adjudicated against a grant that cannot be trusted."],
+            [], 0, {})
+
+    key_hint = ((mandate.get("cnf") or {}).get("jwk", {}).get("x") or "")[:12]
+    binding = "verified" if bound else "absent"
+    binding_note = (
+        f"The mandate is signed by the user key {key_hint}… named in its cnf — "
+        "the grant reasoned against is the one the user actually signed."
+        if bound else
+        "The mandate is not signed (no cnf key binding): this finding assumes "
+        "the recorded grant is genuine; it cannot say who granted it.")
+
+    adj = _reason(packet, mandate, assertion, disputed_amount)
+    adj.authorized["consent_binding"] = binding
+    adj.reasons.insert(0, binding_note)
+    return adj
+
+
+def _reason(packet: dict, mandate: dict, assertion: str,
+            disputed_amount: int | None) -> Adjudication:
+    """The substantive walk, once record and grant are both trusted."""
     env = from_open_payment_mandate(mandate)
     authorized = {"max_total": env.max_total, "max_per_txn": env.max_per_txn,
                   "allowed_payees": list(env.allowed_payees)}
@@ -163,7 +205,7 @@ def adjudicate(packet: dict, mandate: dict, assertion: str, *,
                            f"{_rs(env.max_total)}.")
         return Adjudication(
             assertion, Finding.SUPPORTS_CARDHOLDER,
-            f"A charge fell outside the authorization.",
+            "A charge fell outside the authorization.",
             reasons, cited, net, authorized)
 
     # Everything charged was inside the grant.
@@ -191,11 +233,12 @@ def export_representment_packet(adj: Adjudication, evidence: dict,
                                 mandate: dict) -> dict:
     """Bundle the three things a dispute response needs into one artifact.
 
-    The authorization that permitted the spend (the AP2 mandate), the signed
-    record of what the money did (the evidence packet, still standalone-
-    verifiable), and the cited finding over the two. This is the one-click,
-    signed export that replaces the manual evidence scramble — and nothing more:
-    it collects and structures evidence, it does not decide the dispute.
+    The authorization that permitted the spend (the AP2 mandate, with its user
+    signature if it has one), the signed record of what the money did (the
+    evidence packet, still standalone-verifiable), and the cited finding over
+    the two. This is the one-click, signed export that replaces the manual
+    evidence scramble — and nothing more: it collects and structures evidence,
+    it does not decide the dispute.
     """
     return {
         "kind": "amanat.representment.v1",

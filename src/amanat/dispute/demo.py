@@ -44,15 +44,24 @@ def run() -> None:
                    allowed_payees=["citycabs"],
                    expires_at=datetime.now(timezone.utc) + timedelta(hours=6),
                    intent_text="Book a cab to the airport, cap ₹1,000.")
-    mandate = to_open_payment_mandate(env)
 
-    _head("The authorization — a real AP2 Open Payment Mandate")
+    # The user signs the grant with their own key. The orchestrator never
+    # holds it — its key signs the evidence, and only the evidence.
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+    from amanat.interop.ap2 import sign_mandate
+    user_key = Ed25519PrivateKey.generate()
+    mandate = sign_mandate(to_open_payment_mandate(env), user_key)
+
+    _head("The authorization — a real AP2 Open Payment Mandate, user-signed")
     print(f"  vct {mandate['vct']}")
     grant = from_open_payment_mandate(mandate)
     print(f"  grants up to ₹{grant.max_per_txn/100:,.0f}/txn, "
           f"₹{grant.max_total/100:,.0f} total, to {', '.join(grant.allowed_payees)}")
+    print(f"  cnf.jwk.x {mandate['cnf']['jwk']['x'][:16]}… — the user's key, "
+          "not the orchestrator's")
     print("  \033[2mParsed from AP2's own schema, not a paraphrase — the envelope "
-          "round-trips through it.\033[0m")
+          "round-trips through it. Two keys, two parties; the adjudicator trusts "
+          "neither.\033[0m")
 
     # The agent settles, and one over-budget attempt is refused along the way.
     s = AgentSession(env, SimulatedRail("sbmd", customer_balance=5_000_00))
