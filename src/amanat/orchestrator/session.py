@@ -16,6 +16,7 @@ agent is not bounded.
 """
 from __future__ import annotations
 
+import json as _json
 from dataclasses import dataclass, field
 
 from amanat.evidence.chain import Actor, EventType, EvidenceChain
@@ -23,6 +24,18 @@ from amanat.policy.engine import Action, PolicyEngine, Proposal, Verdict
 from amanat.policy.envelope import Envelope, LedgerState
 from amanat.rails.base import BlockRef, RailError
 from amanat.rails.simulator import SimulatedRail
+
+
+def _consent_bytes(body: dict) -> bytes:
+    """Canonical bytes of a consent record minus its own signature field.
+
+    Same discipline as the AP2 mandate signature (`ensure_ascii=False`, sorted
+    keys, tight separators) so a widening signed here verifies the same way a
+    mandate does, in the browser and in the adjudicator.
+    """
+    return _json.dumps({k: v for k, v in body.items() if k != "signature"},
+                       sort_keys=True, separators=(",", ":"),
+                       ensure_ascii=False, default=str).encode("utf-8")
 
 
 @dataclass
@@ -77,6 +90,66 @@ class AgentSession:
 
     def status(self) -> ActionResult:
         return ActionResult(True, "current position", state=self._snapshot())
+
+    # -- re-approval: the cap is the human's, and only the human can raise it ----
+
+    def propose_raise(self, new_max_total: int, reason: str = "") -> ActionResult:
+        """The agent ASKS the human to widen the cap. It cannot grant this itself.
+
+        When a fare comes in above the envelope's budget, the agent's only move is
+        to surface it and request more room. That request is recorded as a proposal
+        (actor=agent), like any other — it moves no money and grants no authority.
+        The refusal that prompted it is already in the chain; this is what an agent
+        does *instead of* overspending.
+        """
+        self.chain.append(Actor.AGENT, EventType.PROPOSAL, {
+            "action": "raise_ceiling",
+            "current_max_total": self.envelope.max_total,
+            "requested_max_total": new_max_total,
+            "reason": reason,
+        })
+        return ActionResult(
+            False,
+            f"raising the cap from {self.envelope.max_total} to {new_max_total} "
+            "needs the human's approval — the agent cannot widen its own grant",
+            state=self._snapshot())
+
+    def approve_raise(self, new_max_total: int, user_key, *,
+                      new_max_per_txn: int | None = None,
+                      reason: str = "") -> ActionResult:
+        """The HUMAN widens the cap and signs the new grant. Not an agent action.
+
+        `user_key` is the human's Ed25519 private key — the same party that signs
+        the AP2 mandate, never the orchestrator's. The widened envelope is recorded
+        as a fresh human-signed ENVELOPE entry (from/to caps, the reason, the cnf
+        key and a signature over it), so a later auditor can see the grant was
+        raised, by how much, and that the key that raised it is the one the mandate
+        names. The session then evaluates against the new cap — nothing before this
+        entry is retroactively permitted.
+        """
+        widened = self.envelope.widened(
+            max_total=new_max_total,
+            max_per_txn=new_max_per_txn if new_max_per_txn is not None else new_max_total,
+            reason=reason)
+        body = {
+            "event": "envelope_widened",
+            "subject": self.envelope.subject,
+            "from": {"max_total": self.envelope.max_total,
+                     "max_per_txn": self.envelope.max_per_txn},
+            "to": {"max_total": widened.max_total,
+                   "max_per_txn": widened.max_per_txn},
+            "reason": reason,
+            "cnf": {"jwk": {"kty": "OKP", "crv": "Ed25519",
+                            "x": user_key.public_key().public_bytes_raw().hex()}},
+        }
+        body["signature"] = user_key.sign(_consent_bytes(body)).hex()
+        self.chain.append(Actor.HUMAN, EventType.ENVELOPE, body)
+        self.envelope = widened
+        return ActionResult(
+            True,
+            f"cap raised to {widened.max_total}, signed by the human key "
+            f"{body['cnf']['jwk']['x'][:12]}…",
+            state=self._snapshot())
 
     def record_malformed_call(self, tool: str, args: dict, why: str) -> None:
         """Log a tool call that never became a proposal.

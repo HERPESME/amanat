@@ -15,7 +15,7 @@ money.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import datetime, timezone
 
 
@@ -41,6 +41,27 @@ class Envelope:
 
     def permits_payee(self, payee: str) -> bool:
         return payee in self.allowed_payees
+
+    def widened(self, *, max_total: int | None = None,
+                max_per_txn: int | None = None, reason: str = "") -> "Envelope":
+        """A NEW envelope with raised caps — the mechanics of re-approval.
+
+        Returns a fresh instance rather than mutating, so widening leaves a trace
+        (the new grant is a distinct, signable, recordable object). Widening only:
+        it refuses to *lower* a cap, because that is a different act with different
+        consent semantics, and silently shrinking a grant behind an "approve"
+        button is exactly the kind of thing this project exists to prevent.
+        """
+        new_total = self.max_total if max_total is None else max_total
+        new_txn = self.max_per_txn if max_per_txn is None else max_per_txn
+        if new_total < self.max_total or new_txn < self.max_per_txn:
+            raise ValueError(
+                "widened() only raises caps; lowering a grant is a separate act")
+        trail = f"widened {self.max_total}->{new_total}"
+        if reason:
+            trail += f" ({reason})"
+        note = f"{self.notes} | {trail}".strip(" |")
+        return replace(self, max_total=new_total, max_per_txn=new_txn, notes=note)
 
     def to_payload(self) -> dict:
         """Serializable form for the evidence chain."""

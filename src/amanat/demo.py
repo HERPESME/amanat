@@ -2,16 +2,18 @@
 
     uv run --with cryptography python -m amanat.demo
 
-Seven acts:
+Eight acts:
   1. Human intent compiles into a bounded envelope.
   2. The agent proposes; the policy engine disposes; the rail enforces.
   3. The system refuses a transition its evidence does not support — with a citation.
   4. The ceiling set too low: policy allows, the rail declines, and NPCI grants no
      retry for this class of decline. Sale lost.
-  5. The same order at a higher ceiling: settles — and the remainder does NOT come
+  5. The cap itself is too low: the agent asks, the human signs a widened grant,
+     the sale is saved — and the agent never widened its own authority.
+  6. The same order at a higher ceiling: settles — and the remainder does NOT come
      back on its own, which is a hole in the mechanism, not a feature of it.
-  6. The evidence packet verifies, is tampered with, and fails — naming the entry.
-  7. Everything this build has not verified, printed unprompted.
+  7. The evidence packet verifies, is tampered with, and fails — naming the entry.
+  8. Everything this build has not verified, printed unprompted.
 """
 from __future__ import annotations
 
@@ -129,7 +131,39 @@ def run() -> None:
         print(f"\n  → no retry path. Block torn down. \033[31mSale lost.\033[0m")
 
     # ---------------------------------------------------------------- ACT 5
-    act(5, "Ceiling at p95 — settles, but the remainder does not return itself")
+    act(5, "The cap is too low — the agent asks, the human re-consents")
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+    from amanat.orchestrator.session import AgentSession
+
+    env5 = Envelope(
+        subject="order-cap", max_total=1_000_00, max_per_txn=1_000_00,
+        allowed_payees=["citycabs"],
+        expires_at=datetime.now(timezone.utc) + timedelta(hours=6),
+        intent_text="Book a cab, cap it at ₹1,000.")
+    s = AgentSession(env5, SimulatedRail("_demo_rail", customer_balance=5_000_00))
+
+    fare = 1_200_00
+    print(f"  the metered fare comes in at {rs(fare)} — above the {rs(env5.max_total)} cap")
+    r = s.reserve(fare, "citycabs", "block the fare")
+    print(f"  agent tries to block {rs(fare)} → \033[31mREFUSED\033[0m — {r.detail}")
+
+    prop = s.propose_raise(1_300_00, reason=f"metered fare {rs(fare)} exceeds the cap")
+    print(f"\n  \033[2magent proposes\033[0m → {prop.detail}")
+
+    user_key = Ed25519PrivateKey.generate()
+    ok = s.approve_raise(1_300_00, user_key, reason="rider approved the higher fare")
+    print(f"  \033[32mhuman approves & signs\033[0m → {ok.detail}")
+
+    s.reserve(fare, "citycabs", "block the fare at the raised cap")
+    s.debit(fare, "metered fare")
+    print(f"\n  → \033[32msettled\033[0m {rs(fare)} against the re-consented cap — "
+          "sale saved, not lost.")
+    print("  \033[2mThe raise is a human-signed entry in the chain: who raised it, by")
+    print("  how much, and the key that signed it. The agent never widened its own")
+    print("  grant, and nothing before the signature was retroactively permitted.\033[0m")
+
+    # ---------------------------------------------------------------- ACT 6
+    act(6, "Ceiling at p95 — settles, but the remainder does not return itself")
     rail2 = SimulatedRail("_demo_rail", customer_balance=5_000_00)
     ceiling2 = 620_00
     ref2 = rail2.reserve(ceiling2, "citycabs")
@@ -173,7 +207,7 @@ def run() -> None:
     print("  function needs three terms (strand, revoke, modify), not one.\033[0m")
 
     # ---------------------------------------------------------------- ACT 6
-    act(6, "The evidence packet — what the money actually did")
+    act(7, "The evidence packet — what the money actually did")
     packet = chain.export_packet()
     print(f"  {len(packet['entries'])} entries · "
           f"{len(chain.rail_transitions())} rail transitions · "
@@ -193,7 +227,7 @@ def run() -> None:
         print(f"  → \033[32mrejected\033[0m: {exc}")
 
     # ------------------------------------------------------------- HONESTY
-    act(7, "What this build has NOT verified")
+    act(8, "What this build has NOT verified")
     for rail_id, cap, note in unverified_report():
         print(f"  \033[33m{rail_id}.{cap}\033[0m")
         if note:
