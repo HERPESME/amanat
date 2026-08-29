@@ -200,35 +200,10 @@ The one sentence that carries the design:
 
 </div>
 
-```mermaid
-flowchart TB
-    subgraph UNTRUSTED["🤖 UNTRUSTED — proposes only"]
-        LLM["Claude / Gemini<br/><i>interchangeable, holds no authority</i>"]
-    end
-
-    subgraph GOVERNED["🛡️ GOVERNED — deterministic, no model call"]
-        SESSION["AgentSession<br/><i>the single path to money</i>"]
-        POLICY["Policy Engine<br/><i>envelope + rail legality</i>"]
-        SEM["Rail Semantics<br/><i>what each rail is</i><br/><i>evidenced to permit</i>"]
-    end
-
-    subgraph ENFORCED["🏦 ENFORCED — by the bank"]
-        RAIL["Payment Rail<br/><i>UPI SBMD · Cashfree pre-auth (live) · Razorpay · Setu</i>"]
-    end
-
-    CHAIN[("📜 Evidence Chain<br/><i>signed · hash-linked</i><br/><i>records refusals too</i>")]
-
-    LLM -->|"proposes"| SESSION
-    SESSION -->|"submits for verdict"| POLICY
-    POLICY -->|"is this legal here?"| SEM
-    SESSION -->|"approved actions only"| RAIL
-    SESSION -.->|"every proposal,<br/>verdict + transition"| CHAIN
-
-    style UNTRUSTED fill:#ffebee,stroke:#c62828
-    style GOVERNED fill:#e8f5e9,stroke:#2e7d32
-    style ENFORCED fill:#e3f2fd,stroke:#1565c0
-    style CHAIN fill:#f3e5f5,stroke:#7b1fa2
-```
+<div align="center">
+  <img src="docs/architecture/architecture.png" width="920"
+       alt="Amanat architecture: an untrusted model proposes; a deterministic policy engine reads the rail semantics and either approves an action or refuses it with a citation; the payment rail (UPI SBMD, Cashfree pre-auth live, Razorpay, Setu) enforces; and every proposal, verdict, transition and refusal is signed into an append-only Ed25519 evidence chain that verifies in any browser.">
+</div>
 
 If the model is prompt-injected, compromised, or simply wrong, the worst it can produce
 is a **refusal record** — never a payment. That property is proven without a model in
