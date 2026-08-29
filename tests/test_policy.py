@@ -62,6 +62,33 @@ def verified_rail():
     del RAILS[rail.rail_id]
 
 
+@pytest.fixture
+def unverified_rail():
+    """A rail whose partial-debit support is believed but not evidenced.
+
+    Kept synthetic on purpose. This used to point at `cashfree_preauth`, but on
+    29 Aug 2026 that rail's partial debit was MEASURED (OBSERVED) and became
+    permitted — so a real-rail id is a moving target for "still unverified". The
+    property under test is the engine's, not any rail's: an UNVERIFIED capability
+    is never permitted, whichever rail happens to carry one.
+    """
+    from amanat.rails.semantics import RAILS, Capability, RailProfile, SourceTier
+
+    rail = RailProfile(
+        rail_id="_unverified_fixture", display_name="Unverified Fixture Rail",
+        capabilities=[
+            Capability(
+                name="partial_debit", supported=True,
+                source_tier=SourceTier.UNVERIFIED,
+                notes="believed, not confirmed — the honest default",
+            ),
+        ],
+    )
+    RAILS[rail.rail_id] = rail
+    yield rail.rail_id
+    del RAILS[rail.rail_id]
+
+
 class TestEnvelopeContainment:
     def test_reserve_within_budget_is_allowed(self, engine):
         d = engine.evaluate(
@@ -196,33 +223,46 @@ class TestRailConformance:
         )
         assert d.allowed is False
 
-    def test_unverified_capability_is_never_permitted(self, engine):
+    def test_unverified_capability_is_never_permitted(self, engine, unverified_rail):
         """Absence of evidence is not permission.
 
-        This used to point at `upi_otm`. On 21 Aug 2026 a Setu doc settled OTM's
-        partial debit — "If a partial debit is done, remaining funds are
-        unblocked in the customer bank A/C without any additional need for
-        refund/reversal" — so that rail became SECONDARY and stopped being a
-        valid stand-in for an unevidenced one.
-
-        `cashfree_preauth` is the honest replacement: we believe it supports
-        partial capture and we have not confirmed it. The guard below fails
-        loudly if that ever changes, rather than leaving this test silently
-        asserting nothing.
+        The stand-in has migrated as the real table has firmed up: `upi_otm`
+        (until a Setu doc made it SECONDARY), then `cashfree_preauth` (until it
+        was measured OBSERVED on 29 Aug 2026). The lesson each time was that a
+        real rail id is the wrong anchor for "still unverified", so this now uses
+        a synthetic rail whose partial debit is UNVERIFIED by construction. The
+        property under test is the engine's: it must key off the evidence tier.
         """
-        rail = RAILS["cashfree_preauth"]
-        assert rail.capabilities["partial_debit"].source_tier is \
-            SourceTier.UNVERIFIED, (
-                "cashfree_preauth.partial_debit is no longer unverified; point "
-                "this test at a rail that still is, or delete it"
-            )
         state = LedgerState(blocked=100_00)
         d = engine.evaluate(
-            Proposal(Action.DEBIT, 67_00, "merchant-a", "cashfree_preauth"),
+            Proposal(Action.DEBIT, 67_00, "merchant-a", unverified_rail),
             _envelope(), state,
         )
         assert d.allowed is False
         assert "unverified" in d.reason.lower()
+
+    def test_partial_debit_on_cashfree_preauth_is_observed_and_permitted(self, engine):
+        """The measured live-rail win, guarded as a regression.
+
+        On 29 Aug 2026 the full pre-auth lifecycle was driven against the
+        Cashfree sandbox: a ₹620 hold, then a CAPTURE of ₹470 returning HTTP 200
+        with captured_amount 470.0 — amount-contingent settlement accepted by a
+        real regulated UPI rail, the exact shape Razorpay refuses with HTTP 400.
+        The capability is OBSERVED (measured, its quote is the response), so the
+        engine permits a partial debit on this rail. If the tier is ever
+        downgraded this fails loudly, because the whole demo rests on it.
+        """
+        rail = RAILS["cashfree_preauth"]
+        cap = rail.capabilities["partial_debit"]
+        assert cap.source_tier is SourceTier.OBSERVED
+        assert cap.supported is True
+        assert "PRE_AUTH|Transaction Success" in cap.quote
+        state = LedgerState(blocked=620_00)
+        d = engine.evaluate(
+            Proposal(Action.DEBIT, 470_00, "merchant-a", "cashfree_preauth"),
+            _envelope(max_total=1_000_00, max_per_txn=1_000_00), state,
+        )
+        assert d.allowed is True
 
 
 class TestRefusalsAreRecorded:
