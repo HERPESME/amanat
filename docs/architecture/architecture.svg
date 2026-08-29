@@ -1,0 +1,139 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1360 966" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
+  <defs>
+    <filter id="sh" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#101828" flood-opacity="0.10"/>
+    </filter>
+    <marker id="arw" markerWidth="10" markerHeight="10" refX="8" refY="4" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L9,4 L0,8 Z" fill="#64748b"/>
+    </marker>
+    <marker id="arwRed" markerWidth="10" markerHeight="10" refX="8" refY="4" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L9,4 L0,8 Z" fill="#d92d20"/>
+    </marker>
+    <marker id="arwInd" markerWidth="10" markerHeight="10" refX="8" refY="4" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L9,4 L0,8 Z" fill="#6b63e6"/>
+    </marker>
+  </defs>
+
+  <rect width="1360" height="966" fill="#fbfcfe"/>
+
+  <!-- title -->
+  <text x="48" y="48" font-size="24" font-weight="700" fill="#101828">Amanat — architecture</text>
+  <text x="48" y="76" font-size="15" fill="#475467">The LLM proposes<tspan fill="#98a2b3">  ·  </tspan>the policy engine disposes<tspan fill="#98a2b3">  ·  </tspan>the rail enforces.<tspan fill="#98a2b3">  Three layers of authority, each stricter than the last.</tspan></text>
+
+  <!-- ============ BANDS ============ -->
+  <!-- untrusted -->
+  <rect x="48" y="100" width="812" height="150" rx="16" fill="#fdece9" stroke="#f2b8b0" stroke-width="1.5"/>
+  <text x="74" y="128" font-size="13" font-weight="700" letter-spacing="1.5" fill="#b42318">🤖 UNTRUSTED — THE MODEL PROPOSES ONLY</text>
+  <!-- governed -->
+  <rect x="48" y="278" width="812" height="470" rx="16" fill="#eaf6ef" stroke="#a9dcbd" stroke-width="1.5"/>
+  <text x="74" y="306" font-size="13" font-weight="700" letter-spacing="1.5" fill="#067647">🛡 GOVERNED — DETERMINISTIC</text>
+  <!-- enforced -->
+  <rect x="48" y="772" width="812" height="152" rx="16" fill="#e9f1fd" stroke="#aecbf3" stroke-width="1.5"/>
+  <text x="74" y="800" font-size="13" font-weight="700" letter-spacing="1.5" fill="#1849a9">🏦 ENFORCED — BY THE BANK</text>
+  <!-- evidence column -->
+  <rect x="904" y="278" width="408" height="470" rx="16" fill="#eeeffb" stroke="#bab6f0" stroke-width="1.5"/>
+  <text x="930" y="306" font-size="13" font-weight="700" letter-spacing="1.5" fill="#4338ca">📜 EVIDENCE — SIGNED · APPEND-ONLY</text>
+
+  <!-- ============ ARROWS (under boxes) ============ -->
+  <!-- Claude -> AgentSession -->
+  <path d="M454,224 L454,308" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arw)"/>
+  <!-- AgentSession -> Policy -->
+  <path d="M430,390 C380,420 320,428 275,448" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arw)"/>
+  <!-- Policy -> Rail Semantics -->
+  <path d="M430,498 L506,498" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arw)"/>
+  <!-- Policy -> REFUSED -->
+  <path d="M400,544 C440,575 470,590 506,616" fill="none" stroke="#d92d20" stroke-width="2" marker-end="url(#arwRed)"/>
+  <!-- Policy -> Payment Rail (approved) -->
+  <path d="M255,544 C248,680 320,780 402,832" fill="none" stroke="#16a06a" stroke-width="2.2" marker-end="url(#arw)"/>
+  <!-- dotted: AgentSession -> Evidence -->
+  <path d="M618,352 C760,352 850,430 986,470" fill="none" stroke="#6b63e6" stroke-width="1.8" stroke-dasharray="2 5" stroke-linecap="round" marker-end="url(#arwInd)"/>
+  <!-- dotted: REFUSED -> Evidence -->
+  <path d="M810,636 C880,610 920,585 986,560" fill="none" stroke="#6b63e6" stroke-width="1.8" stroke-dasharray="2 5" stroke-linecap="round" marker-end="url(#arwInd)"/>
+
+  <!-- ============ EDGE LABELS (pills) ============ -->
+  <g font-size="12.5" fill="#344054">
+    <rect x="415" y="256" width="78" height="24" rx="6" fill="#ffffff" stroke="#dfe3ea"/>
+    <text x="454" y="272" text-anchor="middle">proposes</text>
+
+    <rect x="300" y="404" width="150" height="24" rx="6" fill="#ffffff" stroke="#dfe3ea"/>
+    <text x="375" y="420" text-anchor="middle">submits for verdict</text>
+
+    <rect x="442" y="486" width="54" height="22" rx="6" fill="#ffffff" stroke="#dfe3ea"/>
+    <text x="469" y="501" text-anchor="middle">reads</text>
+
+    <rect x="356" y="600" width="150" height="24" rx="6" fill="#fef3f2" stroke="#f0a99f"/>
+    <text x="431" y="616" text-anchor="middle" fill="#b42318">refuses — cited</text>
+
+    <rect x="150" y="648" width="164" height="24" rx="6" fill="#e9f6ee" stroke="#a9dcbd"/>
+    <text x="232" y="664" text-anchor="middle" fill="#067647">approved actions only</text>
+  </g>
+
+  <!-- evidence intake label -->
+  <text x="1108" y="352" text-anchor="middle" font-size="12.5" fill="#4338ca" font-weight="600">every proposal, verdict,</text>
+  <text x="1108" y="370" text-anchor="middle" font-size="12.5" fill="#4338ca" font-weight="600">transition &amp; refusal</text>
+
+  <!-- ============ BOXES ============ -->
+  <!-- Claude / Gemini -->
+  <g filter="url(#sh)">
+    <rect x="290" y="140" width="328" height="84" rx="12" fill="#ffffff" stroke="#e0675c" stroke-width="2"/>
+  </g>
+  <text x="454" y="178" text-anchor="middle" font-size="17" font-weight="700" fill="#101828">Claude / Gemini</text>
+  <text x="454" y="200" text-anchor="middle" font-size="12.5" fill="#667085">interchangeable · holds no authority</text>
+
+  <!-- AgentSession -->
+  <g filter="url(#sh)">
+    <rect x="290" y="312" width="328" height="78" rx="12" fill="#ffffff" stroke="#16a06a" stroke-width="2"/>
+  </g>
+  <text x="454" y="346" text-anchor="middle" font-size="17" font-weight="700" fill="#101828">AgentSession</text>
+  <text x="454" y="368" text-anchor="middle" font-size="12.5" fill="#667085">the single path to money</text>
+
+  <!-- Policy Engine -->
+  <g filter="url(#sh)">
+    <rect x="110" y="452" width="320" height="92" rx="12" fill="#ffffff" stroke="#16a06a" stroke-width="2"/>
+  </g>
+  <text x="270" y="490" text-anchor="middle" font-size="17" font-weight="700" fill="#101828">Policy Engine</text>
+  <text x="270" y="512" text-anchor="middle" font-size="12.5" fill="#667085">envelope + rail legality</text>
+  <text x="270" y="530" text-anchor="middle" font-size="11.5" fill="#98a2b3">a pure function — no model call</text>
+
+  <!-- Rail Semantics -->
+  <g filter="url(#sh)">
+    <rect x="506" y="452" width="308" height="92" rx="12" fill="#ffffff" stroke="#16a06a" stroke-width="2"/>
+  </g>
+  <text x="660" y="486" text-anchor="middle" font-size="17" font-weight="700" fill="#101828">Rail Semantics</text>
+  <text x="660" y="507" text-anchor="middle" font-size="12.5" fill="#667085">what each rail is evidenced</text>
+  <text x="660" y="524" text-anchor="middle" font-size="12.5" fill="#667085">to permit — cited, or refused</text>
+
+  <!-- REFUSED -->
+  <g filter="url(#sh)">
+    <rect x="506" y="600" width="308" height="68" rx="12" fill="#fef3f2" stroke="#d92d20" stroke-width="2"/>
+  </g>
+  <text x="660" y="632" text-anchor="middle" font-size="16" font-weight="700" fill="#b42318">REFUSED</text>
+  <text x="660" y="653" text-anchor="middle" font-size="12.5" fill="#b42318">with the circular quoted — signed as evidence</text>
+
+  <!-- Payment Rail -->
+  <g filter="url(#sh)">
+    <rect x="180" y="820" width="520" height="82" rx="12" fill="#ffffff" stroke="#3b7de0" stroke-width="2"/>
+  </g>
+  <text x="440" y="857" text-anchor="middle" font-size="17" font-weight="700" fill="#101828">Payment Rail</text>
+  <text x="440" y="880" text-anchor="middle" font-size="12.5" fill="#667085">UPI SBMD · Cashfree pre-auth · Razorpay · Setu</text>
+  <!-- LIVE badge -->
+  <rect x="548" y="830" width="132" height="22" rx="11" fill="#e9f6ee" stroke="#16a06a"/>
+  <circle cx="566" cy="841" r="4" fill="#16a06a"/>
+  <text x="619" y="845" text-anchor="middle" font-size="10.5" font-weight="700" letter-spacing="0.5" fill="#067647">CASHFREE LIVE</text>
+
+  <!-- ============ EVIDENCE CHAIN — DATABASE CYLINDER ============ -->
+  <g filter="url(#sh)">
+    <path d="M990,440 a118,26 0 0 1 236,0 v120 a118,26 0 0 1 -236,0 z" fill="#e6e7fb" stroke="#6b63e6" stroke-width="2"/>
+    <ellipse cx="1108" cy="440" rx="118" ry="26" fill="#f0f0fc" stroke="#6b63e6" stroke-width="2"/>
+  </g>
+  <!-- stacked-link hint lines on the cylinder -->
+  <path d="M1002,478 h212 M1002,502 h212 M1002,526 h212" stroke="#c8c4f2" stroke-width="1"/>
+  <text x="1108" y="486" text-anchor="middle" font-size="16.5" font-weight="700" fill="#3730a3">Evidence Chain</text>
+  <text x="1108" y="514" text-anchor="middle" font-size="12" fill="#5b53c6">Ed25519 signed · hash-linked</text>
+  <text x="1108" y="533" text-anchor="middle" font-size="12" fill="#5b53c6">append-only · records refusals too</text>
+  <text x="1108" y="600" text-anchor="middle" font-size="12" fill="#4338ca" font-weight="600">verifies in any browser</text>
+  <text x="1108" y="618" text-anchor="middle" font-size="12" fill="#4338ca" font-weight="600">with zero trust in the server</text>
+
+  <!-- footnote -->
+  <text x="48" y="950" font-size="12" fill="#98a2b3">A prompt-injected model produces a signed <tspan font-style="italic">refusal</tspan>, never a payment — proven without a model in the containment suite (233 tests).</text>
+</svg>
