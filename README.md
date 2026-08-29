@@ -8,9 +8,10 @@
 
 *Block a ceiling. Debit the actual. Prove what the money did.*
 
-[![tests](https://img.shields.io/badge/tests-205%20passing-2ea44f?style=flat-square)](#testing)
+[![tests](https://img.shields.io/badge/tests-207%20passing-2ea44f?style=flat-square)](#testing)
 [![python](https://img.shields.io/badge/python-3.11%2B-3776ab?style=flat-square)](#quick-start)
-[![rails](https://img.shields.io/badge/rails-UPI%20SBMD%20%C2%B7%20Razorpay%20%C2%B7%20Setu-6c5ce7?style=flat-square)](#the-evidence-table)
+[![live rail](https://img.shields.io/badge/live%20rail-%E2%82%B9470%20of%20%E2%82%B9620%20%C2%B7%20HTTP%20200-2ea44f?style=flat-square)](#what-it-does)
+[![rails](https://img.shields.io/badge/rails-UPI%20SBMD%20%C2%B7%20Cashfree%20%C2%B7%20Razorpay%20%C2%B7%20Setu-6c5ce7?style=flat-square)](#the-evidence-table)
 [![credentials](https://img.shields.io/badge/core%20runs%20with-zero%20credentials-e17055?style=flat-square)](#testing)
 
 ### ▶ Try it live
@@ -18,6 +19,8 @@
 **[Interactive demo](https://amanat-demo-699979063196.asia-south1.run.app)** — set a budget, run a settlement or attack it, watch the policy engine refuse and the signed chain verify itself.
 &nbsp;·&nbsp;
 **[Verify a signed packet](https://claude.ai/code/artifact/6edf0c30-6be8-4f60-961b-285b11af9995)** — recomputes its own hashes and signatures in your browser; press *Tamper* to watch it catch a change.
+&nbsp;·&nbsp;
+**Watch the mechanism run on a real rail** — `python -m amanat.rails.probe_cashfree` holds ₹620, debits ₹470, and the ₹150 comes back, live on Cashfree's UPI pre-auth sandbox.
 &nbsp;·&nbsp;
 **[Pitch deck (PDF)](docs/pitch/amanat-deck.pdf)** — the five-minute argument (`docs/pitch/amanat-deck.pptx` for editing).
 
@@ -85,25 +88,34 @@ flowchart LR
     style F fill:#f3e5f5,stroke:#7b1fa2,color:#4a148c
 ```
 
-This runs on **UPI Single Block Multiple Debit** (NPCI's SBMD, branded *Reserve Pay*).
-The ₹620 never leaves your account — it is blocked there, visible in your own UPI app,
-revocable by you at any moment.
+This runs on **UPI Single Block Multiple Debit** (NPCI's SBMD, branded *Reserve Pay*):
+the ₹620 never leaves your account — blocked there, visible in your own UPI app,
+revocable by you at any moment. That the rail *legally* permits a debit smaller than the
+block is settled from the NPCI circular itself (OC-228, `PRIMARY` evidence), not from a
+vendor's blog.
 
-### Same intent, two rails — and the chain shows the difference
+**And it is not only legal on paper — it runs.** The full *block → debit → release*
+lifecycle was measured end to end on a live rail: Cashfree's UPI pre-authorization sandbox
+held ₹620, captured ₹470, and returned the ₹150 **on its own** — `HTTP 200`,
+`captured_amount 470.0`, `PRE_AUTH|Transaction Success`. Every earlier real rail *refused*
+the mechanism; this is the first one measured to execute it. Reproduce in ~15 seconds:
+`python -m amanat.rails.probe_cashfree`.
 
-The same ceiling settled on two rails nets the merchant the same ₹470. What differs is
-what happens to *your* money, and the signed chain records which path actually ran:
+### The same intent across three real rails — measured, not quoted
 
-| | UPI SBMD (Reserve Pay) | Razorpay (test-mode API, live) |
+The differentiator is not a claim, it is a set of live API responses. The same
+amount-contingent settlement, asked of three real rails:
+
+| Rail | Debit smaller than the block? | Evidence |
 |---|---|---|
-| **Chain** | `BLOCKED → DEBITED → RELEASED` | `AUTHORIZED → CAPTURED → REFUNDED` |
-| **Leaves your account** | only ₹470, ever | full ₹620, until the refund settles |
-| **How** | block ₹620, debit ₹470, release the rest | capture ₹620 (partial capture is refused), refund ₹150 |
+| **UPI SBMD** (Reserve Pay) | ✅ legal by the circular | `PRIMARY` — NPCI OC-228, read from the scanned PDF |
+| **Cashfree** UPI pre-auth | ✅ **executed live** — ₹470 of ₹620, remainder auto-returned | `OBSERVED` — `HTTP 200`, measured 29 Aug 2026 |
+| **Razorpay** manual capture | ❌ refused | `OBSERVED` — `HTTP 400`, *"Capture amount must be equal to the amount authorized"* |
 
-Razorpay cannot block-and-partial-debit — `Capture amount must be equal to the amount
-authorized`, measured from the live API. So the same outcome is reached the way that rail
-*does* allow, and the honest cost (money out until the refund settles; MDR on the ceiling)
-is written into the chain rather than hidden. Run it: `python -m amanat.compare`.
+The negative and the positive are both the point: Razorpay forecloses the mechanism,
+Cashfree accepts it, and on the rail that keeps the remainder blocked (SBMD) versus the
+one that returns it automatically (Cashfree pre-auth), the signed chain records which path
+actually ran. Compare two chains side by side: `python -m amanat.compare`.
 
 ---
 
@@ -117,9 +129,9 @@ git clone https://github.com/HERPESME/amanat && cd amanat
 # The seven-act walkthrough — the whole argument in one command
 uv run --with cryptography python -m amanat.demo
 
-# 205 tests. No API key, no network.
-uv run --with pytest --with cryptography --with numpy \
-       --with scikit-learn --with pandas --with pyarrow pytest tests/ -q
+# 207 tests. No API key, no network.
+uv run --with pytest --with cryptography --with httpx --with numpy \
+       --with scikit-learn --with pandas --with pyarrow --with hypothesis pytest tests/ -q
 ```
 
 ```bash
@@ -152,7 +164,10 @@ uv run --with google-genai --with cryptography python -m amanat.orchestrator.cli
 uv run --with numpy --with pandas --with scikit-learn --with pyarrow \
        python -m amanat.ceiling.frontier
 
-# Measure a live rail instead of quoting its docs
+# Watch the core mechanism run on a real rail: hold ₹620, debit ₹470, ₹150 returns
+uv run --with httpx --with cryptography python -m amanat.rails.probe_cashfree
+
+# Measure Razorpay's refusal of the same shape (HTTP 400), live
 uv run --with httpx --with cryptography python -m amanat.rails.probe
 
 # Settle a real Razorpay test-mode payment (capture then refund, real ids)
@@ -198,7 +213,7 @@ flowchart TB
     end
 
     subgraph ENFORCED["🏦 ENFORCED — by the bank"]
-        RAIL["Payment Rail<br/><i>UPI SBMD · Razorpay · Setu</i>"]
+        RAIL["Payment Rail<br/><i>UPI SBMD · Cashfree pre-auth (live) · Razorpay · Setu</i>"]
     end
 
     CHAIN[("📜 Evidence Chain<br/><i>signed · hash-linked</i><br/><i>records refusals too</i>")]
@@ -353,8 +368,8 @@ or press *dispute it* on the [live console](https://amanat-demo-699979063196.asi
 
 ## What building it found
 
-The most useful outputs of this project are negative results. Each one is cited,
-reproducible, and encoded in the capability table.
+The most useful outputs of this project are its findings — mostly negative, and one
+decisive positive one. Each is cited, reproducible, and encoded in the capability table.
 
 <table>
 <tr>
@@ -393,24 +408,37 @@ resolvers. Invisible until you hold credentials and try.</td>
 live API. Reaching that state needed a browser: payment links auto-capture, and S2S
 creation is not enabled on a self-serve account.</td>
 </tr>
+<tr>
+<td><b>6</b></td>
+<td><b>Cashfree UPI pre-auth accepts the mechanism — the one positive result, measured live</b><br/>
+The full lifecycle ran end to end on the sandbox: a ₹620 hold, a <code>CAPTURE</code> of
+₹470 returning <code>HTTP 200</code> with <code>captured_amount 470.0</code>, and the ₹150
+remainder <b>auto-released</b> (an explicit void afterward is refused — there is nothing
+left to void). This is the exact shape Razorpay rejects, accepted by a real regulated UPI
+rail, and it is what turns <code>cashfree_preauth.partial_debit</code> from
+<code>UNVERIFIED</code> to <code>OBSERVED</code>. It needed a support ticket to enable
+(not self-serve) — recorded honestly. Reproduce: <code>python -m amanat.rails.probe_cashfree</code>.</td>
+</tr>
 </table>
 
 ---
 
 ## The evidence table
 
-26 capabilities across 5 rails. What each claim rests on:
+28 capabilities across 5 rails. What each claim rests on:
 
 | Rail | Capabilities | Evidence |
 |---|---|---|
 | **UPI SBMD** (Reserve Pay) | 16 | 12 `PRIMARY` · 3 `SECONDARY` · 1 `UNVERIFIED` |
+| **Cashfree** UPI pre-auth | 4 | 4 `OBSERVED` — measured live 29 Aug 2026 |
 | **Razorpay** manual capture | 3 | 1 `OBSERVED` · 2 `SECONDARY` |
 | **Setu UMAP** | 3 | 2 `OBSERVED` · 1 `SECONDARY` |
 | **UPI OTM** | 2 | 1 `SECONDARY` · 1 `UNVERIFIED` |
-| **Cashfree** pre-auth | 2 | 2 `UNVERIFIED` — application pending |
 
-Both NPCI circulars are committed in [`docs/sources/`](docs/sources/). They are
-image-only scans; every quote was read from pages rendered at 220 dpi.
+Two capabilities remain deliberately `UNVERIFIED` (`sbmd.block_amount_reducible_without_revoke`,
+`upi_otm.post_delivery_debit_goods`) — believed, not confirmed, so the policy engine refuses
+to plan around them. Both NPCI circulars are committed in [`docs/sources/`](docs/sources/);
+they are image-only scans, every quote read from pages rendered at 220 dpi.
 
 ---
 
@@ -422,8 +450,10 @@ src/amanat/
 │   ├── semantics.py    ← the capability table. Cited or refused.
 │   ├── simulator.py    ← enforces the same table the policy engine reads
 │   ├── razorpay.py     ← real adapter; refuses what the rail cannot honour
+│   ├── cashfree.py     ← real adapter; the rail that ACCEPTS partial debit (live)
 │   ├── settlement.py   ← capture-then-refund on Razorpay's real verbs
-│   ├── probe.py        ← measures live rails instead of quoting them
+│   ├── probe.py        ← measures Razorpay live (its refusal, HTTP 400)
+│   ├── probe_cashfree.py ← drives the pre-auth lifecycle live (HTTP 200, ₹470 of ₹620)
 │   └── authorize.py    ← browser harness for an authorized-but-uncaptured payment
 ├── policy/
 │   ├── envelope.py     ← the human's grant. Frozen; widening leaves a trace.
@@ -445,17 +475,17 @@ src/amanat/
 ## Testing
 
 ```bash
-uv run --with pytest --with cryptography --with numpy \
-       --with scikit-learn --with pandas --with pyarrow pytest tests/ -q
+uv run --with pytest --with cryptography --with httpx --with numpy \
+       --with scikit-learn --with pandas --with pyarrow --with hypothesis pytest tests/ -q
 ```
 
-**205 tests, no credential and no network.** If proving the agent is bounded ever
+**207 tests, no credential and no network.** If proving the agent is bounded ever
 required a live model, the agent would not be bounded.
 
 | Suite | What it pins |
 |---|---|
 | `test_semantics.py` | every capability cited; unverified never permitted |
-| `test_policy.py` | envelope + rail limits enforced, with citations |
+| `test_policy.py` | envelope + rail limits enforced; the live-measured Cashfree partial debit permitted, an unverified one refused |
 | `test_evidence.py` | append-only, hash-linked, tamper detected by entry |
 | `test_session.py` | no path to money skips policy |
 | `test_adversarial.py` | 23 attacks — amounts, homoglyph payees, sequence, malformed calls |
@@ -479,9 +509,13 @@ Stated here rather than waiting to be asked.
 
 - **Razorpay's `authorized` state has already debited the customer.** It is not a hold.
   Partial capture is unsupported there — measured, not assumed.
-- **The simulator carries the demo.** Real SBMD access needs merchant activation. Every
-  semantic it models cites the circular it comes from, and the real Razorpay adapter
-  *refuses* rather than degrading quietly.
+- **The core mechanism now runs live — on Cashfree, not SBMD.** Real *SBMD* access needs
+  merchant activation, so the SBMD path is still the simulator (which cites the circular
+  for every semantic it models). But amount-contingent settlement itself is no longer
+  simulator-only: the identical *block → partial-debit → release* lifecycle was measured
+  end to end on Cashfree's UPI pre-auth sandbox (`HTTP 200`, ₹470 of ₹620). Cashfree
+  pre-auth had to be enabled by a support ticket — not self-serve — which is recorded as
+  its own `OBSERVED` capability rather than glossed over.
 - **No public Indian COD-RTO or metered-fare dataset exists.** The ceiling model trains
   on NYC TLC fares. The method transfers; the coefficients do not.
 - **Razorpay already ships** RTO Shield, risk-tiered COD fees, partial COD, and a live

@@ -239,7 +239,7 @@ function arrow(s, x1, y1, x2, y2, color = "6E6A63") {
     { fill: DARK, tcol: D_TEXT, scol: D_MUTED, border: DARK });
   node(s, 6.55, 1.74, 1.62, 0.62, "REFUSED", "with the circular quoted",
     { fill: PALE_RED, border: RED, tcol: RED });
-  node(s, 6.55, 2.62, 1.62, 0.62, "RAIL", "block → debit → release");
+  node(s, 6.55, 2.62, 1.62, 0.62, "RAIL", "block → debit → release · live on Cashfree");
   node(s, 8.40, 2.62, 0.78, 0.62, "SETTLED", "",
     { fill: PALE_GREEN, border: GREEN, tcol: GREEN });
   arrow(s, 2.30, 2.47, 2.72, 2.47);
@@ -290,7 +290,7 @@ function arrow(s, x1, y1, x2, y2, color = "6E6A63") {
     fontFace: SANS, italic: true, fontSize: 8.8, color: FAINT });
   band(s, 3.55, 1.05, [
     { text: "Five evidence tiers, one rule. ", options: { bold: true, color: ORANGE_D } },
-    { text: "PRIMARY (circulars) · OBSERVED (the live API’s own response) · SECONDARY (PSP docs) are usable as fact. MARKETING and UNVERIFIED never are — 26 capabilities across 5 rails, every one cited or refused." },
+    { text: "PRIMARY (circulars) · OBSERVED (the live API’s own response) · SECONDARY (PSP docs) are usable as fact. MARKETING and UNVERIFIED never are — 28 capabilities across 5 rails, every one cited or refused." },
   ]);
   footnote(s, "The day of refusal is preserved in the suite as a record, not deleted — the gate keying off evidence, not convenience, is the design.");
 }
@@ -298,16 +298,16 @@ function arrow(s, x1, y1, x2, y2, color = "6E6A63") {
 /* ============================ 07 · MEASURED ============================= */
 {
   const s = cream();
-  eyebrow(s, "Measured, not quoted", "A doc says should. A probe says did.");
+  eyebrow(s, "Measured, not quoted", "Two real rails: one accepts, one refuses.");
   const rows = [
+    ["Cashfree · UPI pre-auth debit", "HTTP 200", GREEN,
+     "captured ₹470 of a ₹620 hold; the ₹150 auto-returned — amount-contingent settlement, accepted live on a regulated UPI rail."],
     ["Razorpay · partial capture", "HTTP 400", RED,
-     "“Capture amount must be equal to the amount authorized” — the live rail and the docs agree word for word."],
-    ["Setu UMAP · reachability", "NXDOMAIN", ORANGE,
-     "credentials accepted (HTTP 200) — but uatapi.setu.co / api.setu.co resolve on neither Google nor Cloudflare DNS."],
+     "the identical shape, refused: “Capture amount must be equal to the amount authorized” — live rail and docs agree word for word."],
     ["Razorpay · live settlement", "rfnd_TT5K…", GREEN,
      "capture ₹620 → refund ₹150 → merchant nets ₹470 — a real refund id, inside the signed chain."],
-    ["NPCI OC-228 · block cap", "₹10,000", INK,
-     "read from the scanned circular, enforced in code — a reserve above it is refused with the quote attached."],
+    ["Setu UMAP · reachability", "NXDOMAIN", ORANGE,
+     "credentials accepted (HTTP 200) — but uatapi.setu.co / api.setu.co resolve on neither Google nor Cloudflare DNS."],
   ];
   const y0 = 1.98, rh = 0.74, c1 = 2.55, c2 = 1.55;
   ["PROBE", "RESULT", "WHAT IT MEANS"].forEach((h, i) => {
@@ -327,7 +327,7 @@ function arrow(s, x1, y1, x2, y2, color = "6E6A63") {
   });
   s.addShape(P.shapes.LINE, { x: ML, y: y0 + rows.length * rh, w: W, h: 0,
     line: { color: LINE, width: 0.75 } });
-  footnote(s, "Reproduce: python -m amanat.rails.probe · python -m amanat.rails.settle — test mode throughout; no real money moved.");
+  footnote(s, "Reproduce: python -m amanat.rails.probe_cashfree · python -m amanat.rails.probe · python -m amanat.rails.settle — sandbox throughout; no real money moved.");
 }
 
 /* ============================ 08 · THE DISPUTE =========================== */
@@ -362,10 +362,10 @@ function arrow(s, x1, y1, x2, y2, color = "6E6A63") {
 {
   const s = cream();
   eyebrow(s, "The numbers", "Every figure matches the runner.");
-  stat(s, ML,        1.72, "205",  "tests — all pass with zero credentials and zero network", INK, 2.0);
+  stat(s, ML,        1.72, "207",  "tests — all pass with zero credentials and zero network", INK, 2.0);
   stat(s, ML + 2.15, 1.72, "23",   "adversarial attacks — homoglyphs, overflows, sequence abuse — all refused", ORANGE, 2.0);
   stat(s, ML + 4.30, 1.72, "600+", "random action sequences per CI run — money invariants held after every step", ORANGE, 2.0);
-  stat(s, ML + 6.45, 1.72, "26",   "rail capabilities across 5 rails — every one cited, or refused", ORANGE, 2.0);
+  stat(s, ML + 6.45, 1.72, "28",   "rail capabilities across 5 rails — every one cited, or refused", ORANGE, 2.0);
   band(s, 3.42, 1.30, [
     { text: "The ceiling model, honestly. ", options: { bold: true, color: ORANGE_D } },
     { text: "Conformal quantile regression on 300k real NYC metered fares. Finding: the coverage guarantee is distribution-free but not shift-free — 18 of 20 configs missed nominal under a real temporal split; recency calibration narrows the gap ~10× (−3.55pp → +0.91pp). A random split would have passed — and lied about deployment." },
@@ -396,7 +396,7 @@ function arrow(s, x1, y1, x2, y2, color = "6E6A63") {
     ["python -m amanat.compare", "two rails, side by side"]]);
   cmdcol(ML + 4.55, [
     ["python -m amanat.dispute.demo", "settle on AP2, then contest it"],
-    ["python -m amanat.rails.settle", "a real run on Razorpay test APIs"]]);
+    ["python -m amanat.rails.probe_cashfree", "the mechanism, live on a real rail"]]);
   footnote(s, "Cloud Run, scales to zero — it costs nothing idle; open it once before judging to skip the cold start.");
 }
 
@@ -405,7 +405,7 @@ function arrow(s, x1, y1, x2, y2, color = "6E6A63") {
   const s = dark();
   eyebrow(s, "Stated before you ask", "What this is not.", { dark: true });
   const limits = [
-    ["The SBMD demo runs on a simulator.", "Every semantic cites the circular it models; the real-rail run is gated on PSP enablement. The real Razorpay path is the different-but-honest capture-then-refund."],
+    ["The SBMD path runs on a simulator — the mechanism does not.", "SBMD access needs PSP enablement, so that path is simulated (every semantic cites its circular). But block → partial-debit → release was measured end to end on Cashfree’s UPI pre-auth sandbox: ₹470 of ₹620, HTTP 200."],
     ["Consent binding is a placeholder.", "Adjudication proves the settlement conformed to the recorded grant — not that a human’s key signed it. AP2’s cnf slot is where that lands."],
     ["No risk model of ours.", "Razorpay ships RTO Shield. Risk enters through a seam, not a rewrite."],
     ["No win-rate, no “first”, no invented data.", "Negative findings are promoted, not buried. The adversarial review that killed our own v1 thesis ships in the repo."],
