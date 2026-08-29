@@ -14,3 +14,8 @@ data/*.parquet
 
 # Local credentials
 .env
+
+# Demo video working files — kept local, not committed
+docs/*.mov
+docs/amanat-demo-edit.mp4
+docs/VIDEO_SCRIPT.md

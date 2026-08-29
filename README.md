@@ -97,8 +97,8 @@ vendor's blog.
 **And it is not only legal on paper — it runs.** The full *block → debit → release*
 lifecycle was measured end to end on a live rail: Cashfree's UPI pre-authorization sandbox
 held ₹620, captured ₹470, and returned the ₹150 **on its own** — `HTTP 200`,
-`captured_amount 470.0`, `PRE_AUTH|Transaction Success`. Every earlier real rail *refused*
-the mechanism; this is the first one measured to execute it. Reproduce in ~15 seconds:
+`captured_amount 470.0`, `PRE_AUTH|Transaction Success`. Every other real rail measured here
+*refused* the mechanism; this one accepts it. Reproduce in ~15 seconds:
 `python -m amanat.rails.probe_cashfree`.
 
 ### The same intent across three real rails — measured, not quoted
