@@ -195,3 +195,67 @@ class TestReturningTheRemainderCostsSomething:
         s.debit(470_00)
         s.release()
         assert rail.customer_balance == 10_000_00 - 470_00
+
+
+class TestReApproval:
+    """The cap is the human's — and only the human, by signing, can raise it."""
+
+    def _session(self):
+        from datetime import datetime, timedelta, timezone
+        from amanat.policy.envelope import Envelope
+        env = Envelope(subject="cap", max_total=1_000_00, max_per_txn=1_000_00,
+                       allowed_payees=["citycabs"],
+                       expires_at=datetime.now(timezone.utc) + timedelta(hours=1))
+        return AgentSession(env, SimulatedRail("sbmd", customer_balance=10_000_00))
+
+    def test_agent_cannot_widen_its_own_cap(self):
+        s = self._session()
+        before = s.envelope.max_total
+        r = s.propose_raise(1_300_00, reason="fare over cap")
+        assert r.ok is False                       # a proposal, not a grant
+        assert s.envelope.max_total == before      # the cap did not move
+        props = [e for e in s.chain.entries
+                 if e.event_type is EventType.PROPOSAL
+                 and e.payload.get("action") == "raise_ceiling"]
+        assert len(props) == 1 and props[0].actor is Actor.AGENT
+
+    def test_over_cap_reserve_is_refused_until_a_human_signs_the_raise(self):
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+        s = self._session()
+        assert s.reserve(1_200_00, "citycabs").ok is False     # over the ₹1,000 cap
+        s.propose_raise(1_300_00, reason="fare ₹1,200")
+        assert s.approve_raise(1_300_00, Ed25519PrivateKey.generate()).ok is True
+        assert s.envelope.max_total == 1_300_00
+        assert s.reserve(1_200_00, "citycabs").ok is True      # now within the raised cap
+
+    def test_the_raise_is_a_human_signed_envelope_entry(self):
+        from cryptography.exceptions import InvalidSignature
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import (
+            Ed25519PrivateKey, Ed25519PublicKey)
+        from amanat.orchestrator.session import _consent_bytes
+        s = self._session()
+        s.approve_raise(1_300_00, Ed25519PrivateKey.generate(), reason="rider ok")
+        entry = next(e for e in s.chain.entries
+                     if e.event_type is EventType.ENVELOPE
+                     and e.payload.get("event") == "envelope_widened")
+        assert entry.actor is Actor.HUMAN
+        body = entry.payload
+        pub = Ed25519PublicKey.from_public_bytes(bytes.fromhex(body["cnf"]["jwk"]["x"]))
+        pub.verify(bytes.fromhex(body["signature"]), _consent_bytes(body))   # verifies
+        body2 = {**body, "to": {"max_total": 9_999_00, "max_per_txn": 9_999_00}}
+        with pytest.raises(InvalidSignature):                                # tamper caught
+            pub.verify(bytes.fromhex(body2["signature"]), _consent_bytes(body2))
+
+    def test_widening_never_lowers_a_cap(self):
+        s = self._session()
+        with pytest.raises(ValueError):
+            s.envelope.widened(max_total=500_00)
+
+    def test_the_refusal_before_the_raise_stays_in_the_chain(self):
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+        s = self._session()
+        s.reserve(1_200_00, "citycabs")            # refused, recorded
+        s.approve_raise(1_300_00, Ed25519PrivateKey.generate())
+        s.reserve(1_200_00, "citycabs")            # allowed now
+        assert any(r.payload.get("proposed_amount") == 1_200_00
+                   for r in s.chain.refusals())
