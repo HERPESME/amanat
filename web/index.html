@@ -184,7 +184,26 @@ pre:focus{outline:none;border-color:var(--brand)}
 footer{color:var(--faint);font-size:12.5px;margin-top:2.5rem;border-top:1px solid var(--line);
   padding-top:1.25rem;line-height:1.7}
 footer a{color:var(--brand)}
-@media(max-width:560px){.fields{grid-template-columns:1fr}.tiles{grid-template-columns:1fr 1fr}}
+.realrail{border-color:var(--ok);margin-bottom:1.25rem}
+.rr-tag{display:inline-flex;align-items:center;gap:.4rem;font-family:var(--mono);font-size:11px;
+  letter-spacing:.12em;text-transform:uppercase;color:var(--ok);font-weight:500}
+.rr-tag .g{width:6px;height:6px;border-radius:50%;background:var(--ok);animation:rrpulse 2s infinite}
+@keyframes rrpulse{0%,100%{opacity:1}50%{opacity:.35}}
+.rr-title{font-size:1.15rem;font-weight:600;margin:.55rem 0 .5rem;color:var(--ink);letter-spacing:-.01em}
+.rr-p{color:var(--dim);margin:0 0 1rem;font-size:13.5px;line-height:1.65}
+.rr-p b{color:var(--ink)}
+.rr-flow{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;font-family:var(--mono);
+  font-size:12.5px;margin-bottom:.2rem}
+.rr-step{padding:.3rem .6rem;border:1px solid var(--line);border-radius:8px;background:var(--sunk);color:var(--ink)}
+.rr-ret{border-color:var(--ok);color:var(--ok);background:var(--ok-soft)}
+.rr-arr{color:var(--faint)}
+.rr-code{margin-left:auto;font-family:var(--mono);font-weight:600;color:var(--ok);
+  background:var(--ok-soft);border:1px solid var(--ok);border-radius:6px;padding:.2rem .5rem;font-size:12px}
+.rr-btn{background:var(--ok);border-color:var(--ok)}
+.rr-note{background:var(--ok-soft);border:1px solid var(--ok);border-radius:10px;padding:.7rem .9rem;
+  margin-bottom:1rem;font-size:13px;color:var(--ink);line-height:1.55}
+.rr-note b{color:var(--ok)}
+@media(max-width:560px){.fields{grid-template-columns:1fr}.tiles{grid-template-columns:1fr 1fr}.rr-code{margin-left:0}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style></head>
 <body><div class="wrap">
@@ -243,7 +262,28 @@ footer a{color:var(--brand)}
     </div>
   </div>
 
+  <div class="card pad realrail" id="realRailCard">
+    <span class="rr-tag"><span class="g"></span> Live rail · measured 29 Aug 2026</span>
+    <div class="rr-title">The mechanism runs on a real rail — not only the simulator above</div>
+    <p class="rr-p">The console above runs the governed core against a simulator. But the
+      settlement itself — <b>block a ceiling, debit the actual, return the difference</b> —
+      was measured end to end on <b>Cashfree's UPI pre-authorization</b> sandbox. Razorpay
+      refuses the identical shape with HTTP 400; this rail accepts it. The receipt is signed
+      over the real API responses and verifies in your browser, exactly like a simulated one.</p>
+    <div class="rr-flow">
+      <span class="rr-step">hold ₹620</span><span class="rr-arr">→</span>
+      <span class="rr-step">debit ₹470</span><span class="rr-arr">→</span>
+      <span class="rr-step rr-ret">₹150 returned</span>
+      <span class="rr-code">HTTP 200</span>
+    </div>
+    <button class="run rr-btn" id="showRealRail">Load the signed real-rail receipt ↓</button>
+  </div>
+
   <section id="result">
+    <div class="rr-note" id="realRailNote" style="display:none">✓ This receipt is the
+      <b>real Cashfree pre-auth run</b> — its rail entries carry the live order id,
+      cf_payment_id and HTTP 200 (open “inspect signed bytes”). Signed over the actual API
+      responses; nothing here is simulated.</div>
     <div class="card pad reply" id="replyCard" style="display:none">
       <div class="who">What the agent said</div>
       <div class="txt" id="reply"></div>
@@ -435,6 +475,7 @@ footer a{color:var(--brand)}
         {type:'reserve',amount:paise('ceiling'),payee:el('charge').value.trim(),reason:'ceiling for the trip'},
         {type:'debit',amount:paise('actual'),reason:'metered fare'},
         {type:'release',reason:'trip complete'}]};
+    el('realRailNote').style.display='none';
     const btn=el('run'); btn.disabled=true; btn.textContent='Running…';
     try{
       const res=await fetch('/api/simulate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
@@ -450,6 +491,7 @@ footer a{color:var(--brand)}
     if(!key){ mode('agent'); el('gkey').focus(); return; }
     const body={gemini_key:key,prompt:el('prompt').value.trim(),
       envelope:{budget:paise('a_budget'),per_txn:paise('a_budget'),payee:el('a_payee').value.trim(),hours:6}};
+    el('realRailNote').style.display='none';
     const btn=el('runAgent'); btn.disabled=true; btn.textContent='Agent is working…';
     el('result').classList.add('show'); el('replyCard').style.display='block';
     el('reply').textContent='The agent is reasoning and calling tools…';
@@ -462,6 +504,21 @@ footer a{color:var(--brand)}
     finally { btn.disabled=false; btn.textContent='Run the live AI agent'; }
   }
   el('runAgent').onclick=runAgent;
+
+  /* ---- the real-rail receipt: a frozen, signed record of a live Cashfree run ---- */
+  async function showRealRail(){
+    const btn=el('showRealRail'); btn.disabled=true; btn.textContent='Loading the signed receipt…';
+    try{
+      const res=await fetch('/api/real-rail');
+      if(!res.ok){ btn.textContent='Real-rail receipt unavailable'; return; }
+      const data=await res.json();
+      el('realRailNote').style.display='block';
+      await renderResult(data.packet, null);
+      el('result').scrollIntoView({behavior:'smooth',block:'start'});
+    } catch(e){ btn.textContent='Network error — try again'; }
+    finally { btn.disabled=false; btn.textContent='Load the signed real-rail receipt ↓'; }
+  }
+  el('showRealRail').onclick=showRealRail;
 
   /* ---- dispute adjudication ---- */
   const FCLASS = {supports_merchant:'ok', supports_cardholder:'bad',

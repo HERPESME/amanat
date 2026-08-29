@@ -11,6 +11,7 @@ model call and no rail call that touches money.
 """
 from __future__ import annotations
 
+import json
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -171,6 +172,41 @@ def _envelope_from_packet(packet: dict) -> Envelope:
 @app.get("/api/health")
 def health() -> dict:
     return {"ok": True}
+
+
+def _load_real_rail() -> dict | None:
+    """The frozen, signed record of a real Cashfree pre-auth run.
+
+    Generated offline with sandbox credentials by
+    `python -m amanat.rails.cashfree_settle` and committed. The public demo never
+    calls the rail — it serves this static proof, which verifies standalone in the
+    visitor's browser exactly like a simulated one.
+    """
+    path = Path(__file__).parent / "real_rail_packet.json"
+    if not path.exists():
+        return None
+    try:
+        return json.loads(path.read_text())
+    except (ValueError, OSError):
+        return None
+
+
+_REAL_RAIL = _load_real_rail()
+
+
+@app.get("/api/real-rail")
+def real_rail() -> JSONResponse:
+    """The signed evidence packet from the live Cashfree pre-auth settlement."""
+    if _REAL_RAIL is None:
+        return JSONResponse({"error": "real-rail packet unavailable"}, status_code=404)
+    return JSONResponse({
+        "packet": _REAL_RAIL,
+        "measured": {
+            "rail": "Cashfree UPI pre-authorization (sandbox)",
+            "held": 620_00, "debited": 470_00, "returned": 150_00,
+            "http": 200, "date": "2026-08-29",
+        },
+    })
 
 
 @app.post("/api/dispute")
