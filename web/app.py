@@ -243,6 +243,54 @@ def simulate(body: SimulateIn, request: Request) -> JSONResponse:
     return JSONResponse(run_simulation(body))
 
 
+class ReapproveIn(BaseModel):
+    envelope: EnvelopeIn
+    ceiling: int = Field(ge=1, le=MAX_PAISE)
+    actual: int = Field(ge=1, le=MAX_PAISE)
+    payee: str = Field(default="", max_length=64)
+
+
+@app.post("/api/reapprove")
+def reapprove(body: ReapproveIn, request: Request) -> JSONResponse:
+    """Re-approval: a fare above the cap, then the human raises it and signs.
+
+    The agent's over-cap block is refused, the agent asks, a human key signs a
+    widened envelope, and only then does the block go through and settle. The
+    signed re-consent lands in the same chain, so the receipt shows who raised
+    the cap and by how much — the agent never widened its own grant.
+    """
+    if (limited := _limited(request, "simulate", SIMULATE_LIMIT)) is not None:
+        return limited
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+
+    env = Envelope(
+        subject="demo", max_total=body.envelope.budget,
+        max_per_txn=body.envelope.per_txn, allowed_payees=[body.envelope.payee],
+        expires_at=datetime.now(timezone.utc) + timedelta(hours=body.envelope.hours),
+        intent_text="re-approval demo")
+    session = AgentSession(env, SimulatedRail("sbmd", customer_balance=MAX_PAISE))
+    payee = body.payee or body.envelope.payee
+    raise_to = max(body.ceiling, body.envelope.budget + 1)
+
+    steps = []
+    def rec(kind, amount, r):
+        steps.append({"type": kind, "amount": amount, "ok": r.ok, "detail": r.detail})
+
+    rec("reserve", body.ceiling, session.reserve(body.ceiling, payee, "block the fare"))
+    session.propose_raise(raise_to, reason="the metered fare is above the current cap")
+    steps.append({"type": "propose_raise", "amount": raise_to, "ok": False,
+                  "detail": "agent asks the human to raise the cap"})
+    ok = session.approve_raise(raise_to, Ed25519PrivateKey.generate(),
+                               new_max_per_txn=raise_to, reason="rider approved the higher fare")
+    steps.append({"type": "approve_raise", "amount": raise_to, "ok": ok.ok, "detail": ok.detail})
+    rec("reserve", body.ceiling, session.reserve(body.ceiling, payee, "block at the raised cap"))
+    rec("debit", body.actual, session.debit(body.actual, "metered fare"))
+    rec("release", 0, session.release(reason="trip complete"))
+
+    return JSONResponse({"steps": steps, "summary": session.summary(),
+                         "packet": session.evidence_packet(), "raised_to": raise_to})
+
+
 def _make_backend(api_key: str):
     """Overridable in tests so the endpoint can be exercised without a real key."""
     from amanat.orchestrator.backends import GeminiBackend

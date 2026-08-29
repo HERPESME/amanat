@@ -90,6 +90,52 @@ class TestTheGovernedCoreRunsBehindHttp:
         assert "refusal" in kinds
 
 
+class TestReApprovalOverHttp:
+    """A fare above the cap: refused, then a human-signed raise lets it settle.
+
+    The console's re-approval flow. The over-cap block is refused first, the
+    agent asks, a human key signs a widened envelope, and only then does the
+    block settle — all in one verifiable packet that names who raised the cap.
+    """
+
+    def reapp(self, budget, ceiling, actual, payee="citycabs"):
+        return client.post("/api/reapprove", json={
+            "envelope": {"budget": budget, "per_txn": budget, "payee": payee, "hours": 6},
+            "ceiling": ceiling, "actual": actual, "payee": payee,
+        })
+
+    def test_over_cap_is_refused_then_settles_after_a_signed_raise(self):
+        data = self.reapp(1_000_00, 1_200_00, 1_150_00).json()
+        by = {s["type"]: s for s in data["steps"]}
+        # first block over the cap is refused; the human's approval is signed OK
+        assert data["steps"][0]["type"] == "reserve" and data["steps"][0]["ok"] is False
+        assert by["approve_raise"]["ok"] is True
+        # after the raise, the block and the debit go through
+        assert by["debit"]["ok"] is True
+        assert data["raised_to"] >= 1_200_00
+
+    def test_the_packet_verifies_and_names_who_raised_the_cap(self):
+        data = self.reapp(1_000_00, 1_200_00, 1_150_00).json()
+        EvidenceChain.verify_packet(data["packet"])
+        widenings = [e for e in data["packet"]["entries"]
+                     if e["event_type"] == "envelope"
+                     and e["payload"].get("event") == "envelope_widened"]
+        assert len(widenings) == 1
+        w = widenings[0]["payload"]
+        assert w["from"]["max_total"] == 1_000_00
+        assert w["to"]["max_total"] >= 1_200_00
+        assert w["cnf"]["jwk"]["crv"] == "Ed25519" and "signature" in w
+
+    def test_the_agent_never_widened_its_own_grant(self):
+        # the raise is a HUMAN-actor entry; the agent only ever PROPOSED it
+        entries = self.reapp(1_000_00, 1_200_00, 1_150_00).json()["packet"]["entries"]
+        widening = next(e for e in entries if e["payload"].get("event") == "envelope_widened")
+        assert widening["actor"] == "human"
+        proposals = [e for e in entries if e["event_type"] == "proposal"
+                     and e["payload"].get("action") == "raise_ceiling"]
+        assert proposals and all(e["actor"] == "agent" for e in proposals)
+
+
 class TestInputsAreBounded:
     def test_a_negative_amount_is_rejected(self):
         assert sim(1_000_00, 800_00, "citycabs",
