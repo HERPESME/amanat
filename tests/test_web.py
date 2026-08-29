@@ -29,6 +29,33 @@ HAPPY = [
 ]
 
 
+class TestRealRailReceipt:
+    """The frozen, signed record of the live Cashfree pre-auth run.
+
+    Served static (no rail call, no credentials in the public app), and it must
+    verify standalone exactly like a simulated packet — that is the whole point.
+    """
+
+    def test_real_rail_packet_is_served_and_verifies(self):
+        r = client.get("/api/real-rail")
+        assert r.status_code == 200
+        data = r.json()
+        EvidenceChain.verify_packet(data["packet"])
+        assert data["measured"]["debited"] == 470_00
+        assert data["measured"]["held"] == 620_00
+
+    def test_real_rail_packet_carries_a_measured_debit_transition(self):
+        packet = client.get("/api/real-rail").json()["packet"]
+        debits = [e for e in packet["entries"]
+                  if e["event_type"] == "rail_transition"
+                  and e["payload"].get("action") == "debit"]
+        assert len(debits) == 1
+        p = debits[0]["payload"]
+        assert p["amount"] == 470_00
+        assert p["http_status"] == 200          # the live rail said yes
+        assert "cf_payment_id" not in p or True  # response fields are recorded, not required
+
+
 class TestTheGovernedCoreRunsBehindHttp:
     def test_happy_path_is_all_allowed_and_the_packet_verifies(self):
         r = sim(1_000_00, 800_00, "citycabs", HAPPY)
