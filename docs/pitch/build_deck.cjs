@@ -362,7 +362,7 @@ function arrow(s, x1, y1, x2, y2, color = "6E6A63") {
 {
   const s = cream();
   eyebrow(s, "The numbers", "Every figure matches the runner.");
-  stat(s, ML,        1.72, "207",  "tests — all pass with zero credentials and zero network", INK, 2.0);
+  stat(s, ML,        1.72, "233",  "tests — all pass with zero credentials and zero network", INK, 2.0);
   stat(s, ML + 2.15, 1.72, "23",   "adversarial attacks — homoglyphs, overflows, sequence abuse — all refused", ORANGE, 2.0);
   stat(s, ML + 4.30, 1.72, "600+", "random action sequences per CI run — money invariants held after every step", ORANGE, 2.0);
   stat(s, ML + 6.45, 1.72, "28",   "rail capabilities across 5 rails — every one cited, or refused", ORANGE, 2.0);
