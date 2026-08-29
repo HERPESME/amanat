@@ -126,10 +126,10 @@ No credentials needed for the core. That is a design property, not an oversight.
 ```bash
 git clone https://github.com/HERPESME/amanat && cd amanat
 
-# The seven-act walkthrough — the whole argument in one command
+# The eight-act walkthrough — the whole argument in one command
 uv run --with cryptography python -m amanat.demo
 
-# 238 tests. No API key, no network.
+# 241 tests. No API key, no network.
 uv run --with pytest --with cryptography --with httpx --with fastapi --with pydantic \
        --with numpy --with scikit-learn --with pandas --with pyarrow --with hypothesis pytest tests/ -q
 ```
@@ -455,7 +455,7 @@ uv run --with pytest --with cryptography --with httpx --with fastapi --with pyda
        --with numpy --with scikit-learn --with pandas --with pyarrow --with hypothesis pytest tests/ -q
 ```
 
-**238 tests, no credential and no network.** If proving the agent is bounded ever
+**241 tests, no credential and no network.** If proving the agent is bounded ever
 required a live model, the agent would not be bounded.
 
 | Suite | What it pins |

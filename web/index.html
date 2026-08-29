@@ -39,7 +39,7 @@
 html{scroll-behavior:smooth}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px;
   line-height:1.55;-webkit-font-smoothing:antialiased}
-.app{max-width:1480px;margin:0 auto;padding:1.1rem 1.35rem 2.5rem;position:relative}
+.app{max-width:none;margin:0;padding:1.1rem 1.9rem 2.5rem;position:relative}
 .app::before{content:"";position:fixed;inset:0 0 auto 0;height:3px;z-index:20;
   background:linear-gradient(90deg,var(--brand),var(--ok) 55%,rgba(0,0,0,0))}
 
@@ -220,6 +220,34 @@ pre:focus{outline:none;border-color:var(--brand)}
 footer{color:var(--faint);font-size:12px;margin-top:1.5rem;line-height:1.65}
 footer a{color:var(--brand)}
 
+/* ---------- re-approval banner ---------- */
+.reapp{display:none;align-items:center;gap:.9rem;flex-wrap:wrap;padding:.85rem 1.1rem;border-radius:12px;
+  background:var(--amber-soft);border:1px solid color-mix(in srgb,var(--amber) 50%,transparent)}
+.reapp .rtext{flex:1;min-width:14rem;font-size:13.5px;color:var(--ink)}
+.reapp .rtext b{color:var(--amber)}
+.reapp button{background:var(--amber);color:#1a1206;border:1px solid var(--amber);border-radius:9px;
+  font-family:var(--sans);font-weight:600;font-size:13px;padding:.55rem .95rem;cursor:pointer;transition:.15s}
+.reapp button:hover{filter:brightness(1.06)} .reapp button:disabled{opacity:.6;cursor:default}
+
+/* ---------- live money-flow diagram ---------- */
+.flowcard svg{width:100%;height:auto;display:block}
+.fn rect{fill:var(--sunk);stroke:var(--line);stroke-width:1.5;transition:stroke .3s,fill .3s}
+.fn text{fill:var(--faint);transition:fill .3s}
+.fn .fn-t{font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:.02em}
+.fn .fn-v{font-family:var(--mono);font-size:13px;font-weight:600}
+.fn.on rect{stroke:var(--ok);fill:color-mix(in srgb,var(--ok) 12%,var(--panel))}
+.fn.on .fn-t{fill:var(--ink)} .fn.on .fn-v{fill:var(--ok)}
+.fn.bad rect{stroke:var(--bad);fill:color-mix(in srgb,var(--bad) 12%,var(--panel))}
+.fn.bad .fn-t,.fn.bad .fn-v{fill:var(--bad)}
+.fa{fill:none;stroke:var(--line2);stroke-width:2.5;opacity:.45;transition:stroke .3s,opacity .3s}
+.fa.on{stroke:var(--ok);opacity:1;stroke-dasharray:7 5;animation:flowdash .8s linear infinite}
+.fa.bad{stroke:var(--bad);opacity:1}
+@keyframes flowdash{to{stroke-dashoffset:-24}}
+.fhead{stroke:var(--line2);fill:var(--line2);transition:.3s}
+.fa.on ~ .fhead{}  /* markers colored via JS class on marker path */
+.flowlegend{display:flex;gap:1rem;flex-wrap:wrap;font-family:var(--mono);font-size:10.5px;color:var(--faint);margin-top:.7rem}
+.flowlegend b{color:var(--ink);font-weight:500}
+
 @media(max-width:1040px){.dash{grid-template-columns:1fr}.sidebar{position:static}.grid2{grid-template-columns:1fr}}
 @media(max-width:560px){.fields{grid-template-columns:1fr}.tiles{grid-template-columns:1fr 1fr}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
@@ -326,7 +354,52 @@ footer a{color:var(--brand)}
 
       <div class="verdict" id="verdict"><span class="ico" id="verdict-ico"></span><span id="verdict-text"></span></div>
 
+      <div class="reapp" id="reapproveBanner">
+        <div class="rtext" id="reapproveText"></div>
+        <button id="reapproveBtn">Raise the cap &amp; re-approve</button>
+      </div>
+
       <div class="tiles" id="tiles"></div>
+
+      <div class="card pad flowcard">
+        <h2>Live money flow</h2>
+        <svg viewBox="0 0 1180 232" role="img" aria-label="Live money-flow diagram">
+          <defs>
+            <marker id="ah" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="userSpaceOnUse">
+              <path d="M0,0 L7,3 L0,6 Z" fill="context-stroke"/>
+            </marker>
+          </defs>
+          <path class="fa" id="a-ha" d="M164,123 L206,123" marker-end="url(#ah)"/>
+          <path class="fa" id="a-ap" d="M362,123 L404,123" marker-end="url(#ah)"/>
+          <path class="fa" id="a-pr" d="M570,110 C602,84 612,56 628,47" marker-end="url(#ah)"/>
+          <path class="fa" id="a-pb" d="M570,123 L628,123" marker-end="url(#ah)"/>
+          <path class="fa" id="a-bm" d="M812,110 C844,90 854,76 868,69" marker-end="url(#ah)"/>
+          <path class="fa" id="a-bc" d="M812,136 C844,156 854,170 868,178" marker-end="url(#ah)"/>
+          <g class="fn" id="n-human"><rect x="16" y="93" width="148" height="60" rx="11"/>
+            <text class="fn-t" x="90" y="119" text-anchor="middle">The grant</text>
+            <text class="fn-v" x="90" y="139" text-anchor="middle" style="font-size:10.5px">your cap</text></g>
+          <g class="fn" id="n-agent"><rect x="214" y="93" width="148" height="60" rx="11"/>
+            <text class="fn-t" x="288" y="119" text-anchor="middle">Agent</text>
+            <text class="fn-v" x="288" y="139" text-anchor="middle" style="font-size:10.5px">proposes</text></g>
+          <g class="fn" id="n-policy"><rect x="412" y="93" width="158" height="60" rx="11"/>
+            <text class="fn-t" x="491" y="119" text-anchor="middle">Policy engine</text>
+            <text class="fn-v" x="491" y="139" text-anchor="middle" style="font-size:10.5px">decides</text></g>
+          <g class="fn" id="n-refused"><rect x="636" y="16" width="176" height="54" rx="11"/>
+            <text class="fn-t" x="724" y="40" text-anchor="middle">Refused</text>
+            <text class="fn-v" id="v-refused" x="724" y="58" text-anchor="middle" style="font-size:10px">—</text></g>
+          <g class="fn" id="n-block"><rect x="636" y="93" width="176" height="60" rx="11"/>
+            <text class="fn-t" x="724" y="118" text-anchor="middle">Blocked · your account</text>
+            <text class="fn-v" id="v-block" x="724" y="139" text-anchor="middle">—</text></g>
+          <g class="fn" id="n-merchant"><rect x="876" y="41" width="188" height="56" rx="11"/>
+            <text class="fn-t" x="970" y="64" text-anchor="middle">Merchant</text>
+            <text class="fn-v" id="v-merchant" x="970" y="83" text-anchor="middle">—</text></g>
+          <g class="fn" id="n-customer"><rect x="876" y="149" width="188" height="56" rx="11"/>
+            <text class="fn-t" x="970" y="172" text-anchor="middle">Back to you</text>
+            <text class="fn-v" id="v-customer" x="970" y="191" text-anchor="middle">—</text></g>
+        </svg>
+        <div class="flowlegend"><span>The path <b>lights up</b> where the money actually flows ·
+          dim = untouched · <b style="color:var(--bad)">red</b> = refused</span></div>
+      </div>
 
       <div class="grid2">
         <div class="card pad">
@@ -402,8 +475,14 @@ function summarize(e){
   const p=e.payload||{};
   switch(e.event_type){
     case 'intent': return '“'+esc(p.text)+'”';
-    case 'envelope': return 'budget '+rs(p.max_total)+' · payee '+esc((p.allowed_payees||[]).join(', '));
-    case 'proposal': return 'agent proposes <b>'+esc(p.action)+'</b> <span class="amt">'+rs(p.amount)+'</span> → '+esc(p.payee)+(p.reason?' — '+esc(p.reason):'');
+    case 'envelope':
+      if(p.event==='envelope_widened')
+        return '<b>cap raised</b> '+rs(p.from.max_total)+' → <span class="amt">'+rs(p.to.max_total)+'</span> · human-signed'+(p.reason?' — '+esc(p.reason):'');
+      return 'budget '+rs(p.max_total)+' · payee '+esc((p.allowed_payees||[]).join(', '));
+    case 'proposal':
+      if(p.action==='raise_ceiling')
+        return 'agent asks to <b>raise the cap</b> '+rs(p.current_max_total)+' → <span class="amt">'+rs(p.requested_max_total)+'</span>'+(p.reason?' — '+esc(p.reason):'');
+      return 'agent proposes <b>'+esc(p.action)+'</b> <span class="amt">'+rs(p.amount)+'</span> → '+esc(p.payee)+(p.reason?' — '+esc(p.reason):'');
     case 'policy_decision': return 'allowed <b>'+esc(p.action)+'</b> <span class="amt">'+rs(p.proposed_amount)+'</span>';
     case 'refusal': return '<b>refused</b> — '+esc(p.reason||p.rule||'');
     case 'compensation': return '<b>compensation owed</b> — '+rs(p.refund_due||0)+' captured but not yet returned after '+esc(p.attempts)+' refund attempts';
@@ -414,6 +493,28 @@ function summarize(e){
     }
     default: return '';
   }
+}
+
+/* ---- live money-flow diagram: lights up the path the money actually takes ---- */
+function fset(id,cls){const e=document.getElementById(id);if(!e)return;e.classList.remove('on','bad');if(cls)e.classList.add(cls);}
+function ftxt(id,t){const e=document.getElementById(id);if(e)e.textContent=t;}
+function renderFlow(f){
+  ['n-human','n-agent','n-policy','n-refused','n-block','n-merchant','n-customer',
+   'a-ha','a-ap','a-pr','a-pb','a-bm','a-bc'].forEach(id=>fset(id,null));
+  ftxt('v-refused','—'); ftxt('v-block','—'); ftxt('v-merchant','—'); ftxt('v-customer','—');
+  const q=[];
+  q.push(()=>{fset('n-human','on');fset('a-ha','on');fset('n-agent','on');});
+  q.push(()=>{fset('a-ap','on');fset('n-policy','on');});
+  if(!f.reserveOk){
+    q.push(()=>{fset('a-pr','bad');fset('n-refused','bad');ftxt('v-refused',f.refuseReason||'refused');});
+  } else {
+    q.push(()=>{fset('a-pb','on');fset('n-block','on');ftxt('v-block',rs(f.blocked));});
+    if(f.debitOk) q.push(()=>{fset('a-bm','on');fset('n-merchant','on');ftxt('v-merchant','+ '+rs(f.debited));});
+    else          q.push(()=>{fset('a-bm','bad');fset('n-merchant','bad');ftxt('v-merchant','declined');});
+    // the block can also come back to the customer — independent of whether the merchant was paid
+    if(f.releaseOk) q.push(()=>{fset('a-bc','on');fset('n-customer','on');ftxt('v-customer','↩ '+rs(f.returned));});
+  }
+  q.forEach((fn,i)=>setTimeout(fn, 140 + i*300));
 }
 
 /* ---- render the whole result from a packet ---- */
@@ -463,6 +564,26 @@ async function renderResult(packet, reply){
     return `<div class="decision ${ok?'ok':'no'}"><span class="tag">${ok?'allow':'refuse'}</span>
       <span class="msg">${msg}${cite}</span></div>`;
   }).join('') : '<div class="empty">No decisions recorded.</div>';
+
+  // live money flow
+  const reserveOk = railBy('reserve').length>0 || railBy('block').length>0;
+  const firstRef = refusals[0];
+  let refuseReason = 'refused';
+  if(firstRef){ const t=(firstRef.payload.reason||firstRef.payload.rule||'').toString();
+    refuseReason = /payee/i.test(t)?'payee not allowed'
+      : /budget|cap|exceed/i.test(t)?'over the cap'
+      : /block/i.test(t)?'exceeds the block'
+      : (t.split(/[;(]/)[0]||'refused').trim().slice(0,32); }
+  renderFlow({blocked,debited,returned,reserveOk,debitOk:debited>0,releaseOk:returned>0,refuseReason});
+
+  // re-approval prompt: an over-cap block was refused → offer to raise the cap
+  const overCap = !reserveOk && refusals.some(r=>/budget|cap|exceed/i.test((r.payload.reason||'')));
+  const rb=el('reapproveBanner');
+  if(overCap){
+    rb.style.display='flex';
+    el('reapproveText').innerHTML = `The ceiling <b>${rs(paise('ceiling'))}</b> is above your cap — refused. `
+      + `The agent can't widen its own grant, but you can approve a higher cap; the raise is signed into the chain.`;
+  } else { rb.style.display='none'; }
 
   await setPacket(packet); renderEntries();
   await verifyAll();
@@ -531,6 +652,24 @@ async function runAgent(){
   finally { btn.disabled=false; btn.textContent='Run the live AI agent'; }
 }
 el('runAgent').onclick=runAgent;
+
+/* ---- re-approval: the agent asked, the human raises the cap and signs it ---- */
+async function reapprove(){
+  const body={envelope:{budget:paise('budget'),per_txn:paise('per_txn'),
+    payee:el('payee').value.trim(),hours:6},
+    ceiling:paise('ceiling'),actual:paise('actual'),payee:el('charge').value.trim()};
+  const btn=el('reapproveBtn'); const label=btn.textContent;
+  btn.disabled=true; btn.textContent='Human is approving & signing…';
+  el('realRailNote').style.display='none';
+  try{
+    const res=await fetch('/api/reapprove',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    if(!res.ok){ btn.textContent='Could not re-approve'; return; }
+    await renderResult((await res.json()).packet, null);
+    el('result').scrollIntoView({behavior:'smooth',block:'start'});
+  } catch(e){ btn.textContent='Network error — try again'; }
+  finally { btn.disabled=false; btn.textContent=label; }
+}
+el('reapproveBtn').onclick=reapprove;
 
 /* ---- the real-rail receipt: a frozen, signed record of a live Cashfree run ---- */
 async function showRealRail(){
