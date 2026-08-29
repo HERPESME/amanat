@@ -1054,18 +1054,96 @@ UPI_OTM = RailProfile(
 )
 
 
+# ---------------------------------------------------------------------------
+# Cashfree UPI pre-authorization. Enabled in sandbox via support ticket 8266875
+# on 28 Aug 2026, then MEASURED end to end on 29 Aug 2026 with the probe
+# `amanat.rails.probe_cashfree`. These are the first OBSERVED "yes" answers to
+# amount-contingent settlement on a live rail — every earlier real rail refused
+# it. The quotes below are the responses the sandbox actually returned.
+# ---------------------------------------------------------------------------
+CASHFREE_PREAUTH_URL = (
+    "https://www.cashfree.com/docs/api-reference/payments/latest/payments/authorize"
+)
+
 CASHFREE_PREAUTH = RailProfile(
     rail_id="cashfree_preauth",
-    display_name="Cashfree pre-authorization",
+    display_name="Cashfree UPI pre-authorization",
     capabilities=[
         Capability(
-            name="partial_debit", supported=True, source_tier=SourceTier.UNVERIFIED,
-            notes="Best-fit primitive found: UPI + partial capture + ~1-year window. Confirm in UAT.",
+            name="partial_debit", supported=True,
+            source_tier=SourceTier.OBSERVED,
+            citation=("measured 29 Aug 2026 — POST /orders/{id}/authorization "
+                      "action CAPTURE ₹470 of a ₹620 hold, HTTP 200"),
+            url=CASHFREE_PREAUTH_URL,
+            quote=('HTTP 200 · authorization {"action":"CAPTURE","status":"SUCCESS",'
+                   '"captured_amount":470.0} · payment_message '
+                   '"PRE_AUTH|Transaction Success"'),
+            notes=(
+                "THE first live-rail confirmation of the project's core mechanism, "
+                "and the exact shape Razorpay refuses. A pre-auth order "
+                "(order_note preauth_transaction) was driven to a ₹620 hold in the "
+                "sandbox — UPI collect on testsuccess@gocash, then POST /simulate to "
+                "SUCCESS, order_status PAID — and a CAPTURE of ₹470 against it "
+                "returned HTTP 200 with captured_amount 470.0. Reproduce with "
+                "`python -m amanat.rails.probe_cashfree`.\n"
+                "This is a PSP pre-auth primitive (authorize-then-partial-capture), "
+                "a different rail SHAPE from NPCI SBMD's pre-funded drawdown pool, "
+                "but it reaches the same amount-contingent outcome and does it on a "
+                "rail that answers, not a simulator. OBSERVED sits below PRIMARY on "
+                "purpose: a rail can change behaviour after a deploy, a circular "
+                "cannot — so SBMD's PRIMARY evidence and this OBSERVED evidence are "
+                "complementary, not redundant."
+            ),
+        ),
+        Capability(
+            name="remainder_auto_released", supported=True,
+            source_tier=SourceTier.OBSERVED,
+            citation=("measured 29 Aug 2026 — VOID after a partial CAPTURE, HTTP 400"),
+            url=CASHFREE_PREAUTH_URL,
+            quote=('HTTP 400 · "Capture request already exist for the void"'),
+            notes=(
+                "The third leg is FREE on this rail, which is the opposite of SBMD. "
+                "After capturing ₹470 of the ₹620 hold, an explicit VOID of the "
+                "remaining ₹150 is refused because there is nothing to void — the "
+                "uncaptured amount is released by the rail on its own (Cashfree also "
+                "auto-releases any uncaptured hold within 7 days). So block → debit "
+                "the actual → the difference returns, with no revoke, no teardown "
+                "and no stranded funds. Contrast `sbmd.remainder_auto_released`, "
+                "False on primary evidence: SBMD keeps the remainder blocked until "
+                "someone revokes. Same mechanism, cheaper leg-three, measured."
+            ),
+        ),
+        Capability(
+            name="funds_held_in_customer_account", supported=True,
+            source_tier=SourceTier.OBSERVED,
+            citation=("measured 29 Aug 2026 — order_status PAID, is_captured false "
+                      "before any capture"),
+            url=CASHFREE_PREAUTH_URL,
+            quote=('order_status "PAID" with payment is_captured false until an '
+                   'explicit CAPTURE'),
+            notes=(
+                "A genuine pre-auth HOLD, not Razorpay's 'authorized' trap where the "
+                "customer has already been debited. After POST /simulate the order "
+                "is PAID (authorised) but the payment carries is_captured=false: the "
+                "money is held pending capture, and only a CAPTURE moves it."
+            ),
         ),
         Capability(
             name="self_serve_enablement", supported=False,
-            source_tier=SourceTier.UNVERIFIED,
-            notes="Requires a support request. Fire it in hour 1; assume it does not land.",
+            source_tier=SourceTier.OBSERVED,
+            citation="Cashfree support ticket 8266875, resolved 28 Aug 2026",
+            url=CASHFREE_PREAUTH_URL,
+            quote=("successfully enabled in the Sandbox/Test environment ... "
+                   "block creation, partial debit against the standing block, and "
+                   "the applicable operation for processing the unused balance/"
+                   "remainder"),
+            notes=(
+                "Not self-serve: UPI pre-authorization had to be requested from "
+                "Cashfree support and was enabled per-account. Recorded as a real "
+                "constraint on reproducibility — a fresh sandbox signup does NOT "
+                "have this until the ticket lands. Production access was explicitly "
+                "not granted ('No Production access has been enabled')."
+            ),
         ),
     ],
 )
