@@ -95,7 +95,8 @@ CONCEPTS = {
     "void_whole_hold":
         "A whole hold may be released before anything is captured.",
     "void_after_partial_capture":
-        "The uncaptured remainder may be released by a void once a partial capture has been made.",
+        "The uncaptured remainder may be released by an explicit action (a void, or its equivalent on the rail) "
+        "once a partial capture has been made.",
     "capture_after_void":
         "A hold that has been voided may still be captured.",
     "remainder_auto_released":

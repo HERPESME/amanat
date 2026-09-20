@@ -405,3 +405,17 @@ class TestTheComparisonSaysWhoAndWhenNotOnlyWhether:
                 assert f"**No row for this question** ({len(without)})" in section, name
             else:
                 assert "No row for this question" not in section, name
+
+
+class TestTheQuestionThatSeparatesCashfreeFromX402IsInTheReport:
+    def test_void_after_partial_capture_is_a_headline_question(self):
+        assert "void_after_partial_capture" in report.HEADLINE
+        assert "### `void_after_partial_capture`" in MD
+
+    def test_the_lists_say_who_can_and_who_cannot(self):
+        section = MD[MD.index("### `void_after_partial_capture`"):MD.index("### `void_whole_hold`")]
+        assert "**Supported** (3): Visa (secondary); Stripe (secondary); x402 auth-capture (primary)" in section
+        assert "**Not supported** (1): Cashfree pre-auth (observed, sandbox)" in section
+
+    def test_it_sits_beside_partial_void_so_the_two_are_read_together(self):
+        assert MD.index("### `partial_void`") < MD.index("### `void_after_partial_capture`") < MD.index("### `void_whole_hold`")

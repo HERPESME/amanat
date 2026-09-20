@@ -153,6 +153,25 @@ VISA_CARD_AUTH = RailProfile(
             ),
         ),
         Capability(
+            name='void_after_partial_capture', supported=True,
+            source_tier=SourceTier.SECONDARY, obtained_on="2026-09-21",
+            citation=(
+                'Visa, Authorization and Reversal Processing Requirements for Merchants, p.3 (reversal '
+                'requirements)'
+            ), url=_VISA_AUTHORIZATION_AND_REVERSAL_PROCESSING_BEST_PRACTICES_FOR_MERCHANTS,
+            quote=(
+                'the difference between the authorized amount (or amounts) and the transaction amount must be '
+                'reversed within 24 hours of when the transaction is completed.'
+            ),
+            notes=(
+                'After a completion for less than the authorized sum the merchant releases the rest by a '
+                'reversal, and the guide makes it mandatory within 24 hours: the card rail\'s form of releasing '
+                'the remainder after a partial capture. It is a reversal the merchant sends, not something the '
+                "network does on its own (see `remainder_auto_released`). Visa's own merchant guide, which states "
+                'that the Visa Rules govern in any conflict: SECONDARY until the Rules are read.'
+            ),
+        ),
+        Capability(
             name='void_whole_hold', supported=True,
             source_tier=SourceTier.SECONDARY, obtained_on="2026-09-20",
             citation=(
@@ -536,6 +555,23 @@ STRIPE_CARD_MANUAL_CAPTURE = RailProfile(
                 'so partial_void stays unverified for Stripe. The closest sentence read: “If you '
                 'performed at least one capture and want to release the remaining uncaptured funds, set '
                 'the amount to”'
+            ),
+        ),
+        Capability(
+            name='void_after_partial_capture', supported=True,
+            source_tier=SourceTier.SECONDARY, obtained_on="2026-09-21",
+            citation='Stripe Docs: Capture a payment multiple times, Capture the PaymentIntent',
+            url=_STRIPE_MULTICAPTURE_VARIANT,
+            quote=(
+                'If you performed at least one capture and want to release the remaining uncaptured funds, '
+                'set the amount to 0 and set final_capture to true.'
+            ),
+            notes=(
+                'Not a void: Stripe releases the rest by a capture of zero marked final, after at least one '
+                'capture, and only where multicapture is available (an opt-in for IC+ pricing). On the default '
+                'single partial capture the remainder is released by the capture itself '
+                '(`remainder_auto_released`), so nothing more is needed. `partial_void`, releasing only part of '
+                'an uncaptured hold, stays unverified.'
             ),
         ),
     ],
@@ -1136,6 +1172,25 @@ X402_AUTH_CAPTURE = RailProfile(
                 "The escrow's void takes no amount, so it releases the whole remaining hold; a hold "
                 'shrinks only by capturing part of it. Voiding the remainder after a partial capture is '
                 'supported.'
+            ),
+        ),
+        Capability(
+            name='void_after_partial_capture', supported=True,
+            source_tier=SourceTier.PRIMARY, obtained_on="2026-09-21",
+            citation=(
+                'x402-foundation/x402 @c9160a6 (main), '
+                'specs/schemes/auth-capture/scheme_auth_capture_evm.md, Lifecycle payloads, capture'
+            ), url=_X402_SCHEME_AUTH_CAPTURE_EVM,
+            quote=(
+                '`voidAuthorizerSignature` is OPTIONAL and present only for a sync partial close-out: '
+                'when set, this single `/settle` performs `capture` and then `void` on the remaining '
+                'hold.'
+            ),
+            notes=(
+                'A partial capture followed by a void of the remaining hold is the spec\'s "sync partial '
+                'close-out". The escrow\'s void takes no amount, so it releases everything left. Without the '
+                'optional signature the hold stays until a separate void, or until the payer reclaims after the '
+                'capture deadline (`remainder_auto_released`).'
             ),
         ),
         Capability(

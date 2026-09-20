@@ -8,9 +8,9 @@ snapshot: pages change and sandboxes change, and the point of the registry is th
 
 ## What is in the registry
 
-14 rails, 100 capabilities, 18 numeric limits. 8 rows rest on recorded probe runs against a vendor's sandbox, each with its stored exchange;
+14 rails, 103 capabilities, 18 numeric limits. 8 rows rest on recorded probe runs against a vendor's sandbox, each with its stored exchange;
 3 more rest on one-off observations made by hand (Razorpay capture's partial debit, 2026-08-22, sandbox; Setu UMAP's credentials self serve, 2026-08-21, live; Setu UMAP's api publicly reachable, 2026-08-21, live), whose exchanges are not in the evidence store.
-83 quotes were **re-read** from the source they cite on the date above (31 of them cite a source pinned to a revision, where re-reading shows that the quote was transcribed correctly and can never show that anything changed; the other 52 cite pages that can change, and those are the ones the watcher guards); 17 sources could not be read
+86 quotes were **re-read** from the source they cite on the date above (32 of them cite a source pinned to a revision, where re-reading shows that the quote was transcribed correctly and can never show that anything changed; the other 54 cite pages that can change, and those are the ones the watcher guards); 17 sources could not be read
 (below); 6 capabilities are **unverified** and therefore refused by the policy engine rather than assumed.
 
 How a row is admitted: it carries a verbatim quote and the page it came from, and `python -m amanat.registry.watch` fetches that page and
@@ -100,6 +100,17 @@ Part of a hold may be released without capturing it, by a partial reversal or a 
 
 5 of 6 rails with a row for this question have an answer that rests on evidence usable as fact.
 
+### `void_after_partial_capture`
+
+The uncaptured remainder may be released by an explicit action (a void, or its equivalent on the rail) once a partial capture has been made.
+
+- **Supported** (3): Visa (secondary); Stripe (secondary); x402 auth-capture (primary)
+- **Not supported** (1): Cashfree pre-auth (observed, sandbox)
+- **Unverified — refused, not assumed** (0): none
+- **No row for this question** (10): UPI Reserve Pay; Razorpay capture; UPI one-time mandate; Setu UMAP; Adyen; x402 (extensions); x402 exact; x402 upto · EVM; x402 upto · Solana; x402 batch
+
+4 of 4 rails with a row for this question have an answer that rests on evidence usable as fact.
+
 ### `void_whole_hold`
 
 A whole hold may be released before anything is captured.
@@ -182,7 +193,7 @@ Checkpoints of the evidence behind this report. A later export whose streams do 
 | Stream | Lines | Head (SHA-256) |
 |---|---|---|
 | `probes.cashfree_preauth` | 8 | `d0442a0012814763b3acbcaf16188af2e874f5a90fea9d9045aa2acfb118df18` |
-| `watch` | 8 | `f7a8aa0c1f22a242282cb5956472ac57628cd0568ab5cd01eb6ba7a3141d135b` |
+| `watch` | 11 | `f4ffb5ca04288fef45b61dd0455b6be34c0144861e041843695b81bd98375f29` |
 
 Source documents committed to the repository:
 

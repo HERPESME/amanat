@@ -525,6 +525,7 @@ The two hosts the UMAP docs name for sandbox and production do not exist in publ
 | `funds_held_in_customer_account` | yes | `SECONDARY` | 2026-09-20 | Visa, Estimated and Incremental Authorization and Reversal Processing Requirements for Visa Merchants (PDF, ©2024 Visa), p. 1, Efficiently managing authorizations |
 | `partial_debit` | yes | `SECONDARY` | 2026-09-20 | Visa, Estimated and Incremental Authorization and Reversal Processing Requirements for Visa Merchants (PDF, ©2024 Visa), p. 3, Authorization reversals |
 | `partial_void` | yes | `SECONDARY` | 2026-09-20 | Visa, Estimated and Incremental Authorization and Reversal Processing Requirements for Visa Merchants (PDF, ©2024 Visa), p. 2, Estimated authorization request |
+| `void_after_partial_capture` | yes | `SECONDARY` | 2026-09-21 | Visa, Authorization and Reversal Processing Requirements for Merchants, p.3 (reversal requirements) |
 | `void_whole_hold` | yes | `SECONDARY` | 2026-09-20 | Visa, Estimated and Incremental Authorization and Reversal Processing Requirements for Visa Merchants (PDF, ©2024 Visa), p. 4, Processing integrity fees, Misuse of authorization system fee |
 | `incremental_authorization` | yes | `SECONDARY` | 2026-09-20 | Visa, Estimated and Incremental Authorization and Reversal Processing Requirements for Visa Merchants (PDF, ©2024 Visa), p. 3, Incremental authorization request |
 | `buffered_authorisation` | **no** | `SECONDARY` | 2026-09-20 | Visa, Estimated and Incremental Authorization and Reversal Processing Requirements for Visa Merchants (PDF, ©2024 Visa), p. 2, Estimated authorization request |
@@ -578,6 +579,14 @@ By necessary implication a completed transaction may be for less than the author
 — Visa, Estimated and Incremental Authorization and Reversal Processing Requirements for Visa Merchants (PDF, ©2024 Visa), p. 2, Estimated authorization request, https://usa.visa.com/content/dam/VCOM/regional/na/us/support-legal/documents/authorization-and-reversal-processing-best-practices-for-merchants.pdf
 
 A partial authorization reversal releases part of a hold, and the guide makes it mandatory when the estimate exceeds the final amount. Reversals notify the issuer that the hold should be removed or adjusted (p.3). Visa's own merchant guide, which states that the Visa Rules govern in any conflict: SECONDARY until the Rules are read.
+
+**`void_after_partial_capture`**
+
+> the difference between the authorized amount (or amounts) and the transaction amount must be reversed within 24 hours of when the transaction is completed.
+
+— Visa, Authorization and Reversal Processing Requirements for Merchants, p.3 (reversal requirements), https://usa.visa.com/content/dam/VCOM/regional/na/us/support-legal/documents/authorization-and-reversal-processing-best-practices-for-merchants.pdf
+
+After a completion for less than the authorized sum the merchant releases the rest by a reversal, and the guide makes it mandatory within 24 hours: the card rail's form of releasing the remainder after a partial capture. It is a reversal the merchant sends, not something the network does on its own (see `remainder_auto_released`). Visa's own merchant guide, which states that the Visa Rules govern in any conflict: SECONDARY until the Rules are read.
 
 **`void_whole_hold`**
 
@@ -637,6 +646,7 @@ Not established. The guide's only stated route to a higher final amount is an in
 | `incremental_authorization` | yes | `SECONDARY` | 2026-09-20 | Stripe Docs: Increment an authorisation, introduction |
 | `idempotent_replay` | yes | `SECONDARY` | 2026-09-20 | Stripe API Reference: Idempotent requests, introduction |
 | `partial_void` | ? | `UNVERIFIED` | 2026-09-20 | not established |
+| `void_after_partial_capture` | yes | `SECONDARY` | 2026-09-21 | Stripe Docs: Capture a payment multiple times, Capture the PaymentIntent |
 
 **Numeric limits** — enforced, not decorative. Unlike capabilities, an unverified limit is still applied: thin evidence means refuse more, never less.
 
@@ -721,6 +731,14 @@ POST requests accept an Idempotency-Key of up to 255 characters, and a replay re
 
 **`partial_void`**
 Not established. Closest analogue only: the sentence continues 'to 0 and set final_capture to true', which releases the whole remainder back to the cardholder after at least one capture and moves the PaymentIntent to succeeded. None of the Stripe pages read describes reducing an uncaptured authorisation by a partial amount, so partial_void stays unverified for Stripe. The closest sentence read: “If you performed at least one capture and want to release the remaining uncaptured funds, set the amount to”
+
+**`void_after_partial_capture`**
+
+> If you performed at least one capture and want to release the remaining uncaptured funds, set the amount to 0 and set final_capture to true.
+
+— Stripe Docs: Capture a payment multiple times, Capture the PaymentIntent, https://docs.stripe.com/payments/multicapture.md?platform=web&ui=stripe-hosted
+
+Not a void: Stripe releases the rest by a capture of zero marked final, after at least one capture, and only where multicapture is available (an opt-in for IC+ pricing). On the default single partial capture the remainder is released by the capture itself (`remainder_auto_released`), so nothing more is needed. `partial_void`, releasing only part of an uncaptured hold, stays unverified.
 
 
 ## `adyen_card_auth` — Adyen cards, pre-authorization and capture
@@ -999,6 +1017,7 @@ New capability name settled_amount_verifiable_against_usage: can the payer verif
 | `multiple_captures` | yes | `PRIMARY` | 2026-09-20 | x402-foundation/x402 @c9160a6 (main), specs/schemes/auth-capture/scheme_auth_capture_evm.md, Single-use enforcement |
 | `void_whole_hold` | yes | `PRIMARY` | 2026-09-20 | x402-foundation/x402 @c9160a6 (main), specs/schemes/auth-capture/scheme_auth_capture.md, Lifecycle operations table, void |
 | `partial_void` | **no** | `PRIMARY` | 2026-09-20 | x402-foundation/x402 @c9160a6 (main), specs/schemes/auth-capture/scheme_auth_capture_evm.md, Operator types, escrow ABI table |
+| `void_after_partial_capture` | yes | `PRIMARY` | 2026-09-21 | x402-foundation/x402 @c9160a6 (main), specs/schemes/auth-capture/scheme_auth_capture_evm.md, Lifecycle payloads, capture |
 | `remainder_auto_released` | **no** | `PRIMARY` | 2026-09-20 | x402-foundation/x402 @c9160a6 (main), specs/schemes/auth-capture/scheme_auth_capture_evm.md, Lifecycle payloads, capture |
 | `incremental_authorization` | **no** | `PRIMARY` | 2026-09-20 | x402-foundation/x402 @c9160a6 (main), specs/schemes/auth-capture/scheme_auth_capture.md, Lifecycle operations table, authorize |
 
@@ -1049,6 +1068,14 @@ void releases whatever hold remains and is refused once nothing remains (EVM pre
 — x402-foundation/x402 @c9160a6 (main), specs/schemes/auth-capture/scheme_auth_capture_evm.md, Operator types, escrow ABI table, https://raw.githubusercontent.com/x402-foundation/x402/c9160a6cbf0fc831ac7036d400ef2d671493e392/specs/schemes/auth-capture/scheme_auth_capture_evm.md
 
 The escrow's void takes no amount, so it releases the whole remaining hold; a hold shrinks only by capturing part of it. Voiding the remainder after a partial capture is supported.
+
+**`void_after_partial_capture`**
+
+> `voidAuthorizerSignature` is OPTIONAL and present only for a sync partial close-out: when set, this single `/settle` performs `capture` and then `void` on the remaining hold.
+
+— x402-foundation/x402 @c9160a6 (main), specs/schemes/auth-capture/scheme_auth_capture_evm.md, Lifecycle payloads, capture, https://raw.githubusercontent.com/x402-foundation/x402/c9160a6cbf0fc831ac7036d400ef2d671493e392/specs/schemes/auth-capture/scheme_auth_capture_evm.md
+
+A partial capture followed by a void of the remaining hold is the spec's "sync partial close-out". The escrow's void takes no amount, so it releases everything left. Without the optional signature the hold stays until a separate void, or until the payer reclaims after the capture deadline (`remainder_auto_released`).
 
 **`remainder_auto_released`**
 

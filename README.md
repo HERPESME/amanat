@@ -8,7 +8,7 @@
 
 *Block a ceiling. Debit the actual. Prove what the money did.*
 
-[![tests](https://img.shields.io/badge/tests-1365-2ea44f?style=flat-square)](#testing)
+[![tests](https://img.shields.io/badge/tests-1385-2ea44f?style=flat-square)](#testing)
 [![python](https://img.shields.io/badge/python-3.11%2B-3776ab?style=flat-square)](#quick-start)
 [![live rail](https://img.shields.io/badge/live%20rail-%E2%82%B9470%20of%20%E2%82%B9620%20%C2%B7%20HTTP%20200-2ea44f?style=flat-square)](#what-it-does)
 [![rails](https://img.shields.io/badge/rails-UPI%20SBMD%20%C2%B7%20Cashfree%20%C2%B7%20Razorpay%20%C2%B7%20Setu-6c5ce7?style=flat-square)](#the-evidence-table)
@@ -132,7 +132,7 @@ git clone https://github.com/HERPESME/amanat && cd amanat
 # The eight-act walkthrough — the whole argument in one command
 uv run --with cryptography python -m amanat.demo
 
-# 1365 tests. No API key, no network (Node.js runs the browser-verifier tests).
+# 1385 tests. No API key, no network (Node.js runs the browser-verifier tests).
 uv run --with pytest --with cryptography --with httpx --with fastapi --with pydantic \
        --with numpy --with scikit-learn --with pandas --with pyarrow --with hypothesis pytest tests/ -q
 ```
@@ -426,7 +426,7 @@ Reproduce: <code>python -m amanat.rails.probe_cashfree</code>.</td>
 
 ## The evidence table
 
-100 capabilities across 14 rails. What each claim rests on:
+103 capabilities across 14 rails. What each claim rests on:
 
 | Rail | Capabilities | Evidence |
 |---|---|---|
@@ -435,14 +435,14 @@ Reproduce: <code>python -m amanat.rails.probe_cashfree</code>.</td>
 | **Razorpay** manual capture | 6 | 1 `OBSERVED` · 5 `SECONDARY` |
 | **Setu UMAP** | 3 | 2 `OBSERVED` · 1 `SECONDARY` |
 | **UPI OTM** | 2 | 1 `SECONDARY` · 1 `UNVERIFIED` |
-| *Reference:* **Visa** card authorization | 9 | 8 `SECONDARY` · 1 `UNVERIFIED` |
-| *Reference:* **Stripe** cards, manual capture | 10 | 8 `SECONDARY` · 2 `UNVERIFIED` |
+| *Reference:* **Visa** card authorization | 10 | 9 `SECONDARY` · 1 `UNVERIFIED` |
+| *Reference:* **Stripe** cards, manual capture | 11 | 9 `SECONDARY` · 2 `UNVERIFIED` |
 | *Reference:* **Adyen** cards | 9 | 9 `SECONDARY` |
 | *Reference:* **x402** protocol extensions | 1 | 1 `PRIMARY` |
 | *Reference:* **x402** `exact` | 3 | 3 `PRIMARY` |
 | *Reference:* **x402** `upto`, EVM | 5 | 5 `PRIMARY` |
 | *Reference:* **x402** `upto`, Solana | 7 | 7 `PRIMARY` |
-| *Reference:* **x402** `auth-capture` | 8 | 8 `PRIMARY` |
+| *Reference:* **x402** `auth-capture` | 9 | 9 `PRIMARY` |
 | *Reference:* **x402** `batch-settlement` | 6 | 6 `PRIMARY` |
 
 The first five rails are the ones this repository has adapters or engine rules for. The nine *reference*
@@ -639,7 +639,7 @@ uv run --with pytest --with cryptography --with httpx --with fastapi --with pyda
        --with numpy --with scikit-learn --with pandas --with pyarrow --with hypothesis pytest tests/ -q
 ```
 
-**1365 tests, no credential and no network.** If proving the agent is bounded ever
+**1385 tests, no credential and no network.** If proving the agent is bounded ever
 required a live model, the agent would not be bounded.
 
 | Suite | What it pins |
@@ -676,7 +676,7 @@ so neither the prose nor the export can claim more than the runtime honours.
 - the governed core: a policy engine with no model call in it, a signed evidence chain whose verification
   can be pinned to a key and a checkpoint, write-ahead intent with recovery from a lost response, signed
   human consent, and obligation clocks for holds that outlive their purpose;
-- the registry: 100 capabilities on 14 rails, each with a quote, its source and a date; a watcher that
+- the registry: 103 capabilities on 14 rails, each with a quote, its source and a date; a watcher that
   re-reads every quote; eight sandbox probes with a test that fails if a rail's answer changes; a schema,
   a comparison page and a generated report.
 

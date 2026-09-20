@@ -127,9 +127,12 @@
     },
     {
       "name": "void_after_partial_capture",
-      "definition": "The uncaptured remainder may be released by a void once a partial capture has been made.",
+      "definition": "The uncaptured remainder may be released by an explicit action (a void, or its equivalent on the rail) once a partial capture has been made.",
       "rails": [
-        "cashfree_preauth"
+        "cashfree_preauth",
+        "visa_card_auth",
+        "stripe_card_manual_capture",
+        "x402_auth_capture"
       ]
     },
     {
@@ -272,8 +275,8 @@
     },
     {
       "stream": "watch",
-      "length": 8,
-      "head": "f7a8aa0c1f22a242282cb5956472ac57628cd0568ab5cd01eb6ba7a3141d135b"
+      "length": 11,
+      "head": "f4ffb5ca04288fef45b61dd0455b6be34c0144861e041843695b81bd98375f29"
     }
   ],
   "rails": [
@@ -1480,8 +1483,8 @@
             "detail": "the quote is present verbatim",
             "checked_on": "2026-09-20",
             "quote_current": true,
-            "evidence_hash": "e866a772d6ff6cb22aaffd15c5248ec1d906811c78514c6a1757690e05b22cd5",
-            "checks": 3,
+            "evidence_hash": "da642ccfe8cfa0ea122c774600750137a27b112680ede35dcab7b8fc0dac23bc",
+            "checks": 4,
             "changes": []
           },
           "observation": null
@@ -1504,8 +1507,8 @@
             "detail": "the quote is present verbatim",
             "checked_on": "2026-09-20",
             "quote_current": true,
-            "evidence_hash": "e866a772d6ff6cb22aaffd15c5248ec1d906811c78514c6a1757690e05b22cd5",
-            "checks": 3,
+            "evidence_hash": "da642ccfe8cfa0ea122c774600750137a27b112680ede35dcab7b8fc0dac23bc",
+            "checks": 4,
             "changes": []
           },
           "observation": null
@@ -1528,8 +1531,32 @@
             "detail": "the quote is present verbatim",
             "checked_on": "2026-09-20",
             "quote_current": true,
-            "evidence_hash": "e866a772d6ff6cb22aaffd15c5248ec1d906811c78514c6a1757690e05b22cd5",
-            "checks": 3,
+            "evidence_hash": "da642ccfe8cfa0ea122c774600750137a27b112680ede35dcab7b8fc0dac23bc",
+            "checks": 4,
+            "changes": []
+          },
+          "observation": null
+        },
+        {
+          "name": "void_after_partial_capture",
+          "supported": true,
+          "permitted": true,
+          "tier": "secondary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-21",
+          "probe_id": null,
+          "citation": "Visa, Authorization and Reversal Processing Requirements for Merchants, p.3 (reversal requirements)",
+          "url": "https://usa.visa.com/content/dam/VCOM/regional/na/us/support-legal/documents/authorization-and-reversal-processing-best-practices-for-merchants.pdf",
+          "quote": "the difference between the authorized amount (or amounts) and the transaction amount must be reversed within 24 hours of when the transaction is completed.",
+          "notes": "After a completion for less than the authorized sum the merchant releases the rest by a reversal, and the guide makes it mandatory within 24 hours: the card rail's form of releasing the remainder after a partial capture. It is a reversal the merchant sends, not something the network does on its own (see `remainder_auto_released`). Visa's own merchant guide, which states that the Visa Rules govern in any conflict: SECONDARY until the Rules are read.",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "da642ccfe8cfa0ea122c774600750137a27b112680ede35dcab7b8fc0dac23bc",
+            "checks": 1,
             "changes": []
           },
           "observation": null
@@ -1552,8 +1579,8 @@
             "detail": "the quote is present verbatim",
             "checked_on": "2026-09-20",
             "quote_current": true,
-            "evidence_hash": "e866a772d6ff6cb22aaffd15c5248ec1d906811c78514c6a1757690e05b22cd5",
-            "checks": 3,
+            "evidence_hash": "da642ccfe8cfa0ea122c774600750137a27b112680ede35dcab7b8fc0dac23bc",
+            "checks": 4,
             "changes": []
           },
           "observation": null
@@ -1576,8 +1603,8 @@
             "detail": "the quote is present verbatim",
             "checked_on": "2026-09-20",
             "quote_current": true,
-            "evidence_hash": "e866a772d6ff6cb22aaffd15c5248ec1d906811c78514c6a1757690e05b22cd5",
-            "checks": 3,
+            "evidence_hash": "da642ccfe8cfa0ea122c774600750137a27b112680ede35dcab7b8fc0dac23bc",
+            "checks": 4,
             "changes": []
           },
           "observation": null
@@ -1600,8 +1627,8 @@
             "detail": "every fragment is present, in order",
             "checked_on": "2026-09-20",
             "quote_current": true,
-            "evidence_hash": "e866a772d6ff6cb22aaffd15c5248ec1d906811c78514c6a1757690e05b22cd5",
-            "checks": 3,
+            "evidence_hash": "da642ccfe8cfa0ea122c774600750137a27b112680ede35dcab7b8fc0dac23bc",
+            "checks": 4,
             "changes": []
           },
           "observation": null
@@ -1624,8 +1651,8 @@
             "detail": "the quote is present verbatim",
             "checked_on": "2026-09-20",
             "quote_current": true,
-            "evidence_hash": "e866a772d6ff6cb22aaffd15c5248ec1d906811c78514c6a1757690e05b22cd5",
-            "checks": 3,
+            "evidence_hash": "da642ccfe8cfa0ea122c774600750137a27b112680ede35dcab7b8fc0dac23bc",
+            "checks": 4,
             "changes": []
           },
           "observation": null
@@ -1648,8 +1675,8 @@
             "detail": "every fragment is present, in order",
             "checked_on": "2026-09-20",
             "quote_current": true,
-            "evidence_hash": "e866a772d6ff6cb22aaffd15c5248ec1d906811c78514c6a1757690e05b22cd5",
-            "checks": 1,
+            "evidence_hash": "da642ccfe8cfa0ea122c774600750137a27b112680ede35dcab7b8fc0dac23bc",
+            "checks": 2,
             "changes": []
           },
           "observation": null
@@ -1690,8 +1717,8 @@
             "detail": "the quote is present verbatim",
             "checked_on": "2026-09-20",
             "quote_current": true,
-            "evidence_hash": "e866a772d6ff6cb22aaffd15c5248ec1d906811c78514c6a1757690e05b22cd5",
-            "checks": 3,
+            "evidence_hash": "da642ccfe8cfa0ea122c774600750137a27b112680ede35dcab7b8fc0dac23bc",
+            "checks": 4,
             "changes": []
           },
           "observation": null
@@ -1714,8 +1741,8 @@
             "detail": "the quote is present verbatim",
             "checked_on": "2026-09-20",
             "quote_current": true,
-            "evidence_hash": "e866a772d6ff6cb22aaffd15c5248ec1d906811c78514c6a1757690e05b22cd5",
-            "checks": 3,
+            "evidence_hash": "da642ccfe8cfa0ea122c774600750137a27b112680ede35dcab7b8fc0dac23bc",
+            "checks": 4,
             "changes": []
           },
           "observation": null
@@ -1738,8 +1765,8 @@
             "detail": "the quote is present verbatim",
             "checked_on": "2026-09-20",
             "quote_current": true,
-            "evidence_hash": "e866a772d6ff6cb22aaffd15c5248ec1d906811c78514c6a1757690e05b22cd5",
-            "checks": 3,
+            "evidence_hash": "da642ccfe8cfa0ea122c774600750137a27b112680ede35dcab7b8fc0dac23bc",
+            "checks": 4,
             "changes": []
           },
           "observation": null
@@ -1762,8 +1789,8 @@
             "detail": "the quote is present verbatim",
             "checked_on": "2026-09-20",
             "quote_current": true,
-            "evidence_hash": "e866a772d6ff6cb22aaffd15c5248ec1d906811c78514c6a1757690e05b22cd5",
-            "checks": 3,
+            "evidence_hash": "da642ccfe8cfa0ea122c774600750137a27b112680ede35dcab7b8fc0dac23bc",
+            "checks": 4,
             "changes": []
           },
           "observation": null
@@ -1786,8 +1813,8 @@
             "detail": "the quote is present verbatim",
             "checked_on": "2026-09-20",
             "quote_current": true,
-            "evidence_hash": "e866a772d6ff6cb22aaffd15c5248ec1d906811c78514c6a1757690e05b22cd5",
-            "checks": 3,
+            "evidence_hash": "da642ccfe8cfa0ea122c774600750137a27b112680ede35dcab7b8fc0dac23bc",
+            "checks": 4,
             "changes": []
           },
           "observation": null
@@ -1810,8 +1837,8 @@
             "detail": "the quote is present verbatim",
             "checked_on": "2026-09-20",
             "quote_current": true,
-            "evidence_hash": "e866a772d6ff6cb22aaffd15c5248ec1d906811c78514c6a1757690e05b22cd5",
-            "checks": 3,
+            "evidence_hash": "da642ccfe8cfa0ea122c774600750137a27b112680ede35dcab7b8fc0dac23bc",
+            "checks": 4,
             "changes": []
           },
           "observation": null
@@ -1841,8 +1868,8 @@
             "detail": "the quote is present verbatim",
             "checked_on": "2026-09-20",
             "quote_current": true,
-            "evidence_hash": "2ae66df9d75eeef61e0418d457c9e85e17b9c2127fb5dbb5f4a675ede6de7c39",
-            "checks": 2,
+            "evidence_hash": "91a79d0fe7eab7780f8267cd0cf849679c643087660fc85bded22d5166e94e01",
+            "checks": 3,
             "changes": []
           },
           "observation": null
@@ -1881,8 +1908,8 @@
             "detail": "the quote is present verbatim",
             "checked_on": "2026-09-20",
             "quote_current": true,
-            "evidence_hash": "2ae66df9d75eeef61e0418d457c9e85e17b9c2127fb5dbb5f4a675ede6de7c39",
-            "checks": 2,
+            "evidence_hash": "91a79d0fe7eab7780f8267cd0cf849679c643087660fc85bded22d5166e94e01",
+            "checks": 3,
             "changes": []
           },
           "observation": null
@@ -1905,8 +1932,8 @@
             "detail": "the quote is present verbatim",
             "checked_on": "2026-09-20",
             "quote_current": true,
-            "evidence_hash": "2ae66df9d75eeef61e0418d457c9e85e17b9c2127fb5dbb5f4a675ede6de7c39",
-            "checks": 2,
+            "evidence_hash": "91a79d0fe7eab7780f8267cd0cf849679c643087660fc85bded22d5166e94e01",
+            "checks": 3,
             "changes": []
           },
           "observation": null
@@ -1929,8 +1956,8 @@
             "detail": "the quote is present verbatim",
             "checked_on": "2026-09-20",
             "quote_current": true,
-            "evidence_hash": "2ae66df9d75eeef61e0418d457c9e85e17b9c2127fb5dbb5f4a675ede6de7c39",
-            "checks": 2,
+            "evidence_hash": "91a79d0fe7eab7780f8267cd0cf849679c643087660fc85bded22d5166e94e01",
+            "checks": 3,
             "changes": []
           },
           "observation": null
@@ -1953,8 +1980,8 @@
             "detail": "the quote is present verbatim",
             "checked_on": "2026-09-20",
             "quote_current": true,
-            "evidence_hash": "2ae66df9d75eeef61e0418d457c9e85e17b9c2127fb5dbb5f4a675ede6de7c39",
-            "checks": 2,
+            "evidence_hash": "91a79d0fe7eab7780f8267cd0cf849679c643087660fc85bded22d5166e94e01",
+            "checks": 3,
             "changes": []
           },
           "observation": null
@@ -1977,8 +2004,8 @@
             "detail": "the quote is present verbatim",
             "checked_on": "2026-09-20",
             "quote_current": true,
-            "evidence_hash": "2ae66df9d75eeef61e0418d457c9e85e17b9c2127fb5dbb5f4a675ede6de7c39",
-            "checks": 2,
+            "evidence_hash": "91a79d0fe7eab7780f8267cd0cf849679c643087660fc85bded22d5166e94e01",
+            "checks": 3,
             "changes": []
           },
           "observation": null
@@ -2001,8 +2028,8 @@
             "detail": "the quote is present verbatim",
             "checked_on": "2026-09-20",
             "quote_current": true,
-            "evidence_hash": "2ae66df9d75eeef61e0418d457c9e85e17b9c2127fb5dbb5f4a675ede6de7c39",
-            "checks": 2,
+            "evidence_hash": "91a79d0fe7eab7780f8267cd0cf849679c643087660fc85bded22d5166e94e01",
+            "checks": 3,
             "changes": []
           },
           "observation": null
@@ -2025,8 +2052,8 @@
             "detail": "the quote is present verbatim",
             "checked_on": "2026-09-20",
             "quote_current": true,
-            "evidence_hash": "2ae66df9d75eeef61e0418d457c9e85e17b9c2127fb5dbb5f4a675ede6de7c39",
-            "checks": 2,
+            "evidence_hash": "91a79d0fe7eab7780f8267cd0cf849679c643087660fc85bded22d5166e94e01",
+            "checks": 3,
             "changes": []
           },
           "observation": null
@@ -2045,6 +2072,30 @@
           "quote": "",
           "notes": "Not established. Closest analogue only: the sentence continues 'to 0 and set final_capture to true', which releases the whole remainder back to the cardholder after at least one capture and moves the PaymentIntent to succeeded. None of the Stripe pages read describes reducing an uncaptured authorisation by a partial amount, so partial_void stays unverified for Stripe. The closest sentence read: “If you performed at least one capture and want to release the remaining uncaptured funds, set the amount to”",
           "verification": null,
+          "observation": null
+        },
+        {
+          "name": "void_after_partial_capture",
+          "supported": true,
+          "permitted": true,
+          "tier": "secondary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-21",
+          "probe_id": null,
+          "citation": "Stripe Docs: Capture a payment multiple times, Capture the PaymentIntent",
+          "url": "https://docs.stripe.com/payments/multicapture.md?platform=web&ui=stripe-hosted",
+          "quote": "If you performed at least one capture and want to release the remaining uncaptured funds, set the amount to 0 and set final_capture to true.",
+          "notes": "Not a void: Stripe releases the rest by a capture of zero marked final, after at least one capture, and only where multicapture is available (an opt-in for IC+ pricing). On the default single partial capture the remainder is released by the capture itself (`remainder_auto_released`), so nothing more is needed. `partial_void`, releasing only part of an uncaptured hold, stays unverified.",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "91a79d0fe7eab7780f8267cd0cf849679c643087660fc85bded22d5166e94e01",
+            "checks": 1,
+            "changes": []
+          },
           "observation": null
         }
       ],
@@ -2067,8 +2118,8 @@
             "detail": "the quote is present verbatim",
             "checked_on": "2026-09-20",
             "quote_current": true,
-            "evidence_hash": "2ae66df9d75eeef61e0418d457c9e85e17b9c2127fb5dbb5f4a675ede6de7c39",
-            "checks": 2,
+            "evidence_hash": "91a79d0fe7eab7780f8267cd0cf849679c643087660fc85bded22d5166e94e01",
+            "checks": 3,
             "changes": []
           },
           "observation": null
@@ -2091,8 +2142,8 @@
             "detail": "the quote is present verbatim",
             "checked_on": "2026-09-20",
             "quote_current": true,
-            "evidence_hash": "2ae66df9d75eeef61e0418d457c9e85e17b9c2127fb5dbb5f4a675ede6de7c39",
-            "checks": 2,
+            "evidence_hash": "91a79d0fe7eab7780f8267cd0cf849679c643087660fc85bded22d5166e94e01",
+            "checks": 3,
             "changes": []
           },
           "observation": null
@@ -2115,8 +2166,8 @@
             "detail": "the quote is present verbatim",
             "checked_on": "2026-09-20",
             "quote_current": true,
-            "evidence_hash": "2ae66df9d75eeef61e0418d457c9e85e17b9c2127fb5dbb5f4a675ede6de7c39",
-            "checks": 2,
+            "evidence_hash": "91a79d0fe7eab7780f8267cd0cf849679c643087660fc85bded22d5166e94e01",
+            "checks": 3,
             "changes": []
           },
           "observation": null
@@ -2841,8 +2892,8 @@
             "detail": "the quote is present verbatim",
             "checked_on": "2026-09-20",
             "quote_current": true,
-            "evidence_hash": "2ae66df9d75eeef61e0418d457c9e85e17b9c2127fb5dbb5f4a675ede6de7c39",
-            "checks": 2,
+            "evidence_hash": "f4ffb5ca04288fef45b61dd0455b6be34c0144861e041843695b81bd98375f29",
+            "checks": 3,
             "changes": []
           },
           "observation": null
@@ -2865,8 +2916,8 @@
             "detail": "the quote is present verbatim",
             "checked_on": "2026-09-20",
             "quote_current": true,
-            "evidence_hash": "2ae66df9d75eeef61e0418d457c9e85e17b9c2127fb5dbb5f4a675ede6de7c39",
-            "checks": 2,
+            "evidence_hash": "f4ffb5ca04288fef45b61dd0455b6be34c0144861e041843695b81bd98375f29",
+            "checks": 3,
             "changes": []
           },
           "observation": null
@@ -2889,8 +2940,8 @@
             "detail": "the quote is present verbatim",
             "checked_on": "2026-09-20",
             "quote_current": true,
-            "evidence_hash": "2ae66df9d75eeef61e0418d457c9e85e17b9c2127fb5dbb5f4a675ede6de7c39",
-            "checks": 2,
+            "evidence_hash": "f4ffb5ca04288fef45b61dd0455b6be34c0144861e041843695b81bd98375f29",
+            "checks": 3,
             "changes": []
           },
           "observation": null
@@ -2913,8 +2964,8 @@
             "detail": "the quote is present verbatim",
             "checked_on": "2026-09-20",
             "quote_current": true,
-            "evidence_hash": "2ae66df9d75eeef61e0418d457c9e85e17b9c2127fb5dbb5f4a675ede6de7c39",
-            "checks": 2,
+            "evidence_hash": "f4ffb5ca04288fef45b61dd0455b6be34c0144861e041843695b81bd98375f29",
+            "checks": 3,
             "changes": []
           },
           "observation": null
@@ -2937,8 +2988,8 @@
             "detail": "the quote is present verbatim",
             "checked_on": "2026-09-20",
             "quote_current": true,
-            "evidence_hash": "2ae66df9d75eeef61e0418d457c9e85e17b9c2127fb5dbb5f4a675ede6de7c39",
-            "checks": 2,
+            "evidence_hash": "f4ffb5ca04288fef45b61dd0455b6be34c0144861e041843695b81bd98375f29",
+            "checks": 3,
             "changes": []
           },
           "observation": null
@@ -2961,8 +3012,32 @@
             "detail": "the quote is present verbatim",
             "checked_on": "2026-09-20",
             "quote_current": true,
-            "evidence_hash": "2ae66df9d75eeef61e0418d457c9e85e17b9c2127fb5dbb5f4a675ede6de7c39",
-            "checks": 2,
+            "evidence_hash": "f4ffb5ca04288fef45b61dd0455b6be34c0144861e041843695b81bd98375f29",
+            "checks": 3,
+            "changes": []
+          },
+          "observation": null
+        },
+        {
+          "name": "void_after_partial_capture",
+          "supported": true,
+          "permitted": true,
+          "tier": "primary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-21",
+          "probe_id": null,
+          "citation": "x402-foundation/x402 @c9160a6 (main), specs/schemes/auth-capture/scheme_auth_capture_evm.md, Lifecycle payloads, capture",
+          "url": "https://raw.githubusercontent.com/x402-foundation/x402/c9160a6cbf0fc831ac7036d400ef2d671493e392/specs/schemes/auth-capture/scheme_auth_capture_evm.md",
+          "quote": "`voidAuthorizerSignature` is OPTIONAL and present only for a sync partial close-out: when set, this single `/settle` performs `capture` and then `void` on the remaining hold.",
+          "notes": "A partial capture followed by a void of the remaining hold is the spec's \"sync partial close-out\". The escrow's void takes no amount, so it releases everything left. Without the optional signature the hold stays until a separate void, or until the payer reclaims after the capture deadline (`remainder_auto_released`).",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "f4ffb5ca04288fef45b61dd0455b6be34c0144861e041843695b81bd98375f29",
+            "checks": 1,
             "changes": []
           },
           "observation": null
@@ -2985,8 +3060,8 @@
             "detail": "the quote is present verbatim",
             "checked_on": "2026-09-20",
             "quote_current": true,
-            "evidence_hash": "2ae66df9d75eeef61e0418d457c9e85e17b9c2127fb5dbb5f4a675ede6de7c39",
-            "checks": 2,
+            "evidence_hash": "f4ffb5ca04288fef45b61dd0455b6be34c0144861e041843695b81bd98375f29",
+            "checks": 3,
             "changes": []
           },
           "observation": null
@@ -3009,8 +3084,8 @@
             "detail": "the quote is present verbatim",
             "checked_on": "2026-09-20",
             "quote_current": true,
-            "evidence_hash": "2ae66df9d75eeef61e0418d457c9e85e17b9c2127fb5dbb5f4a675ede6de7c39",
-            "checks": 2,
+            "evidence_hash": "f4ffb5ca04288fef45b61dd0455b6be34c0144861e041843695b81bd98375f29",
+            "checks": 3,
             "changes": []
           },
           "observation": null

@@ -21,7 +21,8 @@ from amanat.registry import export, page, store
 OUT = export.ROOT / "docs" / "reports" / "rail-semantics-report-1.md"
 # The questions the ceiling mechanism asks of a rail, in the order a reader meets them.
 HEADLINE = ["funds_held_in_customer_account", "partial_debit", "over_capture", "multiple_captures",
-            "partial_void", "void_whole_hold", "remainder_auto_released", "idempotent_replay"]
+            "partial_void", "void_after_partial_capture", "void_whole_hold", "remainder_auto_released",
+            "idempotent_replay"]
 
 
 def _verdict(row: dict) -> str:

@@ -818,3 +818,34 @@ class TestTheX402UptoEvmRowQuotesTheSentenceThatSaysNothingIsHeld:
         import re
         cap = RAILS["x402_upto_evm"].capabilities["funds_held_in_customer_account"]
         assert re.search(r"/x402/[0-9a-f]{40}/specs/", cap.url)
+
+
+class TestVoidAfterPartialCaptureIsAnsweredForMoreThanCashfree:
+    """`partial_void` puts Cashfree and x402 auth-capture in one cell for opposite reasons: on Cashfree the
+    remainder cannot be released by any documented call once a capture exists (measured: HTTP 400), on x402
+    auth-capture a void of the remainder is part of the spec. The question that separates them had one row."""
+
+    def test_the_definition_allows_the_equivalent_a_rail_uses_in_place_of_a_void(self):
+        text = CONCEPTS["void_after_partial_capture"]
+        assert "explicit" in text and "equivalent" in text
+
+    def test_x402_auth_capture_voids_the_remaining_hold_in_the_same_settlement(self):
+        cap = RAILS["x402_auth_capture"].capabilities["void_after_partial_capture"]
+        assert cap.source_tier is SourceTier.PRIMARY and cap.supported is True
+        assert "performs `capture` and then `void` on the remaining hold" in cap.quote
+        assert "takes no amount" in cap.notes
+
+    def test_stripe_releases_the_rest_by_a_zero_capture_marked_final_where_multicapture_is_on(self):
+        cap = RAILS["stripe_card_manual_capture"].capabilities["void_after_partial_capture"]
+        assert cap.source_tier is SourceTier.SECONDARY and cap.supported is True
+        assert "release the remaining uncaptured funds" in cap.quote and "set final_capture to true" in cap.quote
+        assert "Not a void" in cap.notes and "multicapture" in cap.notes
+
+    def test_visa_obliges_the_merchant_to_reverse_the_difference_after_completion(self):
+        cap = RAILS["visa_card_auth"].capabilities["void_after_partial_capture"]
+        assert cap.source_tier is SourceTier.SECONDARY and cap.supported is True
+        assert "must be reversed within 24 hours of when the transaction is completed" in cap.quote
+
+    def test_cashfree_still_refuses_and_is_measured(self):
+        cap = RAILS["cashfree_preauth"].capabilities["void_after_partial_capture"]
+        assert cap.supported is False and cap.source_tier is SourceTier.OBSERVED
