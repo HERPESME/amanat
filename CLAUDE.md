@@ -42,7 +42,7 @@ committing to it.** They killed the first design; that is what they are for.
 ## Commands
 
 ```bash
-uv run --extra ml --extra web --extra dev pytest tests/ -q   # 1336 tests (Node.js runs the browser-verifier tests)
+uv run --extra ml --extra web --extra dev pytest tests/ -q   # 1342 tests (Node.js runs the browser-verifier tests)
 uv run --extra dev python -m amanat.demo                     # end-to-end walkthrough
 uv run --extra dev python -m amanat.registry.watch           # re-check every cited quote against its source (network)
 uv run --extra dev python -m amanat.probes run               # re-measure the Cashfree sandbox (network, sandbox credentials in .env)
@@ -71,7 +71,7 @@ so do not push or publish the report or the raw probe data without the owner's s
 ## Open research
 
 `sbmd.partial_debit` is resolved: PRIMARY, by necessary implication from NPCI OC-228 and
-OC-200. Eight capabilities are still UNVERIFIED (and therefore refused); `docs/RAIL_SEMANTICS.md`
+OC-200. Seven capabilities are still UNVERIFIED (and therefore refused); `docs/RAIL_SEMANTICS.md`
 lists them under "Outstanding verification", and `cashfree_preauth.remainder_auto_released` is
 one because the earlier "auto-released" result was an inference, not a reading. Two of the eight
 (`sbmd.merchant_revocable`, `stripe_card_manual_capture.payment_guarantee`) were cited rows until a

@@ -729,3 +729,24 @@ class TestWhatThePaymentsReviewFound:
         note = RAILS["cashfree_preauth"].capabilities["partial_debit"].notes
         assert "the exact shape Razorpay refuses" not in note
         assert "UPI pre-authorisation" in note and "Capture API" in note
+
+
+class TestWhatTheLiveCheckAdded:
+    """Rows changed after a reviewer's claim was checked against the live page or document."""
+
+    def test_visas_guide_makes_the_merchants_reversal_the_thing_that_removes_the_hold(self):
+        """It said UNVERIFIED while the guide's own sentence says what a reversal is for."""
+        cap = RAILS["visa_card_auth"].capabilities["remainder_auto_released"]
+        assert cap.source_tier is SourceTier.SECONDARY and cap.supported is False
+        assert "the hold on cardholder funds should be removed" in cap.quote
+        assert "must be reversed within 24 hours" in cap.quote and "\u2026" in cap.quote
+        assert "Misuse of Authorization System Fee" in cap.notes
+        assert "does not say" in cap.notes and "issuer" in cap.notes, "what the guide leaves open is said"
+        assert RAILS["visa_card_auth"].permits("remainder_auto_released") is False
+
+    def test_adyens_multiple_capture_row_carries_the_condition_that_it_is_off_by_default(self):
+        """Adyen's two partial-capture rows are alternatives; the switch between them is a sentence."""
+        cap = RAILS["adyen_card_auth"].capabilities["multiple_captures"]
+        assert "not automatically cancelled" in cap.quote
+        assert "Multiple partial capture is disabled by default, so you need to contact our Support Team" in cap.quote
+        assert "\u2026" in cap.quote, "two sentences of the page, checked piece by piece"

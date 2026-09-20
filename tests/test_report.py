@@ -354,7 +354,7 @@ class TestTheComparisonSaysWhoAndWhenNotOnlyWhether:
     def test_the_bullet_names_who_releases_and_when(self):
         block = _flat(MD[MD.index("- **Who gives the rest back, and when**"):MD.index("- **A hold's life differs")])
         for phrase in ("nobody does", "the escrow does", "the acquirer cancels", "issuer frees the balance",
-                       "off by default", "nothing is established"):
+                       "off by default", "nothing is established", "Visa the merchant's own reversal is what removes the hold"):
             assert phrase in block, phrase
 
     def test_each_claim_in_the_bullet_is_pinned_to_the_row_that_backs_it(self):
@@ -364,7 +364,7 @@ class TestTheComparisonSaysWhoAndWhenNotOnlyWhether:
         assert v(self._row("stripe_card_manual_capture", "remainder_auto_released")) == "yes"
         assert v(self._row("adyen_card_auth", "remainder_auto_released")) == "yes"
         assert v(self._row("cashfree_preauth", "remainder_auto_released")) == "unk"
-        assert v(self._row("visa_card_auth", "remainder_auto_released")) == "unk"
+        assert v(self._row("visa_card_auth", "remainder_auto_released")) == "no"
         assert "Disabled by default" in self._row("adyen_card_auth", "multiple_captures")["notes"]
         assert "does not say when" in self._row("stripe_card_manual_capture", "remainder_auto_released")["notes"]
         assert "do not say when" in self._row("adyen_card_auth", "remainder_auto_released")["notes"]

@@ -495,7 +495,7 @@ The two hosts the UMAP docs name for sandbox and production do not exist in publ
 | `incremental_authorization` | yes | `SECONDARY` | 2026-09-20 | Visa, Estimated and Incremental Authorization and Reversal Processing Requirements for Visa Merchants (PDF, ©2024 Visa), p. 3, Incremental authorization request |
 | `buffered_authorisation` | **no** | `SECONDARY` | 2026-09-20 | Visa, Estimated and Incremental Authorization and Reversal Processing Requirements for Visa Merchants (PDF, ©2024 Visa), p. 2, Estimated authorization request |
 | `capped_initial_authorization` | yes | `SECONDARY` | 2026-09-20 | Visa, Estimated and Incremental Authorization and Reversal Processing Requirements for Visa Merchants (PDF, ©2024 Visa), p. 6, Common Questions, initial authorization |
-| `remainder_auto_released` | ? | `UNVERIFIED` | 2026-09-20 | not established |
+| `remainder_auto_released` | **no** | `SECONDARY` | 2026-09-21 | Visa, Authorization and Reversal Processing Requirements for Merchants, p.3 (authorization reversals) |
 | `over_capture` | ? | `UNVERIFIED` | 2026-09-20 | not established |
 
 **Numeric limits** — enforced, not decorative. Unlike capabilities, an unverified limit is still applied: thin evidence means refuse more, never less.
@@ -578,7 +578,12 @@ Second statement of the same rule: an estimated authorization may not carry tips
 New capability name capped_initial_authorization: a fixed capped amount is authorised before the final amount is known, with no increments and a hard stop at the cap. From April 2025 only automated fuel dispensers may use it, while other unattended merchants are encouraged to move to estimated authorizations (p.6). Visa's own merchant guide, which states that the Visa Rules govern in any conflict: SECONDARY until the Rules are read.
 
 **`remainder_auto_released`**
-Not established. Reading 1: the merchant must send a reversal for the difference within 24 hours (p.3), so release is not automatic from the merchant's side. Reading 2: issuers match reversals and clearings to the authorization and a failed match leaves funds held longer, but the guide does not say whether the difference is freed without a reversal. Visa's own merchant guide, which states that the Visa Rules govern in any conflict: SECONDARY until the Rules are read. The closest sentence read: “Visa processing requirements are designed to assist issuers in matching these multiple authorization messages with the clearing. Missing or non-matching data elements may mean issuers are not able to affect a match, which often means that funds remain held for a longer period or in duplicate.”
+
+> Authorization reversals notify the issuer that all, or part, of a transaction has been cancelled and that the hold on cardholder funds should be removed … the difference between the authorized amount (or amounts) and the transaction amount must be reversed within 24 hours of when the transaction is completed.
+
+— Visa, Authorization and Reversal Processing Requirements for Merchants, p.3 (authorization reversals), https://usa.visa.com/content/dam/VCOM/regional/na/us/support-legal/documents/authorization-and-reversal-processing-best-practices-for-merchants.pdf
+
+Not automatic from the merchant's side: the guide makes a reversal what tells the issuer to remove the hold, and obliges the merchant to send one for the difference within 24 hours of completion; Visa assesses a Misuse of Authorization System Fee on authorizations matched to neither a clearing nor a reversal. What the guide does not say is whether an individual issuer drops the hold anyway, or when; the closest sentence read is that a failed match "often means that funds remain held for a longer period or in duplicate". This row was UNVERIFIED until a live reading of the guide found the sentence that says what a reversal is for; a payments review had argued that a mandatory merchant reversal is incoherent with an automatic release. Visa's own merchant guide states that the Visa Rules govern in any conflict, so it stays SECONDARY until the Rules are read.
 
 **`over_capture`**
 Not established. The guide's only stated route to a higher final amount is an incremental authorization; it is silent on whether clearing above the authorised sum is allowed. Marked null because the absence of a stated permission does not settle the question. Visa's own merchant guide, which states that the Visa Rules govern in any conflict: SECONDARY until the Rules are read. The closest sentence read: “If the cardholder spends more than expected, the merchant may obtain an additional authorization using an incremental authorization request.”
@@ -735,7 +740,7 @@ Holds for the single partial capture type; with multiple partial captures enable
 
 **`multiple_captures`**
 
-> The unclaimed amount after an initial partial capture is not automatically cancelled.
+> The unclaimed amount after an initial partial capture is not automatically cancelled. … Multiple partial capture is disabled by default, so you need to contact our Support Team to enable this feature.
 
 — Adyen Docs: Capture, Partial manual capture > Multiple partial captures, https://docs.adyen.com/online-payments/capture/
 
@@ -1098,13 +1103,12 @@ New capability name settled_amount_verifiable_against_usage: can the payer verif
 
 ## Outstanding verification
 
-8 capabilities are still unverified and therefore refused:
+7 capabilities are still unverified and therefore refused:
 
 - `sbmd.merchant_revocable`
 - `sbmd.block_amount_reducible_without_revoke`
 - `upi_otm.post_delivery_debit_goods`
 - `cashfree_preauth.remainder_auto_released`
-- `visa_card_auth.remainder_auto_released`
 - `visa_card_auth.over_capture`
 - `stripe_card_manual_capture.payment_guarantee`
 - `stripe_card_manual_capture.partial_void`

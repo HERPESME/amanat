@@ -10,8 +10,8 @@ snapshot: pages change and sandboxes change, and the point of the registry is th
 
 14 rails, 97 capabilities, 18 numeric limits. 8 rows rest on recorded probe runs against a vendor's sandbox, each with its stored exchange;
 3 more rest on one-off observations made by hand (Razorpay capture's partial debit, 2026-08-22, sandbox; Setu UMAP's credentials self serve, 2026-08-21, live; Setu UMAP's api publicly reachable, 2026-08-21, live), whose exchanges are not in the evidence store.
-81 quotes were **re-read** from the source they cite on the date above (31 of them cite a source pinned to a revision, where re-reading shows that the quote was transcribed correctly and can never show that anything changed; the other 50 cite pages that can change, and those are the ones the watcher guards); 14 sources could not be read
-(below); 8 capabilities are **unverified** and therefore refused by the policy engine rather than assumed.
+82 quotes were **re-read** from the source they cite on the date above (31 of them cite a source pinned to a revision, where re-reading shows that the quote was transcribed correctly and can never show that anything changed; the other 51 cite pages that can change, and those are the ones the watcher guards); 14 sources could not be read
+(below); 7 capabilities are **unverified** and therefore refused by the policy engine rather than assumed.
 
 How a row is admitted: it carries a verbatim quote and the page it came from, and `python -m amanat.registry.watch` fetches that page and
 looks for the quote. A measured row names a probe, and the test suite fails if the rail's latest conclusive answer disagrees with the row.
@@ -25,11 +25,12 @@ The rails are not equals, and a count over them mixes three kinds: 5 are UPI and
 - **A smaller capture than the hold** is supported on 10 rails and refused on 2
   (Razorpay capture (observed, sandbox); x402 exact (primary)); 0 have no evidenced answer. By kind: UPI and Indian PSPs: 3 supported, 1 refused; Card networks and PSPs: 3 supported; Agent-payment protocol: x402: 4 supported, 1 refused.
 - **Who gives the rest back, and when** differs more than whether it is given back: supported on
-  Stripe (secondary); Adyen (secondary); x402 upto · Solana (primary); refused on UPI Reserve Pay (primary); x402 auth-capture (primary); x402 batch (primary); unverified on Cashfree pre-auth (unverified); Visa (unverified). In words: on UPI Reserve Pay nobody
+  Stripe (secondary); Adyen (secondary); x402 upto · Solana (primary); refused on UPI Reserve Pay (primary); Visa (secondary); x402 auth-capture (primary); x402 batch (primary); unverified on Cashfree pre-auth (unverified). In words: on UPI Reserve Pay nobody
   does, since the block stays until someone revokes it or its end date arrives, up to 90 days; on x402 `upto` on Solana the escrow does,
   in the same settlement; on Stripe and Adyen the acquirer cancels the unclaimed amount, neither page says when the cardholder's issuer frees
-  the balance, and Adyen's holds only while multiple partial capture, which is off by default, stays off; on Cashfree and Visa nothing is
-  established, so the engine refuses to plan around it.
+  the balance, and Adyen's holds only while multiple partial capture, which is off by default, stays off; on Visa the merchant's own
+  reversal is what removes the hold, and the guide obliges the merchant to send it; on Cashfree nothing is established, so the engine
+  refuses to plan around it.
 - **A hold's life differs by rail, and so does what its deadline means**: Razorpay capture 3 days, Cashfree pre-auth 7 days, Stripe 7 days, Adyen 28 days, Visa 5–30 days by channel and merchant category. Razorpay refunds an uncaptured payment after
   at most that long, an upper bound on a timeout the merchant sets, and the money then takes 5–7 working days to arrive; Cashfree's page says
   the funds are released; Adyen's own expiry leaves the payment neither capturable nor cancellable; Visa's figures are clearing deadlines, not
@@ -37,7 +38,7 @@ The rails are not equals, and a count over them mixes three kinds: 5 are UPI and
   neither a clearing nor a reversal. Only on some rails does the deadline end the agent's obligation.
 - **A retry that acts once** is documented for 3 rails (Stripe (secondary); Adyen (secondary); x402 (extensions) (primary)); x402's is an optional extension, so a server
   that leaves it off is still conformant. Separately, measured: Cashfree pre-auth's sandbox, on capture.
-- **Some questions have no answer yet**: 8 capabilities are unverified. They are listed below with what was read.
+- **Some questions have no answer yet**: 7 capabilities are unverified. They are listed below with what was read.
 
 ## Question by question
 
@@ -115,11 +116,11 @@ A whole hold may be released before anything is captured.
 After a partial capture the uncaptured remainder is released without any further action by the merchant.
 
 - **Supported** (3): Stripe (secondary); Adyen (secondary); x402 upto · Solana (primary)
-- **Not supported** (3): UPI Reserve Pay (primary); x402 auth-capture (primary); x402 batch (primary)
-- **Unverified — refused, not assumed** (2): Cashfree pre-auth (unverified); Visa (unverified)
+- **Not supported** (4): UPI Reserve Pay (primary); Visa (secondary); x402 auth-capture (primary); x402 batch (primary)
+- **Unverified — refused, not assumed** (1): Cashfree pre-auth (unverified)
 - **No row for this question** (6): Razorpay capture; UPI one-time mandate; Setu UMAP; x402 (extensions); x402 exact; x402 upto · EVM
 
-6 of 8 rails with a row for this question have an answer that rests on evidence usable as fact.
+7 of 8 rails with a row for this question have an answer that rests on evidence usable as fact.
 
 ### `idempotent_replay`
 
@@ -158,7 +159,6 @@ Unverified — refused by the engine, never assumed:
 - `sbmd.block_amount_reducible_without_revoke` — No source read says whether a standing block's amount may be lowered without revoking it: the PSP APIs bound a modified amount only by a minimum and a maximum, and the NPCI circulars name modification without stating a direction.
 - `upi_otm.post_delivery_debit_goods` — PayU's documentation says the merchant captures "usually after the goods or services are delivered", which conflicts with the debit-before-delivery rule in the NPCI circular for Reserve Pay; a PSP page cannot settle a rule of the rail.
 - `cashfree_preauth.remainder_auto_released` — Cashfree documents that an authorisation not captured within seven days is released and does not say what becomes of the remainder of a partial capture; a dated measurement of the sandbox is running.
-- `visa_card_auth.remainder_auto_released` — Visa's guide obliges the merchant to reverse the difference within 24 hours and does not say whether the issuer frees it otherwise.
 - `visa_card_auth.over_capture` — The guide's only route to a higher final amount is an incremental authorisation, and it is silent on clearing above the authorised sum.
 - `stripe_card_manual_capture.payment_guarantee` — Stripe says an authorisation "guarantees the amount by holding it". That is about reserving funds, not about the merchant being paid, so it is not read as a payment guarantee; NPCI's circular for Reserve Pay says outright that a block is not one.
 - `stripe_card_manual_capture.partial_void` — Stripe documents no way to reduce an authorisation without capturing; the closest analogue is a capture of zero marked final, after at least one capture.
@@ -183,7 +183,7 @@ Checkpoints of the evidence behind this report. A later export whose streams do 
 | Stream | Lines | Head (SHA-256) |
 |---|---|---|
 | `probes.cashfree_preauth` | 8 | `d0442a0012814763b3acbcaf16188af2e874f5a90fea9d9045aa2acfb118df18` |
-| `watch` | 3 | `2ae66df9d75eeef61e0418d457c9e85e17b9c2127fb5dbb5f4a675ede6de7c39` |
+| `watch` | 5 | `43b9b82948e67b95f645574bf1cab95901e6c5850014d0ff3455997097c483fc` |
 
 Source documents committed to the repository:
 

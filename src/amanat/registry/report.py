@@ -177,9 +177,6 @@ UNVERIFIED_WHY = {
     ("cashfree_preauth", "remainder_auto_released"):
         "Cashfree documents that an authorisation not captured within seven days is released and does not say what becomes of the "
         "remainder of a partial capture; a dated measurement of the sandbox is running.",
-    ("visa_card_auth", "remainder_auto_released"):
-        "Visa's guide obliges the merchant to reverse the difference within 24 hours and does not say whether the issuer frees it "
-        "otherwise.",
     ("visa_card_auth", "over_capture"):
         "The guide's only route to a higher final amount is an incremental authorisation, and it is silent on clearing above the "
         "authorised sum.",
@@ -298,8 +295,9 @@ check found its quote, and where a source is silent the row is unverified.
   {_join(remainder["yes"])}; refused on {_join(remainder["no"])}; unverified on {_join(remainder["unk"])}. In words: on UPI Reserve Pay nobody
   does, since the block stays until someone revokes it or its end date arrives, up to 90 days; on x402 `upto` on Solana the escrow does,
   in the same settlement; on Stripe and Adyen the acquirer cancels the unclaimed amount, neither page says when the cardholder's issuer frees
-  the balance, and Adyen's holds only while multiple partial capture, which is off by default, stays off; on Cashfree and Visa nothing is
-  established, so the engine refuses to plan around it.
+  the balance, and Adyen's holds only while multiple partial capture, which is off by default, stays off; on Visa the merchant's own
+  reversal is what removes the hold, and the guide obliges the merchant to send it; on Cashfree nothing is established, so the engine
+  refuses to plan around it.
 - **A hold's life differs by rail, and so does what its deadline means**: {_limits_line(doc)}. Razorpay refunds an uncaptured payment after
   at most that long, an upper bound on a timeout the merchant sets, and the money then takes 5–7 working days to arrive; Cashfree's page says
   the funds are released; Adyen's own expiry leaves the payment neither capturable nor cancellable; Visa's figures are clearing deadlines, not

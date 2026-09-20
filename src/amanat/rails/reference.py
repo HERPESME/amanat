@@ -235,20 +235,26 @@ VISA_CARD_AUTH = RailProfile(
             ),
         ),
         Capability(
-            name='remainder_auto_released', supported=None,
-            source_tier=SourceTier.UNVERIFIED, obtained_on="2026-09-20",
-            citation="not established", url=_VISA_AUTHORIZATION_AND_REVERSAL_PROCESSING_BEST_PRACTICES_FOR_MERCHANTS,
+            name='remainder_auto_released', supported=False,
+            source_tier=SourceTier.SECONDARY, obtained_on="2026-09-21",
+            citation='Visa, Authorization and Reversal Processing Requirements for Merchants, p.3 (authorization reversals)',
+            url=_VISA_AUTHORIZATION_AND_REVERSAL_PROCESSING_BEST_PRACTICES_FOR_MERCHANTS,
+            quote=(
+                'Authorization reversals notify the issuer that all, or part, of a transaction has been cancelled '
+                'and that the hold on cardholder funds should be removed … the difference between the authorized '
+                'amount (or amounts) and the transaction amount must be reversed within 24 hours of when the '
+                'transaction is completed.'
+            ),
             notes=(
-                'Not established. Reading 1: the merchant must send a reversal for the difference '
-                "within 24 hours (p.3), so release is not automatic from the merchant's side. Reading "
-                '2: issuers match reversals and clearings to the authorization and a failed match '
-                'leaves funds held longer, but the guide does not say whether the difference is freed '
-                "without a reversal. Visa's own merchant guide, which states that the Visa Rules govern "
-                'in any conflict: SECONDARY until the Rules are read. The closest sentence read: “Visa '
-                'processing requirements are designed to assist issuers in matching these multiple '
-                'authorization messages with the clearing. Missing or non-matching data elements may '
-                'mean issuers are not able to affect a match, which often means that funds remain held '
-                'for a longer period or in duplicate.”'
+                "Not automatic from the merchant's side: the guide makes a reversal what tells the issuer to remove "
+                'the hold, and obliges the merchant to send one for the difference within 24 hours of completion; '
+                'Visa assesses a Misuse of Authorization System Fee on authorizations matched to neither a clearing '
+                'nor a reversal. What the guide does not say is whether an individual issuer drops the hold anyway, '
+                'or when; the closest sentence read is that a failed match "often means that funds remain held for a '
+                'longer period or in duplicate". This row was UNVERIFIED until a live reading of the guide found the '
+                "sentence that says what a reversal is for; a payments review had argued that a mandatory merchant "
+                "reversal is incoherent with an automatic release. Visa's own merchant guide states that the Visa "
+                'Rules govern in any conflict, so it stays SECONDARY until the Rules are read.'
             ),
         ),
         Capability(
@@ -623,7 +629,11 @@ ADYEN_CARD_AUTH = RailProfile(
             name='multiple_captures', supported=True,
             source_tier=SourceTier.SECONDARY, obtained_on="2026-09-20",
             citation='Adyen Docs: Capture, Partial manual capture > Multiple partial captures', url=_ADYEN_CAPTURE,
-            quote='The unclaimed amount after an initial partial capture is not automatically cancelled.',
+            quote=(
+                'The unclaimed amount after an initial partial capture is not automatically cancelled. … '
+                'Multiple partial capture is disabled by default, so you need to contact our Support Team to '
+                'enable this feature.'
+            ),
             notes=(
                 "Disabled by default; Adyen Support must enable it. The related 'Adjust an "
                 "authorization' page adds that the number of partial captures depends on the issuer and "

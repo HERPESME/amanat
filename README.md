@@ -8,7 +8,7 @@
 
 *Block a ceiling. Debit the actual. Prove what the money did.*
 
-[![tests](https://img.shields.io/badge/tests-1336-2ea44f?style=flat-square)](#testing)
+[![tests](https://img.shields.io/badge/tests-1342-2ea44f?style=flat-square)](#testing)
 [![python](https://img.shields.io/badge/python-3.11%2B-3776ab?style=flat-square)](#quick-start)
 [![live rail](https://img.shields.io/badge/live%20rail-%E2%82%B9470%20of%20%E2%82%B9620%20%C2%B7%20HTTP%20200-2ea44f?style=flat-square)](#what-it-does)
 [![rails](https://img.shields.io/badge/rails-UPI%20SBMD%20%C2%B7%20Cashfree%20%C2%B7%20Razorpay%20%C2%B7%20Setu-6c5ce7?style=flat-square)](#the-evidence-table)
@@ -132,7 +132,7 @@ git clone https://github.com/HERPESME/amanat && cd amanat
 # The eight-act walkthrough — the whole argument in one command
 uv run --with cryptography python -m amanat.demo
 
-# 1336 tests. No API key, no network (Node.js runs the browser-verifier tests).
+# 1342 tests. No API key, no network (Node.js runs the browser-verifier tests).
 uv run --with pytest --with cryptography --with httpx --with fastapi --with pydantic \
        --with numpy --with scikit-learn --with pandas --with pyarrow --with hypothesis pytest tests/ -q
 ```
@@ -435,7 +435,7 @@ Reproduce: <code>python -m amanat.rails.probe_cashfree</code>.</td>
 | **Razorpay** manual capture | 6 | 1 `OBSERVED` · 5 `SECONDARY` |
 | **Setu UMAP** | 3 | 2 `OBSERVED` · 1 `SECONDARY` |
 | **UPI OTM** | 2 | 1 `SECONDARY` · 1 `UNVERIFIED` |
-| *Reference:* **Visa** card authorization | 9 | 7 `SECONDARY` · 2 `UNVERIFIED` |
+| *Reference:* **Visa** card authorization | 9 | 8 `SECONDARY` · 1 `UNVERIFIED` |
 | *Reference:* **Stripe** cards, manual capture | 10 | 8 `SECONDARY` · 2 `UNVERIFIED` |
 | *Reference:* **Adyen** cards | 9 | 9 `SECONDARY` |
 | *Reference:* **x402** protocol extensions | 1 | 1 `PRIMARY` |
@@ -458,10 +458,10 @@ answer down by kind. Their rows were proposed by agents that read the sources; e
 is `SECONDARY`, not `PRIMARY`: it states that the Visa Rules govern in any conflict, and the Rules have not
 been read.
 
-Eight capabilities remain deliberately `UNVERIFIED` (`sbmd.block_amount_reducible_without_revoke`,
+Seven capabilities remain deliberately `UNVERIFIED` (`sbmd.block_amount_reducible_without_revoke`,
 `sbmd.merchant_revocable`, `upi_otm.post_delivery_debit_goods`, `cashfree_preauth.remainder_auto_released`,
-`visa_card_auth.remainder_auto_released`, `visa_card_auth.over_capture`,
-`stripe_card_manual_capture.partial_void`, `stripe_card_manual_capture.payment_guarantee`) — not established,
+`visa_card_auth.over_capture`, `stripe_card_manual_capture.partial_void`,
+`stripe_card_manual_capture.payment_guarantee`) — not established,
 so each says neither yes nor no and the policy engine refuses to plan around it. Two of them (`sbmd.merchant_revocable`
 and `stripe_card_manual_capture.payment_guarantee`) were cited rows until a review read their sentences in
 context and found that they did not say what the row said; the quotes were on the page, which is all the
@@ -638,7 +638,7 @@ uv run --with pytest --with cryptography --with httpx --with fastapi --with pyda
        --with numpy --with scikit-learn --with pandas --with pyarrow --with hypothesis pytest tests/ -q
 ```
 
-**1336 tests, no credential and no network.** If proving the agent is bounded ever
+**1342 tests, no credential and no network.** If proving the agent is bounded ever
 required a live model, the agent would not be bounded.
 
 | Suite | What it pins |
