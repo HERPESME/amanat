@@ -42,18 +42,34 @@ committing to it.** They killed the first design; that is what they are for.
 ## Commands
 
 ```bash
-uv run --extra ml --extra web --extra dev pytest tests/ -q   # 419 tests (Node.js runs the browser-verifier tests)
+uv run --extra ml --extra web --extra dev pytest tests/ -q   # 1242 tests (Node.js runs the browser-verifier tests)
 uv run --extra dev python -m amanat.demo                     # end-to-end walkthrough
+uv run --extra dev python -m amanat.registry.watch           # re-check every cited quote against its source (network)
+uv run --extra dev python -m amanat.probes run               # re-measure the Cashfree sandbox (network, sandbox credentials in .env)
+# regenerate what CI diffs: python -m amanat.rails.docgen, then amanat.registry.export, .page and .report
 ```
+
+## The registry (Phase 1)
+
+`rails/semantics.py` (Cashfree, Razorpay, SBMD, OTM, Setu) and `rails/reference.py` (Visa, Stripe, Adyen,
+x402) hold rows; `docs/registry/`, `docs/RAIL_SEMANTICS.md` and `docs/reports/` are generated from them.
+A row needs a verbatim `quote`, the `url` of the page that carries it, and `obtained_on`; an OBSERVED row
+needs an `environment` and, unless it is on the legacy list in `tests/test_registry_probes.py`, a `probe_id`.
+**A model may propose a row; only the watcher admits it** (`python -m amanat.registry.watch` must find the
+quote on the page). A row that names a probe fails the suite if the rail's latest conclusive run disagrees.
+Evidence lives in `docs/observations/store/` as append-only hash-chained JSONL: never edit a line. Anything
+that reads as a bug in a vendor's product goes to the vendor first (`docs/reports/VENDOR-NOTIFICATION.md`),
+so do not push or publish the report or the raw probe data without the owner's say-so.
 
 ## Open research
 
 `sbmd.partial_debit` is resolved: PRIMARY, by necessary implication from NPCI OC-228 and
-OC-200. Still UNVERIFIED (and therefore refused): `sbmd.block_amount_reducible_without_revoke`,
-`upi_otm.post_delivery_debit_goods`, and `cashfree_preauth.remainder_auto_released` — the last
+OC-200. Six capabilities are still UNVERIFIED (and therefore refused); `docs/RAIL_SEMANTICS.md`
+lists them under "Outstanding verification", and `cashfree_preauth.remainder_auto_released` is
 one because the earlier "auto-released" result was an inference, not a reading. A dated
 measurement is running: `python -m amanat.rails.probe_cashfree_release poll` appends to
-`docs/observations/cashfree-release/` (run it at about +24 h and +7 d 1 h after the start).
+`docs/observations/cashfree-release/` (run it at about +24 h and +7 d 1 h after the start,
+18:23 IST on 20 Sep 2026; reads so far show no change).
 
 Round-6 audit and strategy are in `.claude/decisions/round6-*.md` (local): read them before
 conceptual changes.

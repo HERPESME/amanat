@@ -50,3 +50,20 @@ def test_the_readme_names_every_unverified_capability():
     for name in unverified:
         assert name in section, f"{name} is UNVERIFIED in the registry but not named in the README"
     assert f"{['No', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight'][len(unverified)]} capabilit" in section
+
+
+def test_the_readme_and_project_notes_state_the_number_of_tests_the_suite_collects():
+    """The badge was once wrong by 178 tests. Collect the suite and compare, so it cannot drift."""
+    import subprocess
+    import sys
+
+    root = Path(__file__).resolve().parents[1]
+    out = subprocess.run(
+        [sys.executable, "-m", "pytest", "tests", "--collect-only", "-q", "-o", "addopts=",
+         "-p", "no:warnings", "-p", "no:cacheprovider"],
+        cwd=root, capture_output=True, text=True, timeout=300).stdout
+    n = int(re.search(r"(\d+) tests? collected", out).group(1))
+    claude = (root / "CLAUDE.md").read_text(encoding="utf-8")
+    assert f"tests-{n}%20passing" in README, f"README badge: the suite collects {n} tests"
+    assert f"# {n} tests." in README and f"**{n} tests, no credential and no network.**" in README
+    assert f"# {n} tests (" in claude, f"CLAUDE.md: the suite collects {n} tests"
