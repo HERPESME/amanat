@@ -122,7 +122,7 @@ class TestKnownRails:
         """
         rail = RAILS["sbmd"]
         assert rail.permits("remainder_auto_released") is False
-        assert rail.permits("merchant_revocable") is False, "5(c) does not say who may revoke"
+        assert rail.permits("merchant_revocable") is True, "on a PSP's documentation, not on 5(c)"
         assert rail.permits("customer_revocable") is True
         assert "till the time mandate is expired, revoked" in \
             rail.explain("remainder_auto_released").quote
@@ -666,14 +666,20 @@ class TestWhatThePaymentsReviewFound:
     see is whether the words mean what the row says, which is why a person reads the source too.
     """
 
-    def test_a_merchant_initiated_revoke_is_not_established_by_the_circular(self):
-        """OC-228 5(c) sits in a list of what the *user* is given on the merchant's platform."""
+    def test_a_merchant_initiated_revoke_rests_on_a_psps_documentation_not_on_the_circular(self):
+        """OC-228 5(c) sits in a list of what the *user* is given on the merchant's platform, so it does not
+        say who may initiate. Razorpay's Reserve Pay page does: a business-initiated release by API, with
+        the merchant's own key. The row was PRIMARY on 5(c), UNVERIFIED after a review read it in context,
+        and is SECONDARY on the page that says it."""
         rail = RAILS["sbmd"]
         cap = rail.capabilities["merchant_revocable"]
-        assert cap.source_tier is SourceTier.UNVERIFIED and cap.supported is None
-        assert rail.permits("merchant_revocable") is False
-        assert "5(c)" in cap.notes and "user" in cap.notes and "does not say who" in cap.notes
-        assert rail.permits("customer_revocable") is True, "the customer's own revoke is PRIMARY and unaffected"
+        assert cap.source_tier is SourceTier.SECONDARY and cap.supported is True
+        assert "Business-initiated release" in cap.quote and "Cancel Token API" in cap.quote
+        assert "cancellation of the mandate from NPCI" in cap.quote
+        assert cap.url == "https://razorpay.com/docs/payments/payment-gateway/s2s-integration/recurring-payments/upi-reserve-pay/manage/"
+        assert "5(c)" in cap.notes and "does not say who may initiate" in cap.notes
+        assert "UNVERIFIED after a payments review" in cap.notes and "[PARTIAL]" in cap.notes
+        assert rail.permits("merchant_revocable") is True and rail.permits("customer_revocable") is True
 
     def test_a_stripe_hold_is_not_recorded_as_a_guarantee_that_the_merchant_is_paid(self):
         """Stripe's sentence is about reserving the amount; NPCI's is an explicit disclaimer."""

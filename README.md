@@ -8,7 +8,7 @@
 
 *Block a ceiling. Debit the actual. Prove what the money did.*
 
-[![tests](https://img.shields.io/badge/tests-1359-2ea44f?style=flat-square)](#testing)
+[![tests](https://img.shields.io/badge/tests-1363-2ea44f?style=flat-square)](#testing)
 [![python](https://img.shields.io/badge/python-3.11%2B-3776ab?style=flat-square)](#quick-start)
 [![live rail](https://img.shields.io/badge/live%20rail-%E2%82%B9470%20of%20%E2%82%B9620%20%C2%B7%20HTTP%20200-2ea44f?style=flat-square)](#what-it-does)
 [![rails](https://img.shields.io/badge/rails-UPI%20SBMD%20%C2%B7%20Cashfree%20%C2%B7%20Razorpay%20%C2%B7%20Setu-6c5ce7?style=flat-square)](#the-evidence-table)
@@ -132,7 +132,7 @@ git clone https://github.com/HERPESME/amanat && cd amanat
 # The eight-act walkthrough — the whole argument in one command
 uv run --with cryptography python -m amanat.demo
 
-# 1359 tests. No API key, no network (Node.js runs the browser-verifier tests).
+# 1363 tests. No API key, no network (Node.js runs the browser-verifier tests).
 uv run --with pytest --with cryptography --with httpx --with fastapi --with pydantic \
        --with numpy --with scikit-learn --with pandas --with pyarrow --with hypothesis pytest tests/ -q
 ```
@@ -430,7 +430,7 @@ Reproduce: <code>python -m amanat.rails.probe_cashfree</code>.</td>
 
 | Rail | Capabilities | Evidence |
 |---|---|---|
-| **UPI SBMD** (Reserve Pay) | 19 | 14 `PRIMARY` · 3 `SECONDARY` · 2 `UNVERIFIED` |
+| **UPI SBMD** (Reserve Pay) | 19 | 14 `PRIMARY` · 4 `SECONDARY` · 1 `UNVERIFIED` |
 | **Cashfree** UPI pre-auth | 12 | 8 `OBSERVED` (sandbox, 29 Aug and 20 Sep 2026) · 3 `SECONDARY` · 1 `UNVERIFIED` — the remainder's release |
 | **Razorpay** manual capture | 6 | 1 `OBSERVED` · 5 `SECONDARY` |
 | **Setu UMAP** | 3 | 2 `OBSERVED` · 1 `SECONDARY` |
@@ -458,14 +458,15 @@ answer down by kind. Their rows were proposed by agents that read the sources; e
 is `SECONDARY`, not `PRIMARY`: it states that the Visa Rules govern in any conflict, and the Rules have not
 been read.
 
-Seven capabilities remain deliberately `UNVERIFIED` (`sbmd.block_amount_reducible_without_revoke`,
-`sbmd.merchant_revocable`, `upi_otm.post_delivery_debit_goods`, `cashfree_preauth.remainder_auto_released`,
+Six capabilities remain deliberately `UNVERIFIED` (`sbmd.block_amount_reducible_without_revoke`,
+`upi_otm.post_delivery_debit_goods`, `cashfree_preauth.remainder_auto_released`,
 `visa_card_auth.over_capture`, `stripe_card_manual_capture.partial_void`,
-`stripe_card_manual_capture.payment_guarantee`) — not established,
-so each says neither yes nor no and the policy engine refuses to plan around it. Two of them (`sbmd.merchant_revocable`
-and `stripe_card_manual_capture.payment_guarantee`) were cited rows until a review read their sentences in
-context and found that they did not say what the row said; the quotes were on the page, which is all the
-watcher can see. Both NPCI circulars are committed in [`docs/sources/`](docs/sources/);
+`stripe_card_manual_capture.payment_guarantee`) — not established, so each says neither yes nor no and the
+policy engine refuses to plan around it. Two rows were cited until a review read their sentences in context
+and found that they did not say what the row said; the quotes were on the page, which is all the watcher can
+see. `stripe_card_manual_capture.payment_guarantee` stays unverified. `sbmd.merchant_revocable` was downgraded
+too (OC-228 5(c) does not say who may revoke) and is `SECONDARY` again on the PSP page that does: Razorpay
+documents a business-initiated release with the merchant's own key. Both NPCI circulars are committed in [`docs/sources/`](docs/sources/);
 they are image-only scans, every quote read from pages rendered at 220 dpi.
 
 The table is also published as JSON — [`docs/registry/registry.json`](docs/registry/registry.json) —
@@ -638,7 +639,7 @@ uv run --with pytest --with cryptography --with httpx --with fastapi --with pyda
        --with numpy --with scikit-learn --with pandas --with pyarrow --with hypothesis pytest tests/ -q
 ```
 
-**1359 tests, no credential and no network.** If proving the agent is bounded ever
+**1363 tests, no credential and no network.** If proving the agent is bounded ever
 required a live model, the agent would not be bounded.
 
 | Suite | What it pins |
@@ -738,15 +739,15 @@ Stated here rather than waiting to be asked.
   against an existing block needs a fresh customer action in practice has not been tested. That is the
   assumption most likely to be false here, and the test is an afternoon on Setu's staging.
 - **`sbmd.block_amount_reducible_without_revoke` is UNVERIFIED.** No circular or PSP doc
-  states whether a modify may *lower* an amount, so it is refused. `sbmd.merchant_revocable` is UNVERIFIED
-  too: OC-228 5(c) gives the user easy access to update and revoke on the merchant's platform, and does not
-  say that a merchant may revoke without the user.
+  states whether a modify may *lower* an amount, so it is refused. Nor does the circular say who may
+  revoke: OC-228 5(c) gives the user easy access to update and revoke on the merchant's platform, so a
+  merchant's unattended revoke rests on PSP documentation (`SECONDARY`), not on NPCI.
 - **A quote found on a page shows the page says it, not that the page is right.** The watcher checks words;
   it cannot check that a vendor's documentation matches its production behaviour.
 - **The interpretation of a row is not machine-verified.** For the Visa, Stripe, Adyen and x402 rows, agents
   read the sources and a check admitted each quote; whether a row says `supported` or `not supported`, and
-  what its note concludes, was read by a person and can be wrong (two rows have already been downgraded to
-  `UNVERIFIED` after a reviewer read their sentences in context). A row that a vendor believes is wrong is
+  what its note concludes, was read by a person and can be wrong (two rows have already been downgraded after
+  a reviewer read their sentences in context, and one re-graded on better evidence). A row that a vendor believes is wrong is
   a bug to report.
 - **The registry is a snapshot.** Pages change and sandboxes change; the nightly jobs that would say so
   exist but do nothing until credentials are configured.

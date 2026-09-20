@@ -231,11 +231,13 @@ class TestVerificationInTheExport:
 
     def test_a_row_demoted_to_unverified_shows_no_verification_from_its_old_checks(self, tmp_path):
         """The store keeps the checks; the export must not say a quote was re-read for a row that
-        no longer has one. `merchant_revocable` was PRIMARY, then unverified after review."""
+        no longer has one (Stripe's `payment_guarantee` was cited, then unverified after review)."""
         path = tmp_path / "watch.jsonl"
-        self._run(path, [self._res(name="merchant_revocable", rail="sbmd", result="verified")],
+        self._run(path, [self._res(name="payment_guarantee", rail="stripe_card_manual_capture")],
                   "2026-09-20T12:00:00Z")
-        row = _first(export.build(store_dir=tmp_path), lambda c: c["name"] == "merchant_revocable")
+        doc = export.build(store_dir=tmp_path)
+        stripe = next(r for r in doc["rails"] if r["rail_id"] == "stripe_card_manual_capture")
+        row = next(c for c in stripe["capabilities"] if c["name"] == "payment_guarantee")
         assert row["tier"] == "unverified" and row["verification"] is None
 
     def test_limits_carry_verification_too(self, tmp_path):

@@ -42,7 +42,7 @@ committing to it.** They killed the first design; that is what they are for.
 ## Commands
 
 ```bash
-uv run --extra ml --extra web --extra dev pytest tests/ -q   # 1359 tests (Node.js runs the browser-verifier tests)
+uv run --extra ml --extra web --extra dev pytest tests/ -q   # 1363 tests (Node.js runs the browser-verifier tests)
 uv run --extra dev python -m amanat.demo                     # end-to-end walkthrough
 uv run --extra dev python -m amanat.registry.watch           # re-check every cited quote against its source (network)
 uv run --extra dev python -m amanat.probes run               # re-measure the Cashfree sandbox (network, sandbox credentials in .env)
@@ -71,11 +71,12 @@ so do not push or publish the report or the raw probe data without the owner's s
 ## Open research
 
 `sbmd.partial_debit` is resolved: PRIMARY, by necessary implication from NPCI OC-228 and
-OC-200. Seven capabilities are still UNVERIFIED (and therefore refused); `docs/RAIL_SEMANTICS.md`
+OC-200. Six capabilities are still UNVERIFIED (and therefore refused); `docs/RAIL_SEMANTICS.md`
 lists them under "Outstanding verification", and `cashfree_preauth.remainder_auto_released` is
-one because the earlier "auto-released" result was an inference, not a reading. Two of the eight
-(`sbmd.merchant_revocable`, `stripe_card_manual_capture.payment_guarantee`) were cited rows until a
-review read their sentences in context. A dated
+one because the earlier "auto-released" result was an inference, not a reading. Two rows
+(`sbmd.merchant_revocable`, `stripe_card_manual_capture.payment_guarantee`) were cited until a
+review read their sentences in context; the first is SECONDARY again on a PSP page, the second stays
+unverified. A dated
 measurement is running: `python -m amanat.rails.probe_cashfree_release poll` appends to
 `docs/observations/cashfree-release/` (run it at about +24 h and +7 d 1 h after the start,
 18:23 IST on 20 Sep 2026; reads so far show no change).

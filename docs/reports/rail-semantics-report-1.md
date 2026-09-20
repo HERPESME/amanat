@@ -10,8 +10,8 @@ snapshot: pages change and sandboxes change, and the point of the registry is th
 
 14 rails, 100 capabilities, 18 numeric limits. 8 rows rest on recorded probe runs against a vendor's sandbox, each with its stored exchange;
 3 more rest on one-off observations made by hand (Razorpay capture's partial debit, 2026-08-22, sandbox; Setu UMAP's credentials self serve, 2026-08-21, live; Setu UMAP's api publicly reachable, 2026-08-21, live), whose exchanges are not in the evidence store.
-82 quotes were **re-read** from the source they cite on the date above (31 of them cite a source pinned to a revision, where re-reading shows that the quote was transcribed correctly and can never show that anything changed; the other 51 cite pages that can change, and those are the ones the watcher guards); 17 sources could not be read
-(below); 7 capabilities are **unverified** and therefore refused by the policy engine rather than assumed.
+83 quotes were **re-read** from the source they cite on the date above (31 of them cite a source pinned to a revision, where re-reading shows that the quote was transcribed correctly and can never show that anything changed; the other 52 cite pages that can change, and those are the ones the watcher guards); 17 sources could not be read
+(below); 6 capabilities are **unverified** and therefore refused by the policy engine rather than assumed.
 
 How a row is admitted: it carries a verbatim quote and the page it came from, and `python -m amanat.registry.watch` fetches that page and
 looks for the quote. A measured row names a probe, and the test suite fails if the rail's latest conclusive answer disagrees with the row.
@@ -38,7 +38,7 @@ The rails are not equals, and a count over them mixes three kinds: 5 are UPI and
   neither a clearing nor a reversal. Only on some rails does the deadline end the agent's obligation.
 - **A retry that acts once** is documented for 3 rails (Stripe (secondary); Adyen (secondary); x402 (extensions) (primary)); x402's is an optional extension, so a server
   that leaves it off is still conformant. Separately, measured: Cashfree pre-auth's sandbox, on capture.
-- **Some questions have no answer yet**: 7 capabilities are unverified. They are listed below with what was read.
+- **Some questions have no answer yet**: 6 capabilities are unverified. They are listed below with what was read.
 
 ## Question by question
 
@@ -155,7 +155,6 @@ Caveat from the stored records: on each of the 5 holds that saw a successful cap
 
 Unverified — refused by the engine, never assumed:
 
-- `sbmd.merchant_revocable` — NPCI's circular says the merchant's platform must give "easy access to update and revoke", in a list of things the user is given there; it does not say that a merchant may revoke a block without the customer. A PSP's cancel call would be the evidence, and none has been quoted yet.
 - `sbmd.block_amount_reducible_without_revoke` — No source read says whether a standing block's amount may be lowered without revoking it: the PSP APIs bound a modified amount only by a minimum and a maximum, and the NPCI circulars name modification without stating a direction.
 - `upi_otm.post_delivery_debit_goods` — PayU's documentation says the merchant captures "usually after the goods or services are delivered", which conflicts with the debit-before-delivery rule in the NPCI circular for Reserve Pay; a PSP page cannot settle a rule of the rail.
 - `cashfree_preauth.remainder_auto_released` — Cashfree documents that an authorisation not captured within seven days is released and does not say what becomes of the remainder of a partial capture; a dated measurement of the sandbox is running.
@@ -183,7 +182,7 @@ Checkpoints of the evidence behind this report. A later export whose streams do 
 | Stream | Lines | Head (SHA-256) |
 |---|---|---|
 | `probes.cashfree_preauth` | 8 | `d0442a0012814763b3acbcaf16188af2e874f5a90fea9d9045aa2acfb118df18` |
-| `watch` | 6 | `61eda41116bc7a71a00dd930d54fa1e66be6ef3c1635003b58e6cdd1aaa27b11` |
+| `watch` | 7 | `e4de3b78180b887173cf45ef12c065f2eba0b0799c759bba1fc3e38d9cb983b7` |
 
 Source documents committed to the repository:
 

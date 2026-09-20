@@ -45,7 +45,7 @@ the same as `**no**`, "the source says the rail does not permit it".
 | `multi_debit` | yes | `PRIMARY` | 2026-08-21 | NPCI/UPI/OC.No.200/2024-25, 31 July 2024, issuer obligation 1 |
 | `funds_held_in_customer_account` | yes | `PRIMARY` | 2026-08-21 | NPCI/UPI/OC.No.200/2024-25, 31 July 2024, issuer obligation 1 |
 | `remainder_auto_released` | **no** | `PRIMARY` | 2026-08-21 | NPCI/UPI/OC.No.200/2024-25, 31 July 2024, issuer obligation 1 |
-| `merchant_revocable` | ? | `UNVERIFIED` | 2026-08-21 | not established |
+| `merchant_revocable` | yes | `SECONDARY` | 2026-09-21 | Razorpay UPI Reserve Pay (SBMD), Manage Mandates and Tokens, Cancel Tokens |
 | `customer_revocable` | yes | `PRIMARY` | 2026-08-21 | NPCI/UPI/OC-228/2025-26, 8 October 2025, UPI Apps obligation 1 |
 | `purpose_code_77_for_online_goods` | yes | `PRIMARY` | 2026-08-21 | NPCI/UPI/OC.No.200/2024-25, 31 July 2024, clause (c) and purpose-code table at clause (a) |
 | `block_validity_90_days` | yes | `PRIMARY` | 2026-08-21 | NPCI/UPI/OC-228/2025-26, 8 October 2025, Acquiring entities obligation 5(b) |
@@ -154,15 +154,21 @@ The quote is about accounts held at the issuing bank. OC-228 extends Reserve Pay
 — NPCI/UPI/OC.No.200/2024-25, 31 July 2024, issuer obligation 1, https://www.npci.org.in/uploads/UPI_OC_No_200_FY_24_25_Enablement_of_UPI_Mandate_feature_of_Single_Block_Multiple_Debits_f2f9bc9230.pdf
 
 THE THIRD LEG OF THIS PROJECT'S MECHANISM IS NOT AUTOMATIC, and this is the most consequential thing found on 21 Aug 2026.
-'The fund shall be blocked in the account till the time mandate is expired, revoked or the mandate amount is exhausted.' The rail KEEPS the unused remainder blocked. Neither circular imposes any duty to release it after a partial debit, and neither states any timeline for doing so. Release happens only because somebody calls revoke or update - see `customer_revocable` (PRIMARY) and `merchant_revocable` (not established: OC-228 5(c) does not say who may revoke).
+'The fund shall be blocked in the account till the time mandate is expired, revoked or the mandate amount is exhausted.' The rail KEEPS the unused remainder blocked. Neither circular imposes any duty to release it after a partial debit, and neither states any timeline for doing so. Release happens only because somebody calls revoke or update - see `customer_revocable` (PRIMARY) and `merchant_revocable` (SECONDARY, on a PSP's documentation: OC-228 5(c) does not say who may revoke).
 Consequence for the ceiling model: debit Rs 470 against a Rs 620 block and walk away, and Rs 150 stays stranded until the customer-chosen end date, up to 90 days. Stranding duration is 'until someone revokes, else end-of-block', not 'until settlement'. Price it that way.
 CORROBORATED 21 Aug 2026 by three independent PSP docs, which matters because the primary finding was a negative one and a negative read of a scan invites doubt. Razorpay: 'Ensure customers are informed that their funds remain blocked until you explicitly release them or the token expires', and the way to know what is left is to 'subtract the amount_debited from the amount_blocked'. Setu's ReservePlus execute API constrains the debit amount so that 'the cumulative amount debited for the given mandate post current debit is within the amount that is blocked'. Cashfree: 'The remaining reserved balance reduces automatically after each debit.' All three describe a pool that draws down and stays blocked, not one that returns change.
 THE ONE CONFLICTING SOURCE, and it should be disclosed rather than dropped. PayU's Reserve Pay page asserts the opposite in its examples - 'After finalizing the recharge (e.g., Rs.499), the balance Rs.51 is released' - but the same page's feature list gives the mechanism away: 'Currently, the releasing of funds is done by remiters but PayU has built a functionality (internal) to revoke the transactions based on end date to minimise the funds on hold.' A scheduled revoke is not an automatic release. Build to the stricter reading.
 THE CONTRAST WORTH BUILDING ON. This is a MULTI-debit finding. On the SINGLE-debit sibling - UPI OTM, Setu's 'Reserve' - the rail does hand the remainder back by itself; see `upi_otm.partial_debit`. If the agent commits to exactly one debit per block, leg three is free and there is nothing to revoke. The stranding problem is the price of keeping the pool open for a second debit, and that is a design choice this project makes, not a constraint the rail imposes.
 
 **`merchant_revocable`**
-NOT ESTABLISHED. This row was PRIMARY until a payments review, 21 Sep 2026, read the sentence in its context. OC-228 acquiring obligation 5(c) says: 'Easy access on merchant's platform to update and revoke along with the responsibility of issuer to validate every debit.' It sits in a list of what merchants and acquirers 'shall ensure', between 5(b) 'Allow user to enter the amount and select the end date as per their choice' and 5(e) 'Display of original block value, remaining balance, expiry date and transaction history'. Every neighbouring item is something the USER is given on the merchant's platform, and UPI Apps obligation 1 gives the customer 'Easy access to revoke the block' in the same terms. Read that way, 5(c) is the customer's access to update and revoke from the merchant's platform, not a grant of a merchant-initiated, unattended revoke. The circular does not say who may initiate. OC-200(e) says the customer shall 'also' be provided with an option of revoking, which hints that another party may revoke; a hint is not a statement.
-What is missing is a source saying a merchant may revoke without the customer. PSP APIs are the likely evidence (the review names Razorpay's cancel-token API and Cashfree's subscription-manage CANCEL; neither has been quoted into this registry) and would be SECONDARY. Until then the engine does not plan around a merchant-initiated revoke on SBMD. Nothing else changes: `customer_revocable` is PRIMARY and unaffected.
+
+> Business-initiated release … Use the Cancel Token API below to release the blocked funds. When this API is called, all remaining funds under the token are unblocked and credited to the customer's bank account instantly. … This initiates the cancellation of the mandate from NPCI.
+
+— Razorpay UPI Reserve Pay (SBMD), Manage Mandates and Tokens, Cancel Tokens, https://razorpay.com/docs/payments/payment-gateway/s2s-integration/recurring-payments/upi-reserve-pay/manage/
+
+[PARTIAL] - a PSP doc describing a rail behaviour: fact for Razorpay, a lead for the rail. Razorpay's Reserve Pay page lists a 'Business-initiated release': a server-to-server `PUT /customers/:customer_id/tokens/:token_id/cancel`, shown with `curl -u [YOUR_KEY_ID]:[YOUR_KEY_SECRET]`, so the merchant's own key and no customer step. Cashfree's manage action CANCEL is the same shape (see `remainder_release_without_teardown`).
+What the circular says is narrower, and it does not say who may initiate. OC-228 acquiring obligation 5(c) says: 'Easy access on merchant's platform to update and revoke along with the responsibility of issuer to validate every debit.' It sits in a list of what merchants and acquirers 'shall ensure', between 5(b) 'Allow user to enter the amount and select the end date as per their choice' and 5(e) 'Display of original block value, remaining balance, expiry date and transaction history'. Every neighbouring item is something the USER is given on the merchant's platform, and UPI Apps obligation 1 gives the customer 'Easy access to revoke the block' in the same terms. OC-200(e) says the customer shall 'also' be provided with an option of revoking, which hints that another party may revoke; a hint is not a statement.
+History, because it is the point: this row was PRIMARY on 5(c), was UNVERIFIED after a payments review read the sentence in context on 21 Sep 2026, and is SECONDARY now on the PSP page that does say it. `customer_revocable` is PRIMARY and unaffected.
 CORRECTION, 21 Aug 2026, kept because it still applies. This note used to end '...so a block can be revised downward as well as torn down.' That was an inference from the word 'update', not a finding. A modify operation does exist and does preserve the block - see `block_amount_modifiable_without_revoke` - but nothing in either circular or in any PSP doc says it may revise an amount DOWNWARD. See `block_amount_reducible_without_revoke`, which is UNVERIFIED for exactly that reason.
 
 **`customer_revocable`**
@@ -1131,9 +1137,8 @@ New capability name settled_amount_verifiable_against_usage: can the payer verif
 
 ## Outstanding verification
 
-7 capabilities are still unverified and therefore refused:
+6 capabilities are still unverified and therefore refused:
 
-- `sbmd.merchant_revocable`
 - `sbmd.block_amount_reducible_without_revoke`
 - `upi_otm.post_delivery_debit_goods`
 - `cashfree_preauth.remainder_auto_released`

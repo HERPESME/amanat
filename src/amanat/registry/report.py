@@ -164,10 +164,6 @@ UNVERIFIED_WHY = {
     ("sbmd", "block_amount_reducible_without_revoke"):
         "No source read says whether a standing block's amount may be lowered without revoking it: the PSP APIs bound a modified "
         "amount only by a minimum and a maximum, and the NPCI circulars name modification without stating a direction.",
-    ("sbmd", "merchant_revocable"):
-        "NPCI's circular says the merchant's platform must give \"easy access to update and revoke\", in a list of things the user is "
-        "given there; it does not say that a merchant may revoke a block without the customer. A PSP's cancel call would be the "
-        "evidence, and none has been quoted yet.",
     ("stripe_card_manual_capture", "payment_guarantee"):
         "Stripe says an authorisation \"guarantees the amount by holding it\". That is about reserving funds, not about the merchant "
         "being paid, so it is not read as a payment guarantee; NPCI's circular for Reserve Pay says outright that a block is not one.",

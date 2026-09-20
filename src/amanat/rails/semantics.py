@@ -613,6 +613,14 @@ _RZP_RELEASE_IS_CANCEL = (
     "minutes before the token expires."
 )
 
+# Razorpay, Manage Mandates and Tokens > Cancel Tokens, read live on 21 Sep 2026. "Automatic release" is the
+# adjacent tab's label, and the endpoint sentence follows the two ways of releasing.
+_RZP_BUSINESS_INITIATED_RELEASE = (
+    "Business-initiated release … Use the Cancel Token API below to release the blocked funds. When this "
+    "API is called, all remaining funds under the token are unblocked and credited to the customer's bank "
+    "account instantly. … This initiates the cancellation of the mandate from NPCI."
+)
+
 # Razorpay, Manage Mandates and Tokens > Track Mandate Funds.
 _RZP_REMAINING_STAYS_BLOCKED = (
     "To find the remaining amount available for future debits, subtract the "
@@ -893,8 +901,8 @@ SBMD = RailProfile(
                 "imposes any duty to release it after a partial debit, and "
                 "neither states any timeline for doing so. Release happens only "
                 "because somebody calls revoke or update - see "
-                "`customer_revocable` (PRIMARY) and `merchant_revocable` (not "
-                "established: OC-228 5(c) does not say who may revoke).\n"
+                "`customer_revocable` (PRIMARY) and `merchant_revocable` "
+                "(SECONDARY, on a PSP's documentation: OC-228 5(c) does not say who may revoke).\n"
                 "Consequence for the ceiling model: debit Rs 470 against a "
                 "Rs 620 block and walk away, and Rs 150 stays stranded until the "
                 "customer-chosen end date, up to 90 days. Stranding duration is "
@@ -933,40 +941,35 @@ SBMD = RailProfile(
             ),
         ),
         Capability(
-            name="merchant_revocable", supported=None,
-            source_tier=SourceTier.UNVERIFIED, obtained_on=NPCI_READ_ON,
-            citation="not established", url=OC228_URL,
+            name="merchant_revocable", supported=True,
+            source_tier=SourceTier.SECONDARY, obtained_on="2026-09-21",
+            citation=f"{RZP_MANAGE}, Cancel Tokens",
+            url=RZP_MANAGE_URL,
+            quote=_RZP_BUSINESS_INITIATED_RELEASE,
             notes=(
-                "NOT ESTABLISHED. This row was PRIMARY until a payments review, "
-                "21 Sep 2026, read the sentence in its context. OC-228 acquiring "
-                "obligation 5(c) says: '" + _OC228_MERCHANT_REVOKE + "' It sits in a "
-                "list of what merchants and acquirers 'shall ensure', between 5(b) "
-                "'Allow user to enter the amount and select the end date as per "
-                "their choice' and 5(e) 'Display of original block value, remaining "
-                "balance, expiry date and transaction history'. Every neighbouring "
-                "item is something the USER is given on the merchant's platform, and "
-                "UPI Apps obligation 1 gives the customer 'Easy access to revoke the "
-                "block' in the same terms. Read that way, 5(c) is the customer's "
-                "access to update and revoke from the merchant's platform, not a "
-                "grant of a merchant-initiated, unattended revoke. The circular does "
-                "not say who may initiate. OC-200(e) says the customer shall 'also' "
-                "be provided with an option of revoking, which hints that another "
+                "[PARTIAL] - a PSP doc describing a rail behaviour: fact for Razorpay, a lead for the rail. "
+                "Razorpay's Reserve Pay page lists a 'Business-initiated release': a server-to-server "
+                "`PUT /customers/:customer_id/tokens/:token_id/cancel`, shown with `curl -u [YOUR_KEY_ID]:"
+                "[YOUR_KEY_SECRET]`, so the merchant's own key and no customer step. Cashfree's manage "
+                "action CANCEL is the same shape (see `remainder_release_without_teardown`).\n"
+                "What the circular says is narrower, and it does not say who may initiate. OC-228 "
+                "acquiring obligation 5(c) says: '" + _OC228_MERCHANT_REVOKE + "' It sits in a "
+                "list of what merchants and acquirers 'shall ensure', between 5(b) 'Allow user to enter "
+                "the amount and select the end date as per their choice' and 5(e) 'Display of original "
+                "block value, remaining balance, expiry date and transaction history'. Every neighbouring "
+                "item is something the USER is given on the merchant's platform, and UPI Apps obligation 1 "
+                "gives the customer 'Easy access to revoke the block' in the same terms. OC-200(e) says the "
+                "customer shall 'also' be provided with an option of revoking, which hints that another "
                 "party may revoke; a hint is not a statement.\n"
-                "What is missing is a source saying a merchant may revoke without "
-                "the customer. PSP APIs are the likely evidence (the review names "
-                "Razorpay's cancel-token API and Cashfree's subscription-manage "
-                "CANCEL; neither has been quoted into this registry) and would be "
-                "SECONDARY. Until then the engine does not plan around a "
-                "merchant-initiated revoke on SBMD. Nothing else changes: "
-                "`customer_revocable` is PRIMARY and unaffected.\n"
-                "CORRECTION, 21 Aug 2026, kept because it still applies. This note "
-                "used to end '...so a block can be revised downward as well as torn "
-                "down.' That was an inference from the word 'update', not a finding. "
-                "A modify operation does exist and does preserve the block - see "
-                "`block_amount_modifiable_without_revoke` - but nothing in either "
-                "circular or in any PSP doc says it may revise an amount DOWNWARD. "
-                "See `block_amount_reducible_without_revoke`, which is UNVERIFIED "
-                "for exactly that reason."
+                "History, because it is the point: this row was PRIMARY on 5(c), was UNVERIFIED after a "
+                "payments review read the sentence in context on 21 Sep 2026, and is SECONDARY now on the "
+                "PSP page that does say it. `customer_revocable` is PRIMARY and unaffected.\n"
+                "CORRECTION, 21 Aug 2026, kept because it still applies. This note used to end '...so a "
+                "block can be revised downward as well as torn down.' That was an inference from the word "
+                "'update', not a finding. A modify operation does exist and does preserve the block - see "
+                "`block_amount_modifiable_without_revoke` - but nothing in either circular or in any PSP "
+                "doc says it may revise an amount DOWNWARD. See `block_amount_reducible_without_revoke`, "
+                "which is UNVERIFIED for exactly that reason."
             ),
         ),
         Capability(
