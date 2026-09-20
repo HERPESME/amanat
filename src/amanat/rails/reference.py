@@ -880,18 +880,22 @@ X402_UPTO_EVM = RailProfile(
             name='funds_held_in_customer_account', supported=False,
             source_tier=SourceTier.PRIMARY, obtained_on="2026-09-20",
             citation=(
-                'x402-foundation/x402 @c9160a6 (main), specs/schemes/upto/scheme_upto_evm.md, Security '
-                'Considerations 5. Zero Settlement'
+                'x402-foundation/x402 @c9160a6 (main), specs/schemes/upto/scheme_upto_evm.md, Phase 4 '
+                'Settlement Logic, Settlement Process 4. Zero Settlement'
             ), url=_X402_SCHEME_UPTO_EVM,
             quote=(
-                'Allowing $0 settlements means unused authorizations naturally expire without on-chain '
-                'transactions, reducing gas costs and blockchain bloat.'
+                'If the settled amount = 0, no on-chain transaction is required. The authorization simply '
+                'expires unused.'
             ),
             notes=(
                 'By necessary implication nothing is locked on-chain at authorization: an unused '
                 "authorization lapses with no on-chain step. Verification reads the payer's balance and "
                 'simulates a full-amount settle (Phase 3 steps 3 and 7); no locking step appears in the '
-                'spec.'
+                'spec. The row used to quote the Security Considerations sentence "Allowing $0 settlements '
+                'means unused authorizations naturally expire without on-chain transactions, reducing gas '
+                'costs and blockchain bloat." That sentence is about gas and does not say funds are not '
+                'held, so a prior-art audit (21 Sep 2026) asked for the settlement sentence, which is about '
+                'the authorization itself.'
             ),
         ),
         Capability(

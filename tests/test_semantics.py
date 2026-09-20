@@ -798,3 +798,23 @@ class TestWhatOnlyANpciCircularSaysAboutWhoStartsAReservePayBlock:
         for name in ("block_creation_agent_initiable", "merchant_eligibility_restricted", "p2m_only"):
             cap = RAILS["sbmd"].capabilities[name]
             assert cap.url.endswith(".pdf") and cap.obtained_on == "2026-09-21"
+
+
+class TestTheX402UptoEvmRowQuotesTheSentenceThatSaysNothingIsHeld:
+    """The row said nothing is held and quoted a sentence about gas. The spec has a sentence about
+    funds: at a zero settlement "no on-chain transaction is required. The authorization simply expires
+    unused", which is what a signature that authorises a ceiling without escrowing it looks like."""
+
+    def test_the_quote_is_the_settlement_sentence_not_the_gas_sentence(self):
+        cap = RAILS["x402_upto_evm"].capabilities["funds_held_in_customer_account"]
+        assert cap.supported is False and cap.source_tier is SourceTier.PRIMARY
+        assert "no on-chain transaction is required" in cap.quote and "simply expires unused" in cap.quote
+        assert "gas" not in cap.quote
+        assert "Phase 4 Settlement Logic" in cap.citation and "Zero Settlement" in cap.citation
+        assert "Security Considerations" not in cap.citation, "the sentence is no longer the security note's"
+        assert "reducing gas costs and blockchain bloat" in cap.notes, "the old sentence is kept, with why it was replaced"
+
+    def test_the_source_is_still_pinned_to_a_commit(self):
+        import re
+        cap = RAILS["x402_upto_evm"].capabilities["funds_held_in_customer_account"]
+        assert re.search(r"/x402/[0-9a-f]{40}/specs/", cap.url)

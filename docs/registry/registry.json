@@ -272,8 +272,8 @@
     },
     {
       "stream": "watch",
-      "length": 7,
-      "head": "e4de3b78180b887173cf45ef12c065f2eba0b0799c759bba1fc3e38d9cb983b7"
+      "length": 8,
+      "head": "f7a8aa0c1f22a242282cb5956472ac57628cd0568ab5cd01eb6ba7a3141d135b"
     }
   ],
   "rails": [
@@ -2537,8 +2537,8 @@
             "detail": "the quote is present verbatim",
             "checked_on": "2026-09-20",
             "quote_current": true,
-            "evidence_hash": "2ae66df9d75eeef61e0418d457c9e85e17b9c2127fb5dbb5f4a675ede6de7c39",
-            "checks": 2,
+            "evidence_hash": "f7a8aa0c1f22a242282cb5956472ac57628cd0568ab5cd01eb6ba7a3141d135b",
+            "checks": 3,
             "changes": []
           },
           "observation": null
@@ -2561,8 +2561,8 @@
             "detail": "the quote is present verbatim",
             "checked_on": "2026-09-20",
             "quote_current": true,
-            "evidence_hash": "2ae66df9d75eeef61e0418d457c9e85e17b9c2127fb5dbb5f4a675ede6de7c39",
-            "checks": 2,
+            "evidence_hash": "f7a8aa0c1f22a242282cb5956472ac57628cd0568ab5cd01eb6ba7a3141d135b",
+            "checks": 3,
             "changes": []
           },
           "observation": null
@@ -2585,8 +2585,8 @@
             "detail": "the quote is present verbatim",
             "checked_on": "2026-09-20",
             "quote_current": true,
-            "evidence_hash": "2ae66df9d75eeef61e0418d457c9e85e17b9c2127fb5dbb5f4a675ede6de7c39",
-            "checks": 2,
+            "evidence_hash": "f7a8aa0c1f22a242282cb5956472ac57628cd0568ab5cd01eb6ba7a3141d135b",
+            "checks": 3,
             "changes": []
           },
           "observation": null
@@ -2600,17 +2600,17 @@
           "environment": null,
           "obtained_on": "2026-09-20",
           "probe_id": null,
-          "citation": "x402-foundation/x402 @c9160a6 (main), specs/schemes/upto/scheme_upto_evm.md, Security Considerations 5. Zero Settlement",
+          "citation": "x402-foundation/x402 @c9160a6 (main), specs/schemes/upto/scheme_upto_evm.md, Phase 4 Settlement Logic, Settlement Process 4. Zero Settlement",
           "url": "https://raw.githubusercontent.com/x402-foundation/x402/c9160a6cbf0fc831ac7036d400ef2d671493e392/specs/schemes/upto/scheme_upto_evm.md",
-          "quote": "Allowing $0 settlements means unused authorizations naturally expire without on-chain transactions, reducing gas costs and blockchain bloat.",
-          "notes": "By necessary implication nothing is locked on-chain at authorization: an unused authorization lapses with no on-chain step. Verification reads the payer's balance and simulates a full-amount settle (Phase 3 steps 3 and 7); no locking step appears in the spec.",
+          "quote": "If the settled amount = 0, no on-chain transaction is required. The authorization simply expires unused.",
+          "notes": "By necessary implication nothing is locked on-chain at authorization: an unused authorization lapses with no on-chain step. Verification reads the payer's balance and simulates a full-amount settle (Phase 3 steps 3 and 7); no locking step appears in the spec. The row used to quote the Security Considerations sentence \"Allowing $0 settlements means unused authorizations naturally expire without on-chain transactions, reducing gas costs and blockchain bloat.\" That sentence is about gas and does not say funds are not held, so a prior-art audit (21 Sep 2026) asked for the settlement sentence, which is about the authorization itself.",
           "verification": {
             "result": "verified",
             "detail": "the quote is present verbatim",
             "checked_on": "2026-09-20",
             "quote_current": true,
-            "evidence_hash": "2ae66df9d75eeef61e0418d457c9e85e17b9c2127fb5dbb5f4a675ede6de7c39",
-            "checks": 2,
+            "evidence_hash": "f7a8aa0c1f22a242282cb5956472ac57628cd0568ab5cd01eb6ba7a3141d135b",
+            "checks": 3,
             "changes": []
           },
           "observation": null
@@ -2633,8 +2633,8 @@
             "detail": "the quote is present verbatim",
             "checked_on": "2026-09-20",
             "quote_current": true,
-            "evidence_hash": "2ae66df9d75eeef61e0418d457c9e85e17b9c2127fb5dbb5f4a675ede6de7c39",
-            "checks": 2,
+            "evidence_hash": "f7a8aa0c1f22a242282cb5956472ac57628cd0568ab5cd01eb6ba7a3141d135b",
+            "checks": 3,
             "changes": []
           },
           "observation": null

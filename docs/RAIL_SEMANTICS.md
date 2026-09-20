@@ -876,7 +876,7 @@ This is the default flow the exact scheme uses: verify is read-only and value mo
 | `partial_debit` | yes | `PRIMARY` | 2026-09-20 | x402-foundation/x402 @c9160a6 (main), specs/schemes/upto/scheme_upto_evm.md, Phase 4 Settlement Logic, Settle-Time Verification example |
 | `over_capture` | **no** | `PRIMARY` | 2026-09-20 | x402-foundation/x402 @c9160a6 (main), specs/schemes/upto/scheme_upto.md, Core Properties (MUST) 4. Maximum Amount Enforcement |
 | `multiple_captures` | **no** | `PRIMARY` | 2026-09-20 | x402-foundation/x402 @c9160a6 (main), specs/schemes/upto/scheme_upto.md, Core Properties (MUST) 1. Single-Use Authorization |
-| `funds_held_in_customer_account` | **no** | `PRIMARY` | 2026-09-20 | x402-foundation/x402 @c9160a6 (main), specs/schemes/upto/scheme_upto_evm.md, Security Considerations 5. Zero Settlement |
+| `funds_held_in_customer_account` | **no** | `PRIMARY` | 2026-09-20 | x402-foundation/x402 @c9160a6 (main), specs/schemes/upto/scheme_upto_evm.md, Phase 4 Settlement Logic, Settlement Process 4. Zero Settlement |
 | `settled_amount_verifiable_against_usage` | **no** | `PRIMARY` | 2026-09-20 | x402-foundation/x402 @c9160a6 (main), specs/schemes/upto/scheme_upto_evm.md, Security Considerations 2. Server Trust |
 
 **`partial_debit`**
@@ -905,11 +905,11 @@ The scheme rule says an authorization is consumed after settlement 'regardless o
 
 **`funds_held_in_customer_account`**
 
-> Allowing $0 settlements means unused authorizations naturally expire without on-chain transactions, reducing gas costs and blockchain bloat.
+> If the settled amount = 0, no on-chain transaction is required. The authorization simply expires unused.
 
-— x402-foundation/x402 @c9160a6 (main), specs/schemes/upto/scheme_upto_evm.md, Security Considerations 5. Zero Settlement, https://raw.githubusercontent.com/x402-foundation/x402/c9160a6cbf0fc831ac7036d400ef2d671493e392/specs/schemes/upto/scheme_upto_evm.md
+— x402-foundation/x402 @c9160a6 (main), specs/schemes/upto/scheme_upto_evm.md, Phase 4 Settlement Logic, Settlement Process 4. Zero Settlement, https://raw.githubusercontent.com/x402-foundation/x402/c9160a6cbf0fc831ac7036d400ef2d671493e392/specs/schemes/upto/scheme_upto_evm.md
 
-By necessary implication nothing is locked on-chain at authorization: an unused authorization lapses with no on-chain step. Verification reads the payer's balance and simulates a full-amount settle (Phase 3 steps 3 and 7); no locking step appears in the spec.
+By necessary implication nothing is locked on-chain at authorization: an unused authorization lapses with no on-chain step. Verification reads the payer's balance and simulates a full-amount settle (Phase 3 steps 3 and 7); no locking step appears in the spec. The row used to quote the Security Considerations sentence "Allowing $0 settlements means unused authorizations naturally expire without on-chain transactions, reducing gas costs and blockchain bloat." That sentence is about gas and does not say funds are not held, so a prior-art audit (21 Sep 2026) asked for the settlement sentence, which is about the authorization itself.
 
 **`settled_amount_verifiable_against_usage`**
 
