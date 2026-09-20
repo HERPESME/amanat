@@ -447,6 +447,21 @@ with a [JSON Schema](docs/registry/registry.schema.json) that carries the rules 
 (`sandbox` or `live`) and the date it was obtained. A consumer that validates against the schema
 inherits those rules.
 
+Every quote is also **re-checked against the page it cites** — `python -m amanat.registry.watch`
+fetches the source and the quote must still appear verbatim (or, where a row marks a gap with `…`,
+each piece in order). Results go to a hash-chained, append-only log,
+[`docs/observations/store/watch.jsonl`](docs/observations/store/watch.jsonl), and each row in the
+JSON export says when it was last checked and how that went. The first run (20 Sep 2026) read 35 rows:
+25 have a source to check; 10 were verified, 15 could not be read — the two NPCI circulars, whose site
+answers scripted clients with HTTP 403 (their committed copies' SHA-256 are in the export, so anyone can
+compare against a browser download) — and it **found nine of the registry's own quotes that were not on
+the page they cited**: three Cashfree rows cited the API reference where the guide holds the sentence,
+two Razorpay rows quoted a different sentence from the one their claim rests on, a Setu quote wrote
+"Rs." where the page has "₹", and three joined separate list items or headings with punctuation
+that is not on the page (now marked with `…` and checked piece by piece). All were repaired the
+same day. A check that only ever passes proves nothing; this one failed nine times on its
+first run.
+
 ---
 
 ## Project structure

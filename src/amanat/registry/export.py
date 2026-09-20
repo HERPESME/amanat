@@ -13,10 +13,14 @@ usable as fact). Validating against it is how a consumer inherits them.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 
-from amanat.rails.semantics import RAILS, Capability, Limit, RailProfile, SourceTier
+from amanat.rails.semantics import (
+    RAILS, SOURCE_COPIES, Capability, Limit, RailProfile, SourceTier,
+)
+from amanat.registry import store, watch
 
 SCHEMA_VERSION = 2
 
@@ -31,7 +35,25 @@ def schema() -> dict:
     return json.loads(_PACKAGED_SCHEMA.read_text(encoding="utf-8"))
 
 
-def _evidence(row: Capability | Limit) -> dict:
+def _verification(row: Capability | Limit, key: tuple[str, str, str], history: dict) -> dict | None:
+    """When this row's quote was last re-checked against its source, and how that has gone."""
+    checks = [c for c in history.get(key, []) if c["result"] != watch.SKIPPED]
+    if not checks:
+        return None
+    last = checks[-1]
+    return {
+        "result": last["result"],
+        "detail": last["detail"],
+        "checked_on": last["checked_at"][:10],
+        "quote_current": last["quote_sha256"] == watch.quote_hash(row.quote),
+        "evidence_hash": last["evidence_hash"],
+        "checks": len(checks),
+        "changes": [{"on": b["checked_at"][:10], "from": a["result"], "to": b["result"]}
+                    for a, b in zip(checks, checks[1:]) if a["result"] != b["result"]],
+    }
+
+
+def _evidence(row: Capability | Limit, verification: dict | None) -> dict:
     return {
         "tier": row.source_tier.value,
         "usable_as_fact": row.is_fact,
@@ -42,42 +64,74 @@ def _evidence(row: Capability | Limit) -> dict:
         "url": row.url,
         "quote": row.quote,
         "notes": row.notes,
+        "verification": verification,
     }
 
 
-def _capability(rail: RailProfile, cap: Capability) -> dict:
+def _capability(rail: RailProfile, cap: Capability, history: dict) -> dict:
+    v = _verification(cap, (rail.rail_id, "capability", cap.name), history)
     return {"name": cap.name, "supported": cap.supported,
-            "permitted": rail.permits(cap.name), **_evidence(cap)}
+            "permitted": rail.permits(cap.name), **_evidence(cap, v)}
 
 
-def _limit(lim: Limit) -> dict:
-    return {"name": lim.name, "value": lim.value, "unit": lim.unit, **_evidence(lim)}
+def _limit(rail: RailProfile, lim: Limit, history: dict) -> dict:
+    v = _verification(lim, (rail.rail_id, "limit", lim.name), history)
+    return {"name": lim.name, "value": lim.value, "unit": lim.unit, **_evidence(lim, v)}
 
 
-def build() -> dict:
-    """The registry as a JSON-able dict."""
+def _sources() -> list[dict]:
+    """The committed documents the quotes were transcribed from, with their hashes."""
+    out = []
+    for url, rel in SOURCE_COPIES.items():
+        data = (ROOT / rel).read_bytes()
+        out.append({"url": url, "path": rel, "sha256": hashlib.sha256(data).hexdigest(),
+                    "bytes": len(data)})
+    return out
+
+
+def _stores(paths: list[Path]) -> list[dict]:
+    """A checkpoint of every evidence stream: an older export pins the history behind it."""
+    heads = []
+    for path in paths:
+        head = store.verify(path)
+        if head.length:
+            heads.append({"stream": path.stem, "length": head.length, "head": head.hash})
+    return heads
+
+
+def build(watch_path: Path | None = None) -> dict:
+    """The registry as a JSON-able dict.
+
+    `watch_path` names the quote-check stream to read (tests pass a temporary one). Left as
+    None, the committed streams are used and every stream is checkpointed.
+    """
+    history = watch.history(watch_path) if watch_path or store.stream_path(watch.STREAM).exists() else {}
+    paths = [watch_path] if watch_path else [store.stream_path(name) for name in store.streams()]
     rails = [
         {
             "rail_id": rail.rail_id,
             "display_name": rail.display_name,
-            "capabilities": [_capability(rail, c) for c in rail.capabilities.values()],
-            "limits": [_limit(l) for l in rail.limits.values()],
+            "capabilities": [_capability(rail, c, history) for c in rail.capabilities.values()],
+            "limits": [_limit(rail, l, history) for l in rail.limits.values()],
         }
         for rail in RAILS.values()
     ]
-    dates = [row["obtained_on"] for r in rails
-             for row in (*r["capabilities"], *r["limits"]) if row["obtained_on"]]
+    rows = [row for r in rails for row in (*r["capabilities"], *r["limits"])]
+    dates = [row["obtained_on"] for row in rows if row["obtained_on"]]
+    dates += [row["verification"]["checked_on"] for row in rows if row["verification"]]
     return {
         "schema_version": SCHEMA_VERSION,
         "as_of": max(dates) if dates else None,
         "tiers": [{"tier": t.value, "usable_as_fact": t.is_fact, "meaning": t.meaning}
                   for t in SourceTier],
+        "sources": _sources(),
+        "stores": _stores(paths),
         "rails": rails,
     }
 
 
-def render() -> str:
-    return json.dumps(build(), indent=2, ensure_ascii=False) + "\n"
+def render(watch_path: Path | None = None) -> str:
+    return json.dumps(build(watch_path), indent=2, ensure_ascii=False) + "\n"
 
 
 def main() -> None:

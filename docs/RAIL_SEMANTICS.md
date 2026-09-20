@@ -175,7 +175,7 @@ Scope note: the clause binds one MOBILE NUMBER to one block PER MERCHANT. It say
 
 **`block_amount_modifiable_without_revoke`**
 
-> There are only two updates possible on a UPI mandate: Changing the mandate end date; Changing the mandate amount. endDate cannot be updated for a single block multi debit mandate
+> There are only two updates possible on a UPI mandate … Changing the mandate end date … Changing the mandate amount … endDate cannot be updated for a single block multi debit mandate
 
 — Setu UPI (UMAP), Mandate operations - Update (corroborated by Setu UPI (UMAP), ReservePlus (Single block multi-debit mandate)), https://docs.setu.co/payments/umap/mandates/generic/update
 
@@ -206,7 +206,7 @@ So an unattended agent has exactly one lever that returns money, and it is the o
 
 **`remainder_release_without_teardown`**
 
-> The blocked amount under a UPI Reserve Pay token can be released in two ways: Use the Cancel Token API below to release the blocked funds. When this API is called, all remaining funds under the token are unblocked and credited to the customer's bank account instantly. If you do not cancel the token and the token balance is not fully utilised before expiry, Razorpay automatically triggers a reversal of the remaining funds 10 minutes before the token expires.
+> The blocked amount under a UPI Reserve Pay token can be released in two ways: … Use the Cancel Token API below to release the blocked funds. When this API is called, all remaining funds under the token are unblocked and credited to the customer's bank account instantly. … If you do not cancel the token and the token balance is not fully utilised before expiry, Razorpay automatically triggers a reversal of the remaining funds 10 minutes before the token expires.
 
 — Razorpay UPI Reserve Pay (SBMD), Manage Mandates and Tokens; Cashfree UPI Reserve Pay, Implementation Guide step 6 (Manage mandate); Juspay One Time Mandate, Release the Blocked Funds, https://razorpay.com/docs/payments/payment-gateway/s2s-integration/recurring-payments/upi-reserve-pay/manage/
 
@@ -224,8 +224,8 @@ ONE PIECE OF GOOD NEWS the circulars do not give you. Razorpay bounds worst-case
 | Capability | Permitted | Tier | Obtained | Source |
 |---|---|---|---|---|
 | `partial_debit` | **no** | `OBSERVED` (sandbox) | 2026-08-22 | measured 22 Aug 2026 — POST /payments/{id}/capture, HTTP 400 (docs agree: razorpay.com/docs/api/payments/capture/) |
-| `funds_held_in_customer_account` | **no** | `SECONDARY` | — | Razorpay payment lifecycle docs |
-| `manual_capture` | yes | `SECONDARY` | — | Razorpay orders API (payment_capture flag) |
+| `funds_held_in_customer_account` | **no** | `SECONDARY` | 2026-09-20 | Razorpay docs, Payments, payment states (authorized) |
+| `manual_capture` | yes | `SECONDARY` | 2026-09-20 | Razorpay docs, Payment Capture Settings (Manually Capture Payments) |
 
 **`partial_debit`**
 
@@ -237,19 +237,19 @@ Not a documentation claim. A test-mode payment was driven to 'authorized' (captu
 
 **`funds_held_in_customer_account`**
 
-> Capture amount must be equal to the amount authorized.
+> The payment state changes to authorized when the bank successfully authenticates the customer's payment details. The money is deducted from the customer's account by Razorpay.
 
-— Razorpay payment lifecycle docs, https://razorpay.com/docs/payments/payments/
+— Razorpay docs, Payments, payment states (authorized), https://razorpay.com/docs/payments/payments/
 
 THE TRAP: Razorpay's 'authorized' state has ALREADY DEBITED the customer. It is not a hold. Volunteer this in the pitch.
 
 **`manual_capture`**
 
-> Capture amount must be equal to the amount authorized.
+> You can manually capture payments in the authorized state using our Capture API or from the Dashboard. All payments that are not captured within the manual timeout period will be auto-refunded.
 
-— Razorpay orders API (payment_capture flag), https://razorpay.com/docs/api/orders/
+— Razorpay docs, Payment Capture Settings (Manually Capture Payments), https://razorpay.com/docs/payments/payments/capture-settings/
 
-Authorize-now / capture-later exists, but capture must be for the full amount.
+Authorize-now / capture-later exists, but capture must be for the full amount (the `partial_debit` row: measured, and stated in the Capture API's error list).
 
 
 ## `upi_otm` — UPI One Time Mandate
@@ -264,7 +264,7 @@ CONFLICT, UNRESOLVED. PayU documents: “Once the merchant decides to capture th
 
 **`partial_debit`**
 
-> Reserve allows a merchant to block funds upto Rs.1 lakh for all MCCs except 6211 and debit either the full amount or a partial amount from the customer. If a partial debit is done, remaining funds are unblocked in the customer bank A/C without any additional need for refund/reversal.
+> Reserve allows a merchant to block funds upto ₹1 lakh for all MCCs except 6211 and debit either the full amount or a partial amount from the customer. If a partial debit is done, remaining funds are unblocked in the customer bank A/C without any additional need for refund/reversal.
 
 — Setu UPI (UMAP), Reserve (One Time Mandates), https://docs.setu.co/payments/umap/mandates/reserve
 
@@ -319,7 +319,7 @@ Believed, not confirmed. The 29 Aug probe inferred the remainder was returned fr
 
 > No, voiding must be for the entire authorised amount.
 
-— Cashfree, Pre-Authorisation docs, FAQ (fetched 20 Sep 2026), https://www.cashfree.com/docs/api-reference/payments/latest/payments/authorize
+— Cashfree, Pre-Authorisation docs, FAQ (fetched 20 Sep 2026), https://www.cashfree.com/docs/payments/features/pre-authorisation
 
 A hold can be released only whole, so 'void just the remainder' is not a verb on this rail.
 
@@ -327,7 +327,7 @@ A hold can be released only whole, so 'void just the remainder' is not a verb on
 
 > A transaction can only be captured or voided once.
 
-— Cashfree, Pre-Authorisation docs, Managing preauthorisation transactions (fetched 20 Sep 2026), https://www.cashfree.com/docs/api-reference/payments/latest/payments/authorize
+— Cashfree, Pre-Authorisation docs, Managing preauthorisation transactions (fetched 20 Sep 2026), https://www.cashfree.com/docs/payments/features/pre-authorisation
 
 Single-shot: unlike SBMD, where OC-200 says the bank "shall allow multiple debits against the block", one authorisation takes one capture. A basket with substitutions or a fare with a waiting charge cannot be drawn down in steps.
 
@@ -374,7 +374,7 @@ The two hosts the UMAP docs name for sandbox and production do not exist in publ
 
 **`block_amount_modifiable_without_revoke`**
 
-> There are only two updates possible on a UPI mandate — Changing the mandate end date — Changing the mandate amount
+> There are only two updates possible on a UPI mandate … Changing the mandate end date … Changing the mandate amount
 
 — Setu, Mandate operations > Update, https://docs.setu.co/payments/umap/mandates/generic/update
 

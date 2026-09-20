@@ -9,6 +9,8 @@
     "schema_version",
     "as_of",
     "tiers",
+    "sources",
+    "stores",
     "rails"
   ],
   "properties": {
@@ -36,6 +38,20 @@
       "type": "array",
       "items": {
         "$ref": "#/$defs/rail"
+      }
+    },
+    "sources": {
+      "description": "The documents the quotes were transcribed from, committed to this repository, with their SHA-256. The regulator's site refuses scripted clients, so anyone can download a circular in a browser and compare.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/source"
+      }
+    },
+    "stores": {
+      "description": "A checkpoint (length and hash of the last line) of every evidence stream. An older export pins the history behind it: a stream that no longer extends its checkpoint has been rewritten.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/streamHead"
       }
     }
   },
@@ -84,7 +100,8 @@
         "citation",
         "url",
         "quote",
-        "notes"
+        "notes",
+        "verification"
       ],
       "properties": {
         "tier": {
@@ -129,6 +146,9 @@
         },
         "notes": {
           "type": "string"
+        },
+        "verification": {
+          "$ref": "#/$defs/verification"
         }
       },
       "allOf": [
@@ -340,6 +360,130 @@
           }
         }
       }
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "url",
+        "path",
+        "sha256",
+        "bytes"
+      ],
+      "properties": {
+        "url": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "bytes": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "streamHead": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stream",
+        "length",
+        "head"
+      ],
+      "properties": {
+        "stream": {
+          "type": "string",
+          "minLength": 1
+        },
+        "length": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "head": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "verification": {
+      "description": "The latest re-check of this row's quote against the page it cites. `unfetchable` says the source could not be read (never that the quote is wrong); `not_found` and `document_changed` say it could and the quote is gone.",
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "result",
+            "detail",
+            "checked_on",
+            "quote_current",
+            "evidence_hash",
+            "checks",
+            "changes"
+          ],
+          "properties": {
+            "result": {
+              "enum": [
+                "verified",
+                "verified_fragments",
+                "verified_by_copy",
+                "not_found",
+                "document_changed",
+                "unfetchable"
+              ]
+            },
+            "detail": {
+              "type": "string"
+            },
+            "checked_on": {
+              "$ref": "#/$defs/date"
+            },
+            "quote_current": {
+              "type": "boolean",
+              "description": "False if the row's quote was edited after this check."
+            },
+            "evidence_hash": {
+              "$ref": "#/$defs/sha256"
+            },
+            "checks": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "changes": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "on",
+                  "from",
+                  "to"
+                ],
+                "properties": {
+                  "on": {
+                    "$ref": "#/$defs/date"
+                  },
+                  "from": {
+                    "type": "string"
+                  },
+                  "to": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
     }
   }
 }

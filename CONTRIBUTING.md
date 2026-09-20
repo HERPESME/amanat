@@ -31,10 +31,21 @@ compared with Python byte for byte. CI fails, rather than skips, if Node is miss
 ## Adding or changing a rail capability
 
 1. Find the primary source and read it — do not work from a summary.
-2. Fill `Capability` with a verbatim `quote`, the URL, and the date you read it.
+2. Fill `Capability` with a verbatim `quote`, the URL of the page that carries it, and `obtained_on`
+   (the ISO date you read it). Where the page has something between two sentences you quote, mark the
+   gap with `…`; each piece must be verbatim. An `OBSERVED` row also names its `environment`
+   (`sandbox` or `live`).
 3. Anything you could not verify is `UNVERIFIED`, never omitted.
 4. Add a test that the engine refuses what the rail does not allow.
-5. Regenerate `docs/RAIL_SEMANTICS.md`; CI fails on any drift.
+5. Run `python -m amanat.registry.watch`: it fetches every cited page and checks each quote is
+   present, and appends the run to `docs/observations/store/watch.jsonl`. A quote it cannot find is
+   a defect in the row, not in the tool; commit the run with your change. (It needs the network, so
+   CI does not run it — CI checks that a quote you edited was checked again.)
+6. Regenerate `docs/RAIL_SEMANTICS.md` and `docs/registry/` (`python -m amanat.rails.docgen`,
+   `python -m amanat.registry.export`); CI fails on any drift.
+
+A model may propose a row; it is admitted only if the watcher finds its quote on the page. The check,
+not the model, decides.
 
 ## Licence
 

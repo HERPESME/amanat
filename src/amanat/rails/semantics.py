@@ -293,6 +293,17 @@ OC200_URL = (
 # circulars' own dates are in the citations above; this is when *this project* obtained the text.
 NPCI_READ_ON = "2026-08-21"
 
+# The circulars are image-only scans and the regulator's site refuses scripted clients (HTTP
+# 403 to any non-browser request), so these committed copies are what the quotes were
+# transcribed from. Their SHA-256 is exported in the registry, so anyone can download the
+# circular in a browser and compare.
+SOURCE_COPIES = {
+    OC228_URL: ("docs/sources/NPCI-UPI-OC-228-2025-26-Enhancements-in-UPI-Single-Block-"
+                "Multiple-Debits-Reserve-Pay.pdf"),
+    OC200_URL: ("docs/sources/NPCI-UPI-OC-200-2024-25-Enablement-of-UPI-Mandate-feature-of-"
+                "Single-Block-Multiple-Debits.pdf"),
+}
+
 # OC-228, opening paragraph.
 _OC228_DRAWDOWN = (
     "UPI Reserve Pay feature facilitates the customer to block the funds in the "
@@ -378,6 +389,21 @@ _OC200_PURPOSE_CODE_LIMITS = (
 
 _RAZORPAY_FULL_CAPTURE = "Capture amount must be equal to the amount authorized."
 
+# Razorpay, Payments > payment states, the `authorized` state.
+_RAZORPAY_AUTHORIZED_DEBITED = (
+    "The payment state changes to authorized when the bank successfully "
+    "authenticates the customer's payment details. The money is deducted from "
+    "the customer's account by Razorpay."
+)
+
+# Razorpay, Payment Capture Settings > Manually Capture Payments.
+RAZORPAY_CAPTURE_SETTINGS_URL = "https://razorpay.com/docs/payments/payments/capture-settings/"
+_RAZORPAY_MANUAL_CAPTURE = (
+    "You can manually capture payments in the authorized state using our "
+    "Capture API or from the Dashboard. All payments that are not captured "
+    "within the manual timeout period will be auto-refunded."
+)
+
 _PAYU_OTM_CAPTURE = (
     "Once the merchant decides to capture the amount (usually after the goods or "
     "services are delivered)..."
@@ -445,12 +471,12 @@ _OC228_ONE_BLOCK = (
 )
 
 # Setu, Mandate operations > Update. Rendered on the page as a lead sentence
-# followed by a two-item bulleted list; the bullets are flattened here with
-# semicolons and are otherwise verbatim. The second sentence is a standalone
-# callout on the same page.
+# followed by a two-item bulleted list, and, further down past a request sample,
+# a standalone callout. Each piece is verbatim; "…" marks where the page has
+# something else between them, and `amanat.registry.watch` checks the pieces in order.
 _SETU_TWO_UPDATES = (
-    "There are only two updates possible on a UPI mandate: Changing the "
-    "mandate end date; Changing the mandate amount. "
+    "There are only two updates possible on a UPI mandate … "
+    "Changing the mandate end date … Changing the mandate amount … "
     "endDate cannot be updated for a single block multi debit mandate"
 )
 
@@ -467,9 +493,9 @@ _SETU_UPDATE_MPIN = (
 # Cancel Token API and expiry - there is no third, and no partial release.
 _RZP_RELEASE_IS_CANCEL = (
     "The blocked amount under a UPI Reserve Pay token can be released in two "
-    "ways: Use the Cancel Token API below to release the blocked funds. When "
+    "ways: … Use the Cancel Token API below to release the blocked funds. When "
     "this API is called, all remaining funds under the token are unblocked and "
-    "credited to the customer's bank account instantly. If you do not cancel "
+    "credited to the customer's bank account instantly. … If you do not cancel "
     "the token and the token balance is not fully utilised before expiry, "
     "Razorpay automatically triggers a reversal of the remaining funds 10 "
     "minutes before the token expires."
@@ -512,7 +538,7 @@ _RZP_TPAP_UPDATE_AMOUNT = (
 # because the contrast is the finding: on a one-shot block the rail hands the
 # remainder back by itself; on a multi-debit block it does not.
 _SETU_OTM_AUTO_UNBLOCK = (
-    "Reserve allows a merchant to block funds upto Rs.1 lakh for all MCCs "
+    "Reserve allows a merchant to block funds upto ₹1 lakh for all MCCs "
     "except 6211 and debit either the full amount or a partial amount from the "
     "customer. If a partial debit is done, remaining funds are unblocked in the "
     "customer bank A/C without any additional need for refund/reversal."
@@ -1047,9 +1073,10 @@ RAZORPAY_AUTH_CAPTURE = RailProfile(
         Capability(
             name="funds_held_in_customer_account", supported=False,
             source_tier=SourceTier.SECONDARY,
-            citation="Razorpay payment lifecycle docs",
+            citation="Razorpay docs, Payments, payment states (authorized)",
             url="https://razorpay.com/docs/payments/payments/",
-            quote=_RAZORPAY_FULL_CAPTURE,
+            quote=_RAZORPAY_AUTHORIZED_DEBITED,
+            obtained_on="2026-09-20",
             notes=(
                 "THE TRAP: Razorpay's 'authorized' state has ALREADY DEBITED the "
                 "customer. It is not a hold. Volunteer this in the pitch."
@@ -1058,10 +1085,12 @@ RAZORPAY_AUTH_CAPTURE = RailProfile(
         Capability(
             name="manual_capture", supported=True,
             source_tier=SourceTier.SECONDARY,
-            citation="Razorpay orders API (payment_capture flag)",
-            url="https://razorpay.com/docs/api/orders/",
-            quote=_RAZORPAY_FULL_CAPTURE,
-            notes="Authorize-now / capture-later exists, but capture must be for the full amount.",
+            citation="Razorpay docs, Payment Capture Settings (Manually Capture Payments)",
+            url=RAZORPAY_CAPTURE_SETTINGS_URL,
+            quote=_RAZORPAY_MANUAL_CAPTURE,
+            obtained_on="2026-09-20",
+            notes=("Authorize-now / capture-later exists, but capture must be for the full amount "
+                   "(the `partial_debit` row: measured, and stated in the Capture API's error list)."),
         ),
     ],
 )
@@ -1129,6 +1158,7 @@ UPI_OTM = RailProfile(
 CASHFREE_PREAUTH_URL = (
     "https://www.cashfree.com/docs/api-reference/payments/latest/payments/authorize"
 )
+CASHFREE_PREAUTH_GUIDE_URL = "https://www.cashfree.com/docs/payments/features/pre-authorisation"
 
 CASHFREE_PREAUTH = RailProfile(
     rail_id="cashfree_preauth",
@@ -1198,7 +1228,7 @@ CASHFREE_PREAUTH = RailProfile(
             name="partial_void", supported=False,
             source_tier=SourceTier.SECONDARY, obtained_on="2026-09-20",
             citation=("Cashfree, Pre-Authorisation docs, FAQ (fetched 20 Sep 2026)"),
-            url=CASHFREE_PREAUTH_URL,
+            url=CASHFREE_PREAUTH_GUIDE_URL,
             quote="No, voiding must be for the entire authorised amount.",
             notes=("A hold can be released only whole, so 'void just the remainder' "
                    "is not a verb on this rail."),
@@ -1208,7 +1238,7 @@ CASHFREE_PREAUTH = RailProfile(
             source_tier=SourceTier.SECONDARY, obtained_on="2026-09-20",
             citation=("Cashfree, Pre-Authorisation docs, Managing preauthorisation "
                       "transactions (fetched 20 Sep 2026)"),
-            url=CASHFREE_PREAUTH_URL,
+            url=CASHFREE_PREAUTH_GUIDE_URL,
             quote="A transaction can only be captured or voided once.",
             notes=("Single-shot: unlike SBMD, where OC-200 says the bank \"shall allow "
                    "multiple debits against the block\", one authorisation takes one "
@@ -1255,7 +1285,7 @@ CASHFREE_PREAUTH = RailProfile(
             name="hold_expiry_days", value=7, unit="days",
             source_tier=SourceTier.SECONDARY, obtained_on="2026-09-20",
             citation=("Cashfree, Pre-Authorisation docs, FAQ (fetched 20 Sep 2026)"),
-            url=CASHFREE_PREAUTH_URL,
+            url=CASHFREE_PREAUTH_GUIDE_URL,
             quote=("If not captured within 7 days, the authorisation expires, and the "
                    "funds are released back to the customer."),
             notes=("The documented deadline for capture or void. A hold that outlives "
@@ -1300,8 +1330,8 @@ SETU_UMAP = RailProfile(
             source_tier=SourceTier.SECONDARY,
             citation="Setu, Mandate operations > Update",
             url="https://docs.setu.co/payments/umap/mandates/generic/update",
-            quote=("There are only two updates possible on a UPI mandate — "
-                   "Changing the mandate end date — Changing the mandate amount"),
+            quote=("There are only two updates possible on a UPI mandate … "
+                   "Changing the mandate end date … Changing the mandate amount"),
             notes="[PARTIAL] The only surveyed PSP exposing a modify that "
                   "preserves the mandate. Direction (whether it may LOWER the "
                   "amount) is documented nowhere and remains unverified.",
