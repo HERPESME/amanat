@@ -13,7 +13,6 @@ from __future__ import annotations
 import secrets as _secrets
 import threading
 import time
-import uuid
 from datetime import datetime, timezone
 from typing import Callable
 
@@ -38,11 +37,7 @@ class TracingCashfree(CashfreePreAuthRail):
     def __init__(self, *args, clock: Callable[[], str] = _now, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.trace: list[dict] = []
-        self._extra_headers: dict[str, str] = {}
         self._clock = clock
-
-    def _headers(self, version: str) -> dict:
-        return {**super()._headers(version), **self._extra_headers}
 
     def _send(self, method: str, path: str, *, version: str, **kw) -> tuple[int, dict]:
         return CashfreePreAuthRail._call(self, method, path, version=version, **kw)
@@ -108,8 +103,9 @@ class CashfreeHarness:
         return Exchange(label, request, e["status"], e["response"], e["error"], e["at"])
 
     def idempotency_key(self, hold: dict, name: str) -> str:
-        """A stable UUID for (this hold, this key name): the same name repeats, another hold differs."""
-        return str(uuid.uuid5(uuid.NAMESPACE_URL, f"{hold['order_id']}:{name}"))
+        """The header the adapter sends for (this hold, this key name): the same name repeats, another
+        hold differs. It is the adapter's own derivation, so what a probe measures is what a session sends."""
+        return self.rail._key_header(hold["order_id"], name)["x-idempotency-key"]
 
     # ---------------------------------------------------------------- operations
 
@@ -143,29 +139,15 @@ class CashfreeHarness:
 
     def _op_capture(self, hold: dict, amount: int, idempotency_key: str | None = None) -> OpResult:
         r = self.rail
-        extra = None
-        if idempotency_key:
-            key = self.idempotency_key(hold, idempotency_key)
-            r._extra_headers = {"x-idempotency-key": key}
-            extra = {"idempotency_key": key}
-        try:
-            e = self._exchange(r, "capture", lambda: r.capture(hold["order_id"], amount), extra=extra)
-        finally:
-            r._extra_headers = {}
-        return OpResult([e])
+        extra = {"idempotency_key": self.idempotency_key(hold, idempotency_key)} if idempotency_key else None
+        return OpResult([self._exchange(
+            r, "capture", lambda: r.capture(hold["order_id"], amount, idempotency_key=idempotency_key), extra=extra)])
 
     def _op_void(self, hold: dict, idempotency_key: str | None = None) -> OpResult:
         r = self.rail
-        extra = None
-        if idempotency_key:
-            key = self.idempotency_key(hold, idempotency_key)
-            r._extra_headers = {"x-idempotency-key": key}
-            extra = {"idempotency_key": key}
-        try:
-            e = self._exchange(r, "void", lambda: r.void(hold["order_id"]), extra=extra)
-        finally:
-            r._extra_headers = {}
-        return OpResult([e])
+        extra = {"idempotency_key": self.idempotency_key(hold, idempotency_key)} if idempotency_key else None
+        return OpResult([self._exchange(
+            r, "void", lambda: r.void(hold["order_id"], idempotency_key=idempotency_key), extra=extra)])
 
     def _op_recreate_order(self, hold: dict, amount: int) -> OpResult:
         """Ask for an order under an id that already exists: is the repeat refused, or is it a second order?"""

@@ -40,7 +40,7 @@ def harness(respond, **kw):
         def _send(self, method, path, *, version, **kw2):
             with r.lock:
                 r.sent.append((method, path, kw2.get("json")))
-                r.headers_seen.append(dict(self._headers(version)))
+                r.headers_seen.append({**self._headers(version), **(kw2.get("headers") or {})})
             out = r.respond(method, path, kw2.get("json"))
             if isinstance(out, BaseException):
                 raise out

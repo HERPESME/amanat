@@ -42,10 +42,11 @@ committing to it.** They killed the first design; that is what they are for.
 ## Commands
 
 ```bash
-uv run --extra ml --extra web --extra dev pytest tests/ -q   # 1446 tests (Node.js runs the browser-verifier tests)
+uv run --extra ml --extra web --extra dev pytest tests/ -q   # 1524 tests (Node.js runs the browser-verifier tests)
 uv run --extra dev python -m amanat.demo                     # end-to-end walkthrough
 uv run --extra dev python -m amanat.registry.watch           # re-check every cited quote against its source (network)
 uv run --extra dev python -m amanat.probes run               # re-measure the Cashfree sandbox (network, sandbox credentials in .env)
+uv run --extra dev --with httpx python -m amanat.rails.probe_cashfree_retry   # lose a reply, retry, count what the rail holds (sandbox)
 # regenerate what CI diffs: python -m amanat.rails.docgen, then amanat.registry.export, .page and .report
 ```
 

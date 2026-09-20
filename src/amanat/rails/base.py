@@ -21,6 +21,14 @@ class RailError(Exception):
     """The rail refused. Distinct from a policy refusal, which happens earlier."""
 
 
+class RailOutcomeUnknown(Exception):
+    """The call may or may not have acted: a timeout status, a server error.
+
+    Not a `RailError` on purpose. A refusal means nothing happened; silence means the rail may have
+    acted, and the session must stop moving money until the call is resolved under the same key.
+    """
+
+
 class BlockState(Enum):
     IDLE = "idle"
     BLOCKED = "blocked"      # ceiling standing, nothing moved

@@ -8,7 +8,7 @@
 
 *Block a ceiling. Debit the actual. Prove what the money did.*
 
-[![tests](https://img.shields.io/badge/tests-1446-2ea44f?style=flat-square)](#testing)
+[![tests](https://img.shields.io/badge/tests-1524-2ea44f?style=flat-square)](#testing)
 [![python](https://img.shields.io/badge/python-3.11%2B-3776ab?style=flat-square)](#quick-start)
 [![Cashfree sandbox](https://img.shields.io/badge/Cashfree%20sandbox-%E2%82%B9470%20of%20%E2%82%B9620%20%C2%B7%20HTTP%20200-2ea44f?style=flat-square)](#what-it-does)
 [![rails](https://img.shields.io/badge/rails-UPI%20SBMD%20%C2%B7%20Cashfree%20%C2%B7%20Razorpay%20%C2%B7%20Setu-6c5ce7?style=flat-square)](#the-evidence-table)
@@ -133,7 +133,7 @@ git clone https://github.com/HERPESME/amanat && cd amanat
 # The eight-act walkthrough — the whole argument in one command
 uv run --with cryptography python -m amanat.demo
 
-# 1446 tests. No API key, no network (Node.js runs the browser-verifier tests).
+# 1524 tests. No API key, no network (Node.js runs the browser-verifier tests).
 uv run --with pytest --with cryptography --with httpx --with fastapi --with pydantic \
        --with numpy --with scikit-learn --with pandas --with pyarrow --with hypothesis pytest tests/ -q
 ```
@@ -170,6 +170,9 @@ uv run --with numpy --with pandas --with scikit-learn --with pyarrow \
 
 # Cashfree sandbox: hold ₹620, capture ₹470 (HTTP 200); the ₹150's return is not observed
 uv run --with httpx --with cryptography python -m amanat.rails.probe_cashfree
+
+# Cashfree sandbox: lose the reply to a reservation, a capture and a release (and restart a session); each retry must act once
+uv run --with httpx --with cryptography python -m amanat.rails.probe_cashfree_retry
 
 # Reproduce Razorpay's refusal in test mode (HTTP 400; needs a browser Checkout to reach `authorized`)
 uv run --with httpx --with cryptography python -m amanat.rails.probe
@@ -636,6 +639,7 @@ src/amanat/
 │   ├── settlement.py   ← capture-then-refund on Razorpay's real verbs
 │   ├── probe.py        ← measures Razorpay live (its refusal, HTTP 400)
 │   ├── probe_cashfree.py ← drives the pre-auth lifecycle in the sandbox (HTTP 200, ₹470 of ₹620)
+│   ├── probe_cashfree_retry.py ← loses the reply to a call, repeats it, counts what the rail holds
 │   ├── probe_cashfree_release.py ← measures, over time, what the API says about the remainder
 │   ├── cashfree_settle.py ← signs a real Cashfree run into a verifiable evidence packet
 │   └── authorize.py    ← browser harness for an authorized-but-uncaptured payment
@@ -667,7 +671,7 @@ uv run --with pytest --with cryptography --with httpx --with fastapi --with pyda
        --with numpy --with scikit-learn --with pandas --with pyarrow --with hypothesis pytest tests/ -q
 ```
 
-**1446 tests, no credential and no network.** If proving the agent is bounded ever
+**1524 tests, no credential and no network.** If proving the agent is bounded ever
 required a live model, the agent would not be bounded.
 
 | Suite | What it pins |
@@ -704,6 +708,11 @@ so neither the prose nor the export can claim more than the runtime honours.
 - the governed core: a policy engine with no model call in it, a signed evidence chain whose verification
   can be pinned to a key and a checkpoint, write-ahead intent with recovery from a lost response, signed
   human consent, and obligation clocks for holds that outlive their purpose;
+- a Cashfree adapter that survives a retry and a restart: a reservation, a capture or a release whose reply
+  is lost is repeated under the same key and acts once, and a session restarted from its chain rebuilds the
+  block from the rail's own state and resolves the call in doubt. Checked against the real sandbox with the
+  reply genuinely lost (`python -m amanat.rails.probe_cashfree_retry`); its claim to idempotency is derived
+  from the measured registry rows, so it lapses if a probe ever disagrees;
 - the registry: 107 capabilities on 14 rails, each cited (a quote, its source and the date it was read) or marked `UNVERIFIED`; a watcher that
   re-reads every quote; twelve sandbox probes with a test that fails if a rail's answer changes; a schema,
   a comparison page and a generated report.
@@ -712,7 +721,6 @@ so neither the prose nor the export can claim more than the runtime honours.
 - witnessed checkpoints and per-actor keys: today a packet on its own proves internal consistency only;
 - probes beyond Cashfree's sandbox (Stripe test mode and an x402 testnet need accounts; Razorpay's
   authorisation needs a browser), and a nightly run (it needs sandbox credentials as repository secrets);
-- an adapter that sends idempotency keys to a real rail (measured safe on Cashfree's capture only);
 - any integration with a partner's product, an MCP proxy included;
 - push rails (FedNow, ACH, SEPA Instant) in the registry.
 
@@ -720,13 +728,11 @@ so neither the prose nor the export can claim more than the runtime honours.
 1. *Independent checkpoints.* Per-actor keys with key ids, a Merkle log with checkpoints cosigned by
    witnesses (the C2SP transparency-log formats), and a verifier that takes a policy — so an unpinned
    packet stops being the only mode.
-2. *Retry safety on a real rail.* Probe void and order-creation replay on Cashfree, then let its adapter
-   send idempotency keys, with the measured rows as the justification.
-3. *A conformance kit.* Hold, partial capture, release, refusal and retry as adversarial cases runnable
+2. *A conformance kit.* Hold, partial capture, release, refusal and retry as adversarial cases runnable
    against any rail that has an adapter, reporting containment as numbers.
-4. *Thin adoption vehicles*, only after the above: a stdio MCP guard in front of an agent-payments CLI,
+3. *Thin adoption vehicles*, only after the above: a stdio MCP guard in front of an agent-payments CLI,
    and x402 hooks that enforce settled ≤ authorised.
-5. *More rows*, on request: push rails, and any vendor that wants its rail described.
+4. *More rows*, on request: push rails, and any vendor that wants its rail described.
 
 ## Honest limitations
 
