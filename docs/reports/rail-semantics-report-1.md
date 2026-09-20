@@ -8,9 +8,9 @@ snapshot: pages change and sandboxes change, and the point of the registry is th
 
 ## What is in the registry
 
-14 rails, 97 capabilities, 18 numeric limits. 8 rows rest on recorded probe runs against a vendor's sandbox, each with its stored exchange;
+14 rails, 100 capabilities, 18 numeric limits. 8 rows rest on recorded probe runs against a vendor's sandbox, each with its stored exchange;
 3 more rest on one-off observations made by hand (Razorpay capture's partial debit, 2026-08-22, sandbox; Setu UMAP's credentials self serve, 2026-08-21, live; Setu UMAP's api publicly reachable, 2026-08-21, live), whose exchanges are not in the evidence store.
-82 quotes were **re-read** from the source they cite on the date above (31 of them cite a source pinned to a revision, where re-reading shows that the quote was transcribed correctly and can never show that anything changed; the other 51 cite pages that can change, and those are the ones the watcher guards); 14 sources could not be read
+82 quotes were **re-read** from the source they cite on the date above (31 of them cite a source pinned to a revision, where re-reading shows that the quote was transcribed correctly and can never show that anything changed; the other 51 cite pages that can change, and those are the ones the watcher guards); 17 sources could not be read
 (below); 7 capabilities are **unverified** and therefore refused by the policy engine rather than assumed.
 
 How a row is admitted: it carries a verbatim quote and the page it came from, and `python -m amanat.registry.watch` fetches that page and
@@ -165,7 +165,7 @@ Unverified — refused by the engine, never assumed:
 
 Sources that could not be read on the date above (reported as unreadable, never as a missing quote):
 
-- 14 rows cite `www.npci.org.in (HTTP 403)`
+- 17 rows cite `www.npci.org.in (HTTP 403)`
 
 The regulator's site refuses scripted clients, so the two NPCI circulars the primary rows were transcribed from are committed and their hashes are exported. Visa's guide is treated as secondary because it says the Visa Rules govern in any conflict, and the Rules have not been read. It also carries a confidentiality notice on its last page although Visa hosts it publicly; this report and the registry quote it only in short, attributed sentences, and will remove them on request.
 
@@ -183,7 +183,7 @@ Checkpoints of the evidence behind this report. A later export whose streams do 
 | Stream | Lines | Head (SHA-256) |
 |---|---|---|
 | `probes.cashfree_preauth` | 8 | `d0442a0012814763b3acbcaf16188af2e874f5a90fea9d9045aa2acfb118df18` |
-| `watch` | 5 | `43b9b82948e67b95f645574bf1cab95901e6c5850014d0ff3455997097c483fc` |
+| `watch` | 6 | `61eda41116bc7a71a00dd930d54fa1e66be6ef3c1635003b58e6cdd1aaa27b11` |
 
 Source documents committed to the repository:
 

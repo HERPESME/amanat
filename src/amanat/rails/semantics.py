@@ -428,6 +428,25 @@ _OC200_MULTIPLE_DEBITS = (
     "is expired, revoked or the mandate amount is exhausted."
 )
 
+# OC-200 clause (b), page 2 of the scan. The list items are separate lines in the circular, so the gaps
+# are marked rather than joined with punctuation that is not there.
+_OC200_PAYER_INITIATED = (
+    "Such mandate creations shall be payer-initiated mandates wherein the customer can create "
+    "mandate from the below mentioned methods: … QR based … Intent … SDK/Plug In … "
+    "Other mode of initiation shall be envisaged later."
+)
+
+# OC-200 clause (g), page 3 of the scan.
+_OC200_P2M_ONLY = (
+    "The Single Block Multiple Debit mandates shall be only applicable for P2M category of transactions."
+)
+
+# OC-228, Acquiring entities obligation 1, page 2 of the scan.
+_OC228_ELIGIBLE_MERCHANTS = (
+    "To begin with UPI Reserve Pay shall be enabled only for online verified merchants with low ticket "
+    "and high frequency transactions and hence selection of the online merchants must adhere to this principle."
+)
+
 # OC-228, Acquiring entities obligation 2. The project previously carried only
 # the first eleven words of this sentence; the rest is what names the debit
 # trigger.
@@ -762,7 +781,58 @@ SBMD = RailProfile(
                 "block is the ordinary case rather than an exception. The "
                 "explicit amount rule sits in Annexure A, the 'Product Document "
                 "on Mandate with Single Block and Multiple Debit' that OC-200 "
-                "references but NPCI does not publish."
+                "references but NPCI does not publish.\n"
+                "Read this tick with who starts the debit. OC-228's opening paragraph "
+                "calls the debits ones 'which can be initiated by the customer on the "
+                "merchant's platform', acquiring obligation 2 names the debit as 'initiated "
+                "by the customer action on merchant's platform', and the block itself is "
+                "payer-initiated (`block_creation_agent_initiable`). So this means the rail "
+                "permits a debit smaller than the block, not that a merchant may take it "
+                "unilaterally, as it can capture on a card rail. Whether a server-to-server "
+                "debit against an existing block needs a fresh customer action in practice "
+                "has not been tested."
+            ),
+        ),
+        Capability(
+            name="block_creation_agent_initiable", supported=False,
+            source_tier=SourceTier.PRIMARY, obtained_on="2026-09-21",
+            citation=f"{OC200}, clause (b)",
+            url=OC200_URL,
+            quote=_OC200_PAYER_INITIATED,
+            notes=(
+                "The block is created by the payer in a UPI app, by QR, intent or SDK. "
+                "Neither circular gives a merchant or an agent a way to place one, and OC-200 "
+                "reserves other modes for later: 'Other mode of initiation shall be envisaged "
+                "later.' An agent can choose a ceiling and present it; it cannot place one. "
+                "For a project whose framing sentence is that an agent must commit to an "
+                "amount before that amount exists, this is the most load-bearing fact about the "
+                "rail, and it was in the scan and in no row until a payments review of 21 Sep "
+                "2026 pointed at it. The quote marks the list's gaps with an ellipsis because "
+                "the three methods are separate lines in the circular."
+            ),
+        ),
+        Capability(
+            name="merchant_eligibility_restricted", supported=True,
+            source_tier=SourceTier.PRIMARY, obtained_on="2026-09-21",
+            citation=f"{OC228}, Acquiring entities obligation 1",
+            url=OC228_URL,
+            quote=_OC228_ELIGIBLE_MERCHANTS,
+            notes=(
+                "Not open to every merchant: acquirers must select online verified merchants "
+                "with low ticket and high frequency, 'to begin with'. Pair it with the Rs 10,000 "
+                "cap (`max_block_amount`): the rail is scoped to small, repeated online "
+                "purchases, not to arbitrary agentic commerce."
+            ),
+        ),
+        Capability(
+            name="p2m_only", supported=True,
+            source_tier=SourceTier.PRIMARY, obtained_on="2026-09-21",
+            citation=f"{OC200}, clause (g)",
+            url=OC200_URL,
+            quote=_OC200_P2M_ONLY,
+            notes=(
+                "Person-to-merchant only. The clause was quoted inside the `multi_debit` note "
+                "but had no row of its own, so it did not appear in the comparison."
             ),
         ),
         Capability(

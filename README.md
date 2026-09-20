@@ -8,7 +8,7 @@
 
 *Block a ceiling. Debit the actual. Prove what the money did.*
 
-[![tests](https://img.shields.io/badge/tests-1342-2ea44f?style=flat-square)](#testing)
+[![tests](https://img.shields.io/badge/tests-1359-2ea44f?style=flat-square)](#testing)
 [![python](https://img.shields.io/badge/python-3.11%2B-3776ab?style=flat-square)](#quick-start)
 [![live rail](https://img.shields.io/badge/live%20rail-%E2%82%B9470%20of%20%E2%82%B9620%20%C2%B7%20HTTP%20200-2ea44f?style=flat-square)](#what-it-does)
 [![rails](https://img.shields.io/badge/rails-UPI%20SBMD%20%C2%B7%20Cashfree%20%C2%B7%20Razorpay%20%C2%B7%20Setu-6c5ce7?style=flat-square)](#the-evidence-table)
@@ -132,7 +132,7 @@ git clone https://github.com/HERPESME/amanat && cd amanat
 # The eight-act walkthrough — the whole argument in one command
 uv run --with cryptography python -m amanat.demo
 
-# 1342 tests. No API key, no network (Node.js runs the browser-verifier tests).
+# 1359 tests. No API key, no network (Node.js runs the browser-verifier tests).
 uv run --with pytest --with cryptography --with httpx --with fastapi --with pydantic \
        --with numpy --with scikit-learn --with pandas --with pyarrow --with hypothesis pytest tests/ -q
 ```
@@ -426,11 +426,11 @@ Reproduce: <code>python -m amanat.rails.probe_cashfree</code>.</td>
 
 ## The evidence table
 
-97 capabilities across 14 rails. What each claim rests on:
+100 capabilities across 14 rails. What each claim rests on:
 
 | Rail | Capabilities | Evidence |
 |---|---|---|
-| **UPI SBMD** (Reserve Pay) | 16 | 11 `PRIMARY` · 3 `SECONDARY` · 2 `UNVERIFIED` |
+| **UPI SBMD** (Reserve Pay) | 19 | 14 `PRIMARY` · 3 `SECONDARY` · 2 `UNVERIFIED` |
 | **Cashfree** UPI pre-auth | 12 | 8 `OBSERVED` (sandbox, 29 Aug and 20 Sep 2026) · 3 `SECONDARY` · 1 `UNVERIFIED` — the remainder's release |
 | **Razorpay** manual capture | 6 | 1 `OBSERVED` · 5 `SECONDARY` |
 | **Setu UMAP** | 3 | 2 `OBSERVED` · 1 `SECONDARY` |
@@ -638,7 +638,7 @@ uv run --with pytest --with cryptography --with httpx --with fastapi --with pyda
        --with numpy --with scikit-learn --with pandas --with pyarrow --with hypothesis pytest tests/ -q
 ```
 
-**1342 tests, no credential and no network.** If proving the agent is bounded ever
+**1359 tests, no credential and no network.** If proving the agent is bounded ever
 required a live model, the agent would not be bounded.
 
 | Suite | What it pins |
@@ -675,7 +675,7 @@ so neither the prose nor the export can claim more than the runtime honours.
 - the governed core: a policy engine with no model call in it, a signed evidence chain whose verification
   can be pinned to a key and a checkpoint, write-ahead intent with recovery from a lost response, signed
   human consent, and obligation clocks for holds that outlive their purpose;
-- the registry: 97 capabilities on 14 rails, each with a quote, its source and a date; a watcher that
+- the registry: 100 capabilities on 14 rails, each with a quote, its source and a date; a watcher that
   re-reads every quote; eight sandbox probes with a test that fails if a rail's answer changes; a schema,
   a comparison page and a generated report.
 

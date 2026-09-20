@@ -750,3 +750,45 @@ class TestWhatTheLiveCheckAdded:
         assert "not automatically cancelled" in cap.quote
         assert "Multiple partial capture is disabled by default, so you need to contact our Support Team" in cap.quote
         assert "\u2026" in cap.quote, "two sentences of the page, checked piece by piece"
+
+
+class TestWhatOnlyANpciCircularSaysAboutWhoStartsAReservePayBlock:
+    """The two clauses that most constrain an agent were in the scans and in no row.
+
+    Read from the committed OC-200 and OC-228 pages on 21 Sep 2026. The framing sentence of this
+    project says an agent must commit to an amount before that amount exists; on this rail the
+    agent may propose the ceiling, but a person places the block.
+    """
+
+    def test_the_block_is_created_by_the_payer_and_an_agent_cannot_place_one(self):
+        rail = RAILS["sbmd"]
+        cap = rail.capabilities["block_creation_agent_initiable"]
+        assert cap.source_tier is SourceTier.PRIMARY and cap.supported is False
+        assert "payer-initiated mandates" in cap.quote and "QR based" in cap.quote and "SDK/Plug In" in cap.quote
+        assert "Other mode of initiation shall be envisaged later" in cap.quote
+        assert "OC.No.200" in cap.citation and "clause (b)" in cap.citation
+        assert "cannot place one" in cap.notes
+        assert rail.permits("block_creation_agent_initiable") is False
+
+    def test_reserve_pay_is_for_online_verified_merchants_with_low_ticket_and_high_frequency(self):
+        cap = RAILS["sbmd"].capabilities["merchant_eligibility_restricted"]
+        assert cap.source_tier is SourceTier.PRIMARY and cap.supported is True
+        assert "online verified merchants with low ticket and high frequency transactions" in cap.quote
+        assert "OC-228" in cap.citation and "Acquiring entities obligation 1" in cap.citation
+
+    def test_reserve_pay_is_for_person_to_merchant_payments_only(self):
+        cap = RAILS["sbmd"].capabilities["p2m_only"]
+        assert cap.source_tier is SourceTier.PRIMARY and cap.supported is True
+        assert "only applicable for P2M category of transactions" in cap.quote
+        assert "clause (g)" in cap.citation
+
+    def test_the_partial_debit_tick_is_read_with_who_starts_the_debit(self):
+        note = RAILS["sbmd"].capabilities["partial_debit"].notes
+        assert "initiated by the customer" in note and "block_creation_agent_initiable" in note
+        assert "not that a merchant may take it unilaterally" in note
+
+    def test_the_quotes_are_transcribed_from_scans_the_watcher_cannot_read(self):
+        """They rest on the committed PDFs, like every other NPCI row: same url, same date logic."""
+        for name in ("block_creation_agent_initiable", "merchant_eligibility_restricted", "p2m_only"):
+            cap = RAILS["sbmd"].capabilities[name]
+            assert cap.url.endswith(".pdf") and cap.obtained_on == "2026-09-21"
