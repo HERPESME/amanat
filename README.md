@@ -8,9 +8,9 @@
 
 *Block a ceiling. Debit the actual. Prove what the money did.*
 
-[![tests](https://img.shields.io/badge/tests-1436-2ea44f?style=flat-square)](#testing)
+[![tests](https://img.shields.io/badge/tests-1446-2ea44f?style=flat-square)](#testing)
 [![python](https://img.shields.io/badge/python-3.11%2B-3776ab?style=flat-square)](#quick-start)
-[![live rail](https://img.shields.io/badge/live%20rail-%E2%82%B9470%20of%20%E2%82%B9620%20%C2%B7%20HTTP%20200-2ea44f?style=flat-square)](#what-it-does)
+[![Cashfree sandbox](https://img.shields.io/badge/Cashfree%20sandbox-%E2%82%B9470%20of%20%E2%82%B9620%20%C2%B7%20HTTP%20200-2ea44f?style=flat-square)](#what-it-does)
 [![rails](https://img.shields.io/badge/rails-UPI%20SBMD%20%C2%B7%20Cashfree%20%C2%B7%20Razorpay%20%C2%B7%20Setu-6c5ce7?style=flat-square)](#the-evidence-table)
 [![credentials](https://img.shields.io/badge/core%20runs%20with-zero%20credentials-e17055?style=flat-square)](#testing)
 
@@ -18,11 +18,13 @@
 
 **[Interactive demo](https://amanat-demo-699979063196.asia-south1.run.app)** — set a budget, run a settlement or attack it, watch the policy engine refuse and the signed chain verify itself — then load the signed receipt from a **real Cashfree pre-auth run** and verify *that* in your browser too.
 &nbsp;·&nbsp;
-**[Verify a signed packet](https://claude.ai/code/artifact/6edf0c30-6be8-4f60-961b-285b11af9995)** — recomputes its own hashes and signatures in your browser; press *Tamper* to watch it catch a change.
+**[Verify a signed packet](docs/sample/dispute-packet.html)** — one self-contained file: open it from a clone and it recomputes its own hashes and signatures in your browser, offline; press *Tamper* to watch it catch a change ([hosted copy](https://claude.ai/code/artifact/6edf0c30-6be8-4f60-961b-285b11af9995)).
 &nbsp;·&nbsp;
 **Watch the debit leg run against a real rail's sandbox** — `python -m amanat.rails.probe_cashfree` holds ₹620 and captures ₹470 on Cashfree's UPI pre-auth sandbox (`HTTP 200`). Whether the ₹150 comes back at capture or at the documented 7-day expiry is [being measured](docs/observations/cashfree-release/).
 &nbsp;·&nbsp;
 **[Pitch deck (PDF)](docs/pitch/amanat-deck.pdf)** — the five-minute argument (`docs/pitch/amanat-deck.pptx` for editing).
+&nbsp;·&nbsp;
+**Work at a rail in the registry?** [Your rows, and how to correct one](#if-you-work-at-a-rail-in-the-registry).
 
 </div>
 
@@ -94,7 +96,7 @@ vendor's blog.
 
 **And the debit leg runs.** On Cashfree's UPI pre-authorization *sandbox*, a ₹620 hold was
 captured for ₹470 — `HTTP 200`, `captured_amount 470.0`, `PRE_AUTH|Transaction Success`.
-Razorpay's sandbox refuses the same partial capture. (The authorisation was forced with the
+Razorpay's Capture API refuses the same partial capture (its own documented error; a test-mode capture returned it once, by hand). (The authorisation was forced with the
 sandbox's `POST /simulate`, so this measures Cashfree's API, not an issuer.) What was **not**
 observed is the ₹150 going back: the API's own read of the order shows `payment_amount 620.0`
 and no refund, and Cashfree documents release only for an authorisation *not captured* within
@@ -102,16 +104,15 @@ seven days. That leg is recorded as `UNVERIFIED` and is being measured — see
 [`docs/observations/`](docs/observations/cashfree-release/). Reproduce the capture in ~15
 seconds: `python -m amanat.rails.probe_cashfree`.
 
-### The same intent across three real rails — measured, not quoted
+### The same intent across three real rails
 
-The differentiator is not a claim, it is a set of live API responses. The same
-amount-contingent settlement, asked of three real rails:
+Each row says what it rests on. The same amount-contingent settlement, asked of three real rails:
 
 | Rail | Debit smaller than the block? | Evidence |
 |---|---|---|
 | **UPI SBMD** (Reserve Pay) | ✅ legal by the circular | `PRIMARY` — NPCI OC-228, read from the scanned PDF |
 | **Cashfree** UPI pre-auth | ✅ **capture accepted in the sandbox** — ₹470 of ₹620; the remainder's release *not observed* | `OBSERVED` — `HTTP 200`, measured 29 Aug 2026 |
-| **Razorpay** manual capture | ❌ refused | `OBSERVED` — `HTTP 400`, *"Capture amount must be equal to the amount authorized"* |
+| **Razorpay** manual capture | ❌ refused | `SECONDARY` — its own documented error, *"Capture amount must be equal to the amount authorized"* (also returned by a test-mode capture, by hand; the exchange was not stored) |
 
 The negative and the positive are both the point: Razorpay forecloses the mechanism and
 Cashfree's sandbox accepts the debit leg. What happens to the remainder differs by rail —
@@ -132,7 +133,7 @@ git clone https://github.com/HERPESME/amanat && cd amanat
 # The eight-act walkthrough — the whole argument in one command
 uv run --with cryptography python -m amanat.demo
 
-# 1436 tests. No API key, no network (Node.js runs the browser-verifier tests).
+# 1446 tests. No API key, no network (Node.js runs the browser-verifier tests).
 uv run --with pytest --with cryptography --with httpx --with fastapi --with pydantic \
        --with numpy --with scikit-learn --with pandas --with pyarrow --with hypothesis pytest tests/ -q
 ```
@@ -170,7 +171,7 @@ uv run --with numpy --with pandas --with scikit-learn --with pyarrow \
 # Cashfree sandbox: hold ₹620, capture ₹470 (HTTP 200); the ₹150's return is not observed
 uv run --with httpx --with cryptography python -m amanat.rails.probe_cashfree
 
-# Measure Razorpay's refusal of the same shape (HTTP 400), live
+# Reproduce Razorpay's refusal in test mode (HTTP 400; needs a browser Checkout to reach `authorized`)
 uv run --with httpx --with cryptography python -m amanat.rails.probe
 
 # Settle a real Razorpay test-mode payment (capture then refund, real ids)
@@ -331,10 +332,10 @@ hash with WebCrypto and re-checking every Ed25519 signature against the embedded
 no network. Edit any payload and it names the entry that no longer verifies; and it says
 plainly what a green result means (see above) rather than calling the packet "verified".
 
-> **▶ Verify one live in your browser:**
-> **[claude.ai/code/artifact/6edf0c30…](https://claude.ai/code/artifact/6edf0c30-6be8-4f60-961b-285b11af9995)**
-> — open it, then press **Tamper** and watch it catch the change.
-> Source: [`docs/sample/dispute-packet.html`](docs/sample/dispute-packet.html).
+> **▶ Verify one in your browser:** open [`docs/sample/dispute-packet.html`](docs/sample/dispute-packet.html)
+> from a clone (GitHub shows an HTML file as source, so download it or open it locally), then press
+> **Tamper** and watch it catch the change. A hosted copy:
+> [claude.ai/code/artifact/6edf0c30…](https://claude.ai/code/artifact/6edf0c30-6be8-4f60-961b-285b11af9995).
 
 ### And the dispute
 
@@ -382,8 +383,10 @@ This killed the original thesis outright and forced the pivot to amount-continge
 <td><b>2</b></td>
 <td><b>The rail never returns the change by itself</b><br/>
 OC-200 keeps funds blocked <i>"till the time mandate is expired, revoked or the mandate
-amount is exhausted"</i>. The word "release" appears in neither circular. Only 1 of 6
-surveyed PSPs (Setu) can return the remainder without destroying the authorization.</td>
+amount is exhausted"</i>. The word "release" appears in neither circular. Of six merchant-side
+PSPs whose published API surface was read on 21 Aug 2026, exactly one (Setu) documents a modify
+that keeps the mandate; the other five document release as a revoke. Whether Setu's modify may
+<i>lower</i> an amount is untested, so that stays <code>UNVERIFIED</code>.</td>
 </tr>
 <tr>
 <td><b>3</b></td>
@@ -395,23 +398,26 @@ shown a clean pass, and would have been a lie about deployment.</td>
 </tr>
 <tr>
 <td><b>4</b></td>
-<td><b>Setu's own docs name API hosts that do not exist</b><br/>
+<td><b>Setu's documented API hosts have no address record in public DNS</b><br/>
 Credentials are valid and the token endpoint returns 200 — but <code>uatapi.setu.co</code>
-and <code>api.setu.co</code> are <b>NXDOMAIN on both Google and Cloudflare</b> public
-resolvers. Invisible until you hold credentials and try.</td>
+and <code>api.setu.co</code> had no address record from Google's or Cloudflare's resolver on
+21 Sep 2026 (NXDOMAIN on 21 Aug; the answer changed, and a name that cannot exist now answers the
+same way). This measures a resolver, not Setu's API: an allowlist or private DNS is the likeliest
+reason, and DNS alone does not show it. Invisible until you hold credentials and try.</td>
 </tr>
 <tr>
 <td><b>5</b></td>
-<td><b>Razorpay refuses partial capture — measured, not quoted</b><br/>
-<code>HTTP 400 — Capture amount must be equal to the amount authorized</code>, from the
-live API. Reaching that state needed a browser: payment links auto-capture, and S2S
-creation is not enabled on a self-serve account.</td>
+<td><b>Razorpay refuses partial capture — documented, and seen once by hand</b><br/>
+<code>HTTP 400 — Capture amount must be equal to the amount authorized</code> is Razorpay's own
+documented error, and a test-mode capture returned the same sentence (the exchange was not stored, so
+the row rests on the documentation). Reaching that state needed a browser: payment links auto-capture,
+and S2S creation is not enabled on a self-serve account.</td>
 </tr>
 <tr>
 <td><b>6</b></td>
 <td><b>Cashfree's UPI pre-auth sandbox accepts a partial capture — and the release leg turned out unmeasured</b><br/>
 A ₹620 hold, a <code>CAPTURE</code> of ₹470 returning <code>HTTP 200</code> with
-<code>captured_amount 470.0</code>: the exact shape Razorpay rejects, and what turns
+<code>captured_amount 470.0</code>: the operation Razorpay's Capture API rejects, and what turns
 <code>cashfree_preauth.partial_debit</code> from <code>UNVERIFIED</code> to <code>OBSERVED</code>.
 An earlier version of this finding also said the ₹150 remainder was <i>auto-released</i>. That was
 inferred, not read: a refused void (which Cashfree documents as impossible after any capture) and
@@ -493,6 +499,20 @@ thing yet: theirs is a sandbox-status UPI collect integration with automatic cap
 offline against an unmodified copy of their `Connector` enum at a pinned commit. Cashfree, Setu, Visa's card network
 and the x402 schemes are not connectors there (Hyperswitch lists Visa and Mastercard Click to Pay, a different
 product), so those rails carry none.
+
+### If you work at a rail in the registry
+
+Your rows are in [`docs/registry/registry.json`](docs/registry/registry.json), one object per rail:
+
+```bash
+jq '.rails[] | select(.rail_id=="cashfree_preauth") | .capabilities[] | {name, supported, tier, obtained_on, quote}' docs/registry/registry.json
+```
+
+or open [`docs/registry/index.html`](docs/registry/index.html) from a clone and jump to your rail. If a row is
+wrong, open an issue titled `row: <rail_id>.<capability>` with the sentence you would put instead
+([template](.github/ISSUE_TEMPLATE/row-correction.md)). Corrections are dated and marked as corrections, never
+silently edited. Your reply can be recorded beside the observation. The registry's own text is Apache-2.0;
+each quote is its source's text, reproduced for citation, and comes out on request (the export says so).
 
 A dated snapshot in prose: [Rail Semantics Report #1](docs/reports/rail-semantics-report-1.md), generated from the
 registry and the evidence streams behind it, so every number and list in it is computed and CI fails if it drifts. It
@@ -647,7 +667,7 @@ uv run --with pytest --with cryptography --with httpx --with fastapi --with pyda
        --with numpy --with scikit-learn --with pandas --with pyarrow --with hypothesis pytest tests/ -q
 ```
 
-**1436 tests, no credential and no network.** If proving the agent is bounded ever
+**1446 tests, no credential and no network.** If proving the agent is bounded ever
 required a live model, the agent would not be bounded.
 
 | Suite | What it pins |
@@ -684,7 +704,7 @@ so neither the prose nor the export can claim more than the runtime honours.
 - the governed core: a policy engine with no model call in it, a signed evidence chain whose verification
   can be pinned to a key and a checkpoint, write-ahead intent with recovery from a lost response, signed
   human consent, and obligation clocks for holds that outlive their purpose;
-- the registry: 107 capabilities on 14 rails, each with a quote, its source and a date; a watcher that
+- the registry: 107 capabilities on 14 rails, each cited (a quote, its source and the date it was read) or marked `UNVERIFIED`; a watcher that
   re-reads every quote; twelve sandbox probes with a test that fails if a rail's answer changes; a schema,
   a comparison page and a generated report.
 

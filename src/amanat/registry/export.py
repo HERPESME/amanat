@@ -25,6 +25,16 @@ from amanat.registry import store, watch
 
 SCHEMA_VERSION = 2
 
+REPO_URL = "https://github.com/HERPESME/amanat"
+CANONICAL_URL = f"{REPO_URL}/blob/main/docs/registry/registry.json"
+CORRECTIONS_URL = f"{REPO_URL}/issues/new?template=row-correction.md"
+LICENSE = {
+    "spdx": "Apache-2.0",
+    "covers": "the structure, the notes and the generated text of this registry",
+    "quotes": "each quote is text from its source, reproduced for citation under that source's own terms, "
+              "and is removed on request",
+}
+
 ROOT = Path(__file__).resolve().parents[3]
 OUT_DIR = ROOT / "docs" / "registry"
 REGISTRY_PATH = OUT_DIR / "registry.json"
@@ -161,6 +171,9 @@ def build(store_dir: Path | None = None) -> dict:
     dates += [row["observation"]["latest"]["observed_on"] for row in rows if row["observation"]]
     return {
         "schema_version": SCHEMA_VERSION,
+        "license": dict(LICENSE),
+        "canonical_url": CANONICAL_URL,
+        "corrections": CORRECTIONS_URL,
         "as_of": max(dates) if dates else None,
         "tiers": [{"tier": t.value, "usable_as_fact": t.is_fact, "meaning": t.meaning}
                   for t in SourceTier],

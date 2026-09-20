@@ -1,5 +1,12 @@
 {
   "schema_version": 2,
+  "license": {
+    "spdx": "Apache-2.0",
+    "covers": "the structure, the notes and the generated text of this registry",
+    "quotes": "each quote is text from its source, reproduced for citation under that source's own terms, and is removed on request"
+  },
+  "canonical_url": "https://github.com/HERPESME/amanat/blob/main/docs/registry/registry.json",
+  "corrections": "https://github.com/HERPESME/amanat/issues/new?template=row-correction.md",
   "as_of": "2026-09-21",
   "tiers": [
     {

@@ -7,6 +7,9 @@
   "additionalProperties": false,
   "required": [
     "schema_version",
+    "license",
+    "canonical_url",
+    "corrections",
     "as_of",
     "tiers",
     "concepts",
@@ -18,6 +21,40 @@
   "properties": {
     "schema_version": {
       "const": 2
+    },
+    "license": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "spdx",
+        "covers",
+        "quotes"
+      ],
+      "description": "What the data may be used for. The registry's own text is Apache-2.0; a quote is its source's text, reproduced for citation.",
+      "properties": {
+        "spdx": {
+          "type": "string",
+          "minLength": 1
+        },
+        "covers": {
+          "type": "string",
+          "minLength": 1
+        },
+        "quotes": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "canonical_url": {
+      "type": "string",
+      "format": "uri",
+      "description": "Where the current copy of this file lives."
+    },
+    "corrections": {
+      "type": "string",
+      "format": "uri",
+      "description": "Where a row that is wrong is reported. Corrections are dated and marked as corrections, never silently edited."
     },
     "as_of": {
       "description": "The latest date any row's evidence was read or measured. Deterministic: the export never reads a clock.",

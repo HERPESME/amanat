@@ -47,6 +47,19 @@ compared with Python byte for byte. CI fails, rather than skips, if Node is miss
 A model may propose a row; it is admitted only if the watcher finds its quote on the page. The check,
 not the model, decides.
 
+## Correcting a row about your product
+
+The registry says things about other people's products, dated and cited. If a row about yours is wrong, out
+of date or unfair, open an issue titled `row: <rail_id>.<capability>` (there is a
+[template](.github/ISSUE_TEMPLATE/row-correction.md)) with the sentence you would put instead and where it
+is written. A public page is best, because the watcher can then re-read it and the row can cite it; a private
+source is welcome too, and the row will say that a public source cannot check it and that you can confirm or
+correct it. Corrections are dated and marked as corrections, never silently edited. If you want your reply
+recorded beside the observation, say so.
+
+Anything that reads as a bug or an inconsistency in a vendor's product reaches that vendor before it is
+published: see [`docs/reports/VENDOR-NOTIFICATION.md`](docs/reports/VENDOR-NOTIFICATION.md).
+
 ## Licence
 
 By contributing you agree your contribution is licensed under the Apache License 2.0 (see

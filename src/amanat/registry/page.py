@@ -179,6 +179,15 @@ def _row_details(rail: dict, kind: str, row: dict) -> str:
             f'{quote}{src}{meta}{checked}{probe}{notes}</details>')
 
 
+PROMISE = "Corrections are dated and marked as corrections, never silently edited."
+
+
+def _issue_link(rail_id: str | None = None) -> str:
+    """The repository's row-correction form, titled for the rail when there is one."""
+    title = f"&amp;title=row%3A%20{_e(rail_id)}." if rail_id else ""
+    return (f'<a href="{_e(export.CORRECTIONS_URL)}{title}" rel="noopener noreferrer">open an issue</a>')
+
+
 def _rails(doc: dict) -> str:
     out = []
     for rail in doc["rails"]:
@@ -188,7 +197,9 @@ def _rails(doc: dict) -> str:
                    f'<span class="mono dim">{_e(rail["rail_id"])}</span>'
                    + (f' <span class="chip" title="the name Hyperswitch gives this connector">hyperswitch: {_e(rail["hyperswitch_connector"])}</span>'
                       if rail["hyperswitch_connector"] else "")
-                   + f'</h3>{"".join(rows)}</section>')
+                   + f'</h3><p class="dim correct">If a row here is wrong, {_issue_link(rail["rail_id"])} titled '
+                     f'<code>row: {_e(rail["rail_id"])}.&lt;capability&gt;</code> with the sentence you would put instead.</p>'
+                     f'{"".join(rows)}</section>')
     return "".join(out)
 
 
@@ -315,6 +326,8 @@ re-read since. Where a source is silent the cell says so and the policy engine r
 <li><b>{stats["reread"]}</b>quotes re-read from their source</li><li><b>{stats["pinned"]}</b>of those at a pinned revision, which cannot drift</li>
 <li><b>{stats["unreadable"]}</b>sources that could not be read</li>
 <li><b>{stats["unverified"]}</b>unverified (refused)</li><li><b>{_e(doc["as_of"])}</b>as of</li></ul>
+<p class="correct">Work at one of these rails? If a row is wrong, {_issue_link()} titled <code>row: &lt;rail_id&gt;.&lt;capability&gt;</code>
+with the sentence you would put instead. {PROMISE}</p>
 </header>
 
 <h2 id="matrix">The matrix</h2>
