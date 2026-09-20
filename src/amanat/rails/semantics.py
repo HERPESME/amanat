@@ -1057,9 +1057,10 @@ UPI_OTM = RailProfile(
 # ---------------------------------------------------------------------------
 # Cashfree UPI pre-authorization. Enabled in sandbox via support ticket 8266875
 # on 28 Aug 2026, then MEASURED end to end on 29 Aug 2026 with the probe
-# `amanat.rails.probe_cashfree`. These are the first OBSERVED "yes" answers to
-# amount-contingent settlement on a live rail — every earlier real rail refused
-# it. The quotes below are the responses the sandbox actually returned.
+# `amanat.rails.probe_cashfree`. These are OBSERVED answers from a sandbox that
+# accepted a partial capture, where every earlier real rail probed refused it.
+# The quotes below are the responses the sandbox actually returned. The sandbox
+# forces the authorisation (`POST /simulate`), so they are the sandbox API's word.
 # ---------------------------------------------------------------------------
 CASHFREE_PREAUTH_URL = (
     "https://www.cashfree.com/docs/api-reference/payments/latest/payments/authorize"
@@ -1072,46 +1073,83 @@ CASHFREE_PREAUTH = RailProfile(
         Capability(
             name="partial_debit", supported=True,
             source_tier=SourceTier.OBSERVED,
-            citation=("measured 29 Aug 2026 — POST /orders/{id}/authorization "
+            citation=("measured 29 Aug 2026 (sandbox; the authorisation was forced "
+                      "with POST /simulate) — POST /orders/{id}/authorization "
                       "action CAPTURE ₹470 of a ₹620 hold, HTTP 200"),
             url=CASHFREE_PREAUTH_URL,
             quote=('HTTP 200 · authorization {"action":"CAPTURE","status":"SUCCESS",'
                    '"captured_amount":470.0} · payment_message '
                    '"PRE_AUTH|Transaction Success"'),
             notes=(
-                "THE first live-rail confirmation of the project's core mechanism, "
-                "and the exact shape Razorpay refuses. A pre-auth order "
-                "(order_note preauth_transaction) was driven to a ₹620 hold in the "
-                "sandbox — UPI collect on testsuccess@gocash, then POST /simulate to "
-                "SUCCESS, order_status PAID — and a CAPTURE of ₹470 against it "
-                "returned HTTP 200 with captured_amount 470.0. Reproduce with "
+                "A sandbox confirmation of the mechanism's debit leg, and the exact "
+                "shape Razorpay refuses. A pre-auth order (order_note "
+                "preauth_transaction) was driven to a ₹620 hold in the sandbox — UPI "
+                "collect on testsuccess@gocash, then POST /simulate to SUCCESS, "
+                "order_status PAID — and a CAPTURE of ₹470 against it returned HTTP "
+                "200 with captured_amount 470.0. Reproduce with "
                 "`python -m amanat.rails.probe_cashfree`.\n"
-                "This is a PSP pre-auth primitive (authorize-then-partial-capture), "
-                "a different rail SHAPE from NPCI SBMD's pre-funded drawdown pool, "
-                "but it reaches the same amount-contingent outcome and does it on a "
-                "rail that answers, not a simulator. OBSERVED sits below PRIMARY on "
-                "purpose: a rail can change behaviour after a deploy, a circular "
-                "cannot — so SBMD's PRIMARY evidence and this OBSERVED evidence are "
-                "complementary, not redundant."
+                "The authorisation was forced by the sandbox's simulator, so this "
+                "measures Cashfree's sandbox API, not an issuer's hold. This is a PSP "
+                "pre-auth primitive (authorize-then-capture-once), a different rail "
+                "SHAPE from NPCI SBMD's pre-funded drawdown pool. OBSERVED sits below "
+                "PRIMARY on purpose: a rail can change behaviour after a deploy, a "
+                "circular cannot — so SBMD's PRIMARY evidence and this OBSERVED "
+                "evidence are complementary, not redundant."
+            ),
+        ),
+        Capability(
+            name="void_after_partial_capture", supported=False,
+            source_tier=SourceTier.OBSERVED,
+            citation=("measured 29 Aug 2026 (sandbox) — VOID after a partial "
+                      "CAPTURE, HTTP 400"),
+            url=CASHFREE_PREAUTH_URL,
+            quote=('HTTP 400 · "Capture request already exist for the void"'),
+            notes=(
+                "An explicit VOID after a partial CAPTURE is refused. Cashfree "
+                "documents the rule behind it: \"Once captured, a transaction cannot "
+                "be voided.\" What the refusal does NOT show is where the uncaptured "
+                "remainder went — see `remainder_auto_released`."
             ),
         ),
         Capability(
             name="remainder_auto_released", supported=True,
-            source_tier=SourceTier.OBSERVED,
-            citation=("measured 29 Aug 2026 — VOID after a partial CAPTURE, HTTP 400"),
+            source_tier=SourceTier.UNVERIFIED,
+            citation="not established",
             url=CASHFREE_PREAUTH_URL,
-            quote=('HTTP 400 · "Capture request already exist for the void"'),
             notes=(
-                "The third leg is FREE on this rail, which is the opposite of SBMD. "
-                "After capturing ₹470 of the ₹620 hold, an explicit VOID of the "
-                "remaining ₹150 is refused because there is nothing to void — the "
-                "uncaptured amount is released by the rail on its own (Cashfree also "
-                "auto-releases any uncaptured hold within 7 days). So block → debit "
-                "the actual → the difference returns, with no revoke, no teardown "
-                "and no stranded funds. Contrast `sbmd.remainder_auto_released`, "
-                "False on primary evidence: SBMD keeps the remainder blocked until "
-                "someone revokes. Same mechanism, cheaper leg-three, measured."
+                "Believed, not confirmed. The 29 Aug probe inferred the remainder was "
+                "returned from the refused VOID above and from arithmetic; neither "
+                "shows it. Cashfree documents that an authorisation not captured "
+                "within seven days is released back to the customer, and is silent on "
+                "the uncaptured remainder of a PARTIAL capture. Cashfree support's own "
+                "enablement note (ticket 8266875) names \"the applicable operation for "
+                "processing the unused balance/remainder\" as a separate operation the "
+                "probe did not identify. To be measured: poll the order after a partial "
+                "capture (and a capture-nothing control) at t+0, 5 min, 1 h, 24 h and "
+                "7 d 1 h — `python -m amanat.rails.probe_cashfree_release`. Until then "
+                "the engine does not plan around an instant return."
             ),
+        ),
+        Capability(
+            name="partial_void", supported=False,
+            source_tier=SourceTier.SECONDARY,
+            citation=("Cashfree, Pre-Authorisation docs, FAQ (fetched 20 Sep 2026)"),
+            url=CASHFREE_PREAUTH_URL,
+            quote="No, voiding must be for the entire authorised amount.",
+            notes=("A hold can be released only whole, so 'void just the remainder' "
+                   "is not a verb on this rail."),
+        ),
+        Capability(
+            name="multiple_captures", supported=False,
+            source_tier=SourceTier.SECONDARY,
+            citation=("Cashfree, Pre-Authorisation docs, Managing preauthorisation "
+                      "transactions (fetched 20 Sep 2026)"),
+            url=CASHFREE_PREAUTH_URL,
+            quote="A transaction can only be captured or voided once.",
+            notes=("Single-shot: unlike SBMD, where OC-200 says the bank \"shall allow "
+                   "multiple debits against the block\", one authorisation takes one "
+                   "capture. A basket with substitutions or a fare with a waiting "
+                   "charge cannot be drawn down in steps."),
         ),
         Capability(
             name="funds_held_in_customer_account", supported=True,
@@ -1122,10 +1160,12 @@ CASHFREE_PREAUTH = RailProfile(
             quote=('order_status "PAID" with payment is_captured false until an '
                    'explicit CAPTURE'),
             notes=(
-                "A genuine pre-auth HOLD, not Razorpay's 'authorized' trap where the "
-                "customer has already been debited. After POST /simulate the order "
-                "is PAID (authorised) but the payment carries is_captured=false: the "
-                "money is held pending capture, and only a CAPTURE moves it."
+                "Consistent with a pre-auth hold rather than Razorpay's 'authorized' "
+                "trap (where the customer has already been debited): after POST "
+                "/simulate the order is PAID (authorised) but the payment carries "
+                "is_captured=false, and only a CAPTURE moved it. The authorisation was "
+                "forced by the sandbox simulator, so this is the sandbox API's "
+                "statement, not an issuer's."
             ),
         ),
         Capability(
@@ -1144,6 +1184,18 @@ CASHFREE_PREAUTH = RailProfile(
                 "have this until the ticket lands. Production access was explicitly "
                 "not granted ('No Production access has been enabled')."
             ),
+        ),
+    ],
+    limits=[
+        Limit(
+            name="hold_expiry_days", value=7, unit="days",
+            source_tier=SourceTier.SECONDARY,
+            citation=("Cashfree, Pre-Authorisation docs, FAQ (fetched 20 Sep 2026)"),
+            url=CASHFREE_PREAUTH_URL,
+            quote=("If not captured within 7 days, the authorisation expires, and the "
+                   "funds are released back to the customer."),
+            notes=("The documented deadline for capture or void. A hold that outlives "
+                   "an agent session is released by this expiry, not by the agent."),
         ),
     ],
 )

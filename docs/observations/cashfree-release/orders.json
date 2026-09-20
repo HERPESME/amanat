@@ -1,0 +1,73 @@
+{
+  "note": "sandbox; authorisation forced with POST /simulate; the 'control' order is held and never captured or voided",
+  "orders": [
+    {
+      "capture_http_status": 200,
+      "capture_response": {
+        "auth_id": "XLPQUO",
+        "authorization": {
+          "action": "CAPTURE",
+          "action_reference": "CAP_12121",
+          "action_time": "2026-09-20T18:23:24.531448",
+          "approve_by": "",
+          "captured_amount": 470.0,
+          "end_time": "",
+          "start_time": "",
+          "status": "SUCCESS"
+        },
+        "bank_reference": "1234567890",
+        "cf_payment_id": "1455181890977913344",
+        "entity": "payment",
+        "error_details": null,
+        "international_payment": {
+          "international": false
+        },
+        "is_captured": true,
+        "mis_arn": null,
+        "order_amount": 620.0,
+        "order_currency": "INR",
+        "order_id": "amanat_rel_capture_1789908797",
+        "payment_amount": 620.0,
+        "payment_completion_time": "2026-09-20T18:23:19+05:30",
+        "payment_currency": "INR",
+        "payment_gateway_details": {
+          "gateway_name": "CASHFREE",
+          "gateway_order_id": "1455181888872366592",
+          "gateway_order_reference_id": null,
+          "gateway_payment_id": "1455181890977913344",
+          "gateway_reference_name": null,
+          "gateway_settlement": "cashfree",
+          "gateway_status_code": null
+        },
+        "payment_group": "upi",
+        "payment_message": "PRE_AUTH|Transaction Success",
+        "payment_method": {
+          "upi": {
+            "channel": "collect",
+            "upi_id": "testsuccess@gocash",
+            "upi_instrument": "UPI",
+            "upi_instrument_number": "",
+            "upi_payer_account_number": "",
+            "upi_payer_ifsc": ""
+          }
+        },
+        "payment_offers": null,
+        "payment_status": "SUCCESS",
+        "payment_surcharge": null,
+        "payment_time": "2026-09-20T18:23:19+05:30"
+      },
+      "captured_paise": 47000,
+      "cf_payment_id": "1455181890977913344",
+      "held_paise": 62000,
+      "label": "capture",
+      "order_id": "amanat_rel_capture_1789908797"
+    },
+    {
+      "cf_payment_id": "1455181903904752128",
+      "held_paise": 62000,
+      "label": "control",
+      "order_id": "amanat_rel_control_1789908801"
+    }
+  ],
+  "started_at": "2026-09-20T12:53:17.861866+00:00"
+}

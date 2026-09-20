@@ -272,27 +272,57 @@ LIMITS DIFFER TOO, and Setu's figures do not match OC-228's: 'block funds upto R
 
 | Capability | Permitted | Tier | Source |
 |---|---|---|---|
-| `partial_debit` | yes | `OBSERVED` | measured 29 Aug 2026 — POST /orders/{id}/authorization action CAPTURE ₹470 of a ₹620 hold, HTTP 200 |
-| `remainder_auto_released` | yes | `OBSERVED` | measured 29 Aug 2026 — VOID after a partial CAPTURE, HTTP 400 |
+| `partial_debit` | yes | `OBSERVED` | measured 29 Aug 2026 (sandbox; the authorisation was forced with POST /simulate) — POST /orders/{id}/authorization action CAPTURE ₹470 of a ₹620 hold, HTTP 200 |
+| `void_after_partial_capture` | **no** | `OBSERVED` | measured 29 Aug 2026 (sandbox) — VOID after a partial CAPTURE, HTTP 400 |
+| `remainder_auto_released` | **no** | `UNVERIFIED` | not established |
+| `partial_void` | **no** | `SECONDARY` | Cashfree, Pre-Authorisation docs, FAQ (fetched 20 Sep 2026) |
+| `multiple_captures` | **no** | `SECONDARY` | Cashfree, Pre-Authorisation docs, Managing preauthorisation transactions (fetched 20 Sep 2026) |
 | `funds_held_in_customer_account` | yes | `OBSERVED` | measured 29 Aug 2026 — order_status PAID, is_captured false before any capture |
 | `self_serve_enablement` | **no** | `OBSERVED` | Cashfree support ticket 8266875, resolved 28 Aug 2026 |
+
+**Numeric limits** — enforced, not decorative. Unlike capabilities, an unverified limit is still applied: thin evidence means refuse more, never less.
+
+| Limit | Value | Tier | Source |
+|---|---|---|---|
+| `hold_expiry_days` | 7 days | `SECONDARY` | Cashfree, Pre-Authorisation docs, FAQ (fetched 20 Sep 2026) |
+
+**`hold_expiry_days`** — The documented deadline for capture or void. A hold that outlives an agent session is released by this expiry, not by the agent.
 
 **`partial_debit`**
 
 > HTTP 200 · authorization {"action":"CAPTURE","status":"SUCCESS","captured_amount":470.0} · payment_message "PRE_AUTH|Transaction Success"
 
-— measured 29 Aug 2026 — POST /orders/{id}/authorization action CAPTURE ₹470 of a ₹620 hold, HTTP 200, https://www.cashfree.com/docs/api-reference/payments/latest/payments/authorize
+— measured 29 Aug 2026 (sandbox; the authorisation was forced with POST /simulate) — POST /orders/{id}/authorization action CAPTURE ₹470 of a ₹620 hold, HTTP 200, https://www.cashfree.com/docs/api-reference/payments/latest/payments/authorize
 
-THE first live-rail confirmation of the project's core mechanism, and the exact shape Razorpay refuses. A pre-auth order (order_note preauth_transaction) was driven to a ₹620 hold in the sandbox — UPI collect on testsuccess@gocash, then POST /simulate to SUCCESS, order_status PAID — and a CAPTURE of ₹470 against it returned HTTP 200 with captured_amount 470.0. Reproduce with `python -m amanat.rails.probe_cashfree`.
-This is a PSP pre-auth primitive (authorize-then-partial-capture), a different rail SHAPE from NPCI SBMD's pre-funded drawdown pool, but it reaches the same amount-contingent outcome and does it on a rail that answers, not a simulator. OBSERVED sits below PRIMARY on purpose: a rail can change behaviour after a deploy, a circular cannot — so SBMD's PRIMARY evidence and this OBSERVED evidence are complementary, not redundant.
+A sandbox confirmation of the mechanism's debit leg, and the exact shape Razorpay refuses. A pre-auth order (order_note preauth_transaction) was driven to a ₹620 hold in the sandbox — UPI collect on testsuccess@gocash, then POST /simulate to SUCCESS, order_status PAID — and a CAPTURE of ₹470 against it returned HTTP 200 with captured_amount 470.0. Reproduce with `python -m amanat.rails.probe_cashfree`.
+The authorisation was forced by the sandbox's simulator, so this measures Cashfree's sandbox API, not an issuer's hold. This is a PSP pre-auth primitive (authorize-then-capture-once), a different rail SHAPE from NPCI SBMD's pre-funded drawdown pool. OBSERVED sits below PRIMARY on purpose: a rail can change behaviour after a deploy, a circular cannot — so SBMD's PRIMARY evidence and this OBSERVED evidence are complementary, not redundant.
 
-**`remainder_auto_released`**
+**`void_after_partial_capture`**
 
 > HTTP 400 · "Capture request already exist for the void"
 
-— measured 29 Aug 2026 — VOID after a partial CAPTURE, HTTP 400, https://www.cashfree.com/docs/api-reference/payments/latest/payments/authorize
+— measured 29 Aug 2026 (sandbox) — VOID after a partial CAPTURE, HTTP 400, https://www.cashfree.com/docs/api-reference/payments/latest/payments/authorize
 
-The third leg is FREE on this rail, which is the opposite of SBMD. After capturing ₹470 of the ₹620 hold, an explicit VOID of the remaining ₹150 is refused because there is nothing to void — the uncaptured amount is released by the rail on its own (Cashfree also auto-releases any uncaptured hold within 7 days). So block → debit the actual → the difference returns, with no revoke, no teardown and no stranded funds. Contrast `sbmd.remainder_auto_released`, False on primary evidence: SBMD keeps the remainder blocked until someone revokes. Same mechanism, cheaper leg-three, measured.
+An explicit VOID after a partial CAPTURE is refused. Cashfree documents the rule behind it: "Once captured, a transaction cannot be voided." What the refusal does NOT show is where the uncaptured remainder went — see `remainder_auto_released`.
+
+**`remainder_auto_released`**
+Believed, not confirmed. The 29 Aug probe inferred the remainder was returned from the refused VOID above and from arithmetic; neither shows it. Cashfree documents that an authorisation not captured within seven days is released back to the customer, and is silent on the uncaptured remainder of a PARTIAL capture. Cashfree support's own enablement note (ticket 8266875) names "the applicable operation for processing the unused balance/remainder" as a separate operation the probe did not identify. To be measured: poll the order after a partial capture (and a capture-nothing control) at t+0, 5 min, 1 h, 24 h and 7 d 1 h — `python -m amanat.rails.probe_cashfree_release`. Until then the engine does not plan around an instant return.
+
+**`partial_void`**
+
+> No, voiding must be for the entire authorised amount.
+
+— Cashfree, Pre-Authorisation docs, FAQ (fetched 20 Sep 2026), https://www.cashfree.com/docs/api-reference/payments/latest/payments/authorize
+
+A hold can be released only whole, so 'void just the remainder' is not a verb on this rail.
+
+**`multiple_captures`**
+
+> A transaction can only be captured or voided once.
+
+— Cashfree, Pre-Authorisation docs, Managing preauthorisation transactions (fetched 20 Sep 2026), https://www.cashfree.com/docs/api-reference/payments/latest/payments/authorize
+
+Single-shot: unlike SBMD, where OC-200 says the bank "shall allow multiple debits against the block", one authorisation takes one capture. A basket with substitutions or a fare with a waiting charge cannot be drawn down in steps.
 
 **`funds_held_in_customer_account`**
 
@@ -300,7 +330,7 @@ The third leg is FREE on this rail, which is the opposite of SBMD. After capturi
 
 — measured 29 Aug 2026 — order_status PAID, is_captured false before any capture, https://www.cashfree.com/docs/api-reference/payments/latest/payments/authorize
 
-A genuine pre-auth HOLD, not Razorpay's 'authorized' trap where the customer has already been debited. After POST /simulate the order is PAID (authorised) but the payment carries is_captured=false: the money is held pending capture, and only a CAPTURE moves it.
+Consistent with a pre-auth hold rather than Razorpay's 'authorized' trap (where the customer has already been debited): after POST /simulate the order is PAID (authorised) but the payment carries is_captured=false, and only a CAPTURE moved it. The authorisation was forced by the sandbox simulator, so this is the sandbox API's statement, not an issuer's.
 
 **`self_serve_enablement`**
 
@@ -346,10 +376,11 @@ The two hosts the UMAP docs name for sandbox and production do not exist in publ
 
 ## Outstanding verification
 
-2 capabilities are still unverified and therefore refused:
+3 capabilities are still unverified and therefore refused:
 
 - `sbmd.block_amount_reducible_without_revoke`
 - `upi_otm.post_delivery_debit_goods`
+- `cashfree_preauth.remainder_auto_released`
 
 ## Why this file exists
 

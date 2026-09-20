@@ -1,33 +1,35 @@
-"""Cashfree UPI pre-authorization adapter — the rail that finally says yes.
+"""Cashfree UPI pre-authorization adapter — sandbox only, and honest about what it saw.
 
-Every real rail this project probed before Cashfree refused amount-contingent
-settlement. Razorpay returns HTTP 400 on a partial capture ("Capture amount must
-be equal to the amount authorized" — OBSERVED, 22 Aug 2026). Setu's documented
-API hosts are NXDOMAIN. The mechanism was provable as *legal* on NPCI SBMD
-(`sbmd.partial_debit`, PRIMARY tier) but never *observed* executing on a live
-rail.
-
-Cashfree's pre-authorization (enabled in sandbox via support ticket 8266875,
-28 Aug 2026) is the first rail measured to accept it. The lifecycle, all against
-`sandbox.cashfree.com/pg`, measured 29 Aug 2026:
+Razorpay returns HTTP 400 on a partial capture ("Capture amount must be equal to
+the amount authorized" — OBSERVED, 22 Aug 2026). Cashfree's pre-authorization
+(enabled in the sandbox by support ticket 8266875, 28 Aug 2026) accepts one. The
+lifecycle, against `sandbox.cashfree.com/pg`, measured 29 Aug 2026:
 
   * hold    → POST /orders                     order_note "preauth_transaction"
               POST /orders/sessions            UPI collect (testsuccess@gocash)
               POST /simulate                   force the sandbox auth to SUCCESS
   * debit   → POST /orders/{id}/authorization  action CAPTURE, amount < hold  → 200
-  * release → the uncaptured remainder auto-releases; an explicit VOID after a
-              capture is refused ("Capture request already exist for the void").
-              VOID is the alternative leg: release the whole hold, capturing none.
+  * void    → the same endpoint, action VOID: releases the WHOLE hold. After a
+              capture it is refused ("Capture request already exist for the void").
 
-The finding that matters: a CAPTURE of ₹470 against a ₹620 hold returns HTTP 200,
-and the ₹150 difference comes back on its own. That is the whole thesis — block a
-ceiling, debit the actual, release the difference — running on a real regulated
-UPI rail, with the release leg *free*, which is more than SBMD gives (there the
-remainder stays blocked until an explicit revoke).
+What was observed: a CAPTURE of ₹470 against a ₹620 hold returned HTTP 200 with
+`captured_amount 470.0`. What was NOT observed: where the uncaptured ₹150 went. The
+refused VOID follows from Cashfree's documented rule that a captured authorisation
+cannot be voided; it says nothing about the remainder. Cashfree documents that an
+authorisation not captured within seven days is released, and says nothing about
+the remainder of a partial capture. So this adapter records the capture, leaves the
+remainder unreleased in its own bookkeeping, and never writes a release it did not
+read — see `sandbox authorisation is forced with /simulate`, below, and
+`probe_cashfree_release`, which measures what the API reports over time.
+
+The authorisation itself is forced to SUCCESS with `POST /simulate` (the sandbox's
+stand-in for the customer's UPI PIN), so what is measured is Cashfree's sandbox, not
+an issuer's hold.
 
 Money is integer paise everywhere inside this system; Cashfree's orders API takes
-rupees as a decimal. The conversion happens only here, at the edge, and the API
-response is treated as untrusted input on the way back in.
+rupees as a decimal. The conversion happens only here, at the edge, exactly (through
+`Decimal`, refusing a fraction of a paisa), and the API response is treated as
+untrusted input on the way back in.
 
 Never touches production. The base URL is fixed to the sandbox host and the
 adapter refuses to be pointed anywhere else — the same discipline as the Razorpay
@@ -36,6 +38,7 @@ adapter's `rzp_test_` guard.
 from __future__ import annotations
 
 import os
+from decimal import Decimal, InvalidOperation
 
 import httpx
 
@@ -49,13 +52,23 @@ SANDBOX_SUCCESS_VPA = "testsuccess@gocash"
 
 
 def _rupees(paise: int) -> float:
-    """Paise → rupees for the API edge. Two decimals, no float kept internally."""
-    return round(paise / 100, 2)
+    """Paise → rupees for the API edge. Exact; the float exists only for the JSON body."""
+    return float(Decimal(paise) / 100)
 
 
 def _paise(rupees) -> int:
-    """Rupees (number or decimal string) from the API → integer paise."""
-    return int(round(float(rupees) * 100))
+    """Rupees (number or decimal string) from the API → integer paise, exactly.
+
+    A fraction of a paisa is refused rather than rounded: rounding a rail's number
+    to a plausible amount is how a wrong figure gets signed.
+    """
+    try:
+        exact = Decimal(str(rupees)) * 100
+    except InvalidOperation:
+        raise RailError(f"{rupees!r} is not a number of rupees") from None
+    if exact != exact.to_integral_value():
+        raise RailError(f"{rupees!r} rupees is not a whole number of paise")
+    return int(exact)
 
 
 class CashfreePreAuthRail:
@@ -153,6 +166,10 @@ class CashfreePreAuthRail:
     def fetch_payments(self, order_id: str) -> tuple[int, dict]:
         return self._call("GET", f"/orders/{order_id}/payments")
 
+    def fetch_refunds(self, order_id: str) -> tuple[int, dict]:
+        """Refund entities on the order — where a return of the remainder would show."""
+        return self._call("GET", f"/orders/{order_id}/refunds")
+
     # -- RailAdapter surface -----------------------------------------------
     #
     # reserve() bundles the sandbox authorisation (create + collect + simulate),
@@ -184,29 +201,39 @@ class CashfreePreAuthRail:
         )
 
     def debit(self, ref: BlockRef, amount: int) -> BlockRef:
+        if ref.state is BlockState.CAPTURED:
+            raise RailError(
+                "this authorisation was already captured; Cashfree documents that "
+                "\"A transaction can only be captured or voided once.\"")
         if amount > ref.available:
             raise RailError(
                 f"capture {amount} exceeds the held {ref.available} on this order")
         sc, body = self.capture(ref.block_id, amount)
         if sc != 200:
             raise RailError(f"capture failed (HTTP {sc}): {body}")
-        captured = _paise(body.get("authorization", {}).get("captured_amount", amount))
+        stated = body.get("authorization", {}).get("captured_amount")
+        if stated is None:
+            raise RailError(
+                "the capture response did not state the captured amount; check the "
+                "order before retrying rather than assuming what was captured")
+        captured = _paise(stated)
         ref.debited += captured
-        # On this rail a partial capture auto-releases the uncaptured remainder:
-        # the settlement completes in one call, with the difference returned free.
-        ref.released = ref.ceiling - ref.debited
-        ref.state = BlockState.SETTLED
-        ref.events.append(f"debit {captured} → HTTP 200; ₹{_rupees(ref.released)} "
-                          "auto-released")
+        # The rail confirmed the capture. It did NOT say what became of the uncaptured
+        # remainder, so none is recorded as released: `available` stays the remainder
+        # held, and only a later read of the order can say more.
+        ref.state = BlockState.CAPTURED
+        ref.events.append(f"debit {captured} → HTTP 200 (captured; the remainder's "
+                          "release was not observed)")
         return ref
 
     def release(self, ref: BlockRef, amount: int | None = None) -> BlockRef:
         if ref.debited:
-            # Already settled — the remainder came back with the capture. Voiding
-            # now is what the rail rejects ("Capture request already exist").
+            # Cashfree: "Once captured, a transaction cannot be voided." The VOID was
+            # refused when probed; that is the rail's rule, not a claim about the remainder.
             raise RailError(
-                "nothing to release: a partial capture already returned the "
-                "uncaptured remainder on this rail")
+                "cannot release: the authorisation was captured and, as Cashfree "
+                "documents, \"Once captured, a transaction cannot be voided.\" What "
+                "becomes of the uncaptured remainder is the rail's and was not observed")
         sc, body = self.void(ref.block_id)
         if sc != 200:
             raise RailError(f"void failed (HTTP {sc}): {body}")

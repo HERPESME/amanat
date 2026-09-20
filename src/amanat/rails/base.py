@@ -25,6 +25,8 @@ class BlockState(Enum):
     IDLE = "idle"
     BLOCKED = "blocked"      # ceiling standing, nothing moved
     SETTLED = "settled"      # debited and the remainder released
+    CAPTURED = "captured"    # captured once: the rail takes no further capture or void; what
+                             # becomes of an uncaptured remainder is the rail's, and unobserved
     REVOKED = "revoked"      # torn down by the customer or by expiry
 
 
@@ -47,12 +49,22 @@ class BlockRef:
 
 @runtime_checkable
 class RailAdapter(Protocol):
-    """What every rail must be able to do."""
+    """What every rail must be able to do.
+
+    `idempotency_key` is optional: a rail that sets `supports_idempotency = True`
+    guarantees a repeated call with the same key acts once and returns the first
+    result. The session relies on that to recover from a crash or a lost response
+    by re-issuing the call. A rail that cannot make the guarantee must not claim
+    it — recovery then requires reconciling against the rail's own state instead.
+    """
 
     rail_id: str
 
-    def reserve(self, ceiling: int, payee: str) -> BlockRef: ...
-    def debit(self, ref: BlockRef, amount: int) -> BlockRef: ...
-    def release(self, ref: BlockRef, amount: int | None = None) -> BlockRef: ...
+    def reserve(self, ceiling: int, payee: str, *,
+                idempotency_key: str | None = None) -> BlockRef: ...
+    def debit(self, ref: BlockRef, amount: int, *,
+              idempotency_key: str | None = None) -> BlockRef: ...
+    def release(self, ref: BlockRef, amount: int | None = None, *,
+                idempotency_key: str | None = None) -> BlockRef: ...
     def revoke(self, ref: BlockRef) -> BlockRef: ...
     def status(self, ref: BlockRef) -> BlockState: ...

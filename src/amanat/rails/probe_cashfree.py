@@ -2,15 +2,22 @@
 
     uv run --with httpx --with cryptography python -m amanat.rails.probe_cashfree
 
-A doc says what a rail is supposed to do; a probe says what it did. This drives
-the whole pre-auth lifecycle against the live sandbox — hold ₹620, capture ₹470,
-watch the ₹150 come back — and it is the measurement that moves
-`cashfree_preauth.partial_debit` from UNVERIFIED to OBSERVED. Everything runs
-against sandbox credentials and moves no real money.
+A doc says what a rail is supposed to do; a probe says what it did. This drives the
+pre-auth lifecycle against the sandbox — hold ₹620, capture ₹470 — and is the
+measurement that moves `cashfree_preauth.partial_debit` from UNVERIFIED to OBSERVED.
+Everything runs against sandbox credentials and moves no real money; the
+authorisation is forced with `POST /simulate`, so this measures Cashfree's sandbox API,
+not an issuer.
 
-The result to read out loud: this rail returns HTTP 200 for a capture smaller
-than the hold. Razorpay returns HTTP 400 for the same shape. Two real rails,
-measured, disagreeing — one forecloses amount-contingent settlement, one permits it.
+The result to read out loud: this sandbox returns HTTP 200 for a capture smaller than
+the hold, and `captured_amount 470.0`. Razorpay returns HTTP 400 for the same shape.
+Two real rails, measured, disagreeing — one forecloses amount-contingent settlement,
+one accepts the debit leg.
+
+What this probe does NOT establish is where the uncaptured ₹150 goes. It tries a VOID
+afterwards; the refusal follows from Cashfree's documented rule ("Once captured, a
+transaction cannot be voided.") and says nothing about the remainder. That question is
+measured by `probe_cashfree_release`.
 """
 from __future__ import annotations
 
@@ -64,30 +71,27 @@ def run(rail: CashfreePreAuthRail, ceiling: int, actual: int) -> int:
         print(f"  \033[32m{OK} ACCEPTED (HTTP 200)\033[0m — "
               f"{a.get('action')} {a.get('status')}, captured ₹%.0f" % _rupees(captured))
         print(f"    payment_message: {cap.get('payment_message', '')}")
-        print(f"\n  \033[1mThis is cashfree_preauth.partial_debit → OBSERVED.\033[0m")
-        print("  \033[2mAmount-contingent settlement executing on a real regulated UPI")
-        print("  rail. The capability's quote becomes this response.\033[0m")
+
     else:
         print(f"  {NO} REFUSED → HTTP {sc}: {cap.get('message', cap)}")
         return 1
 
-    _head("Leg 3 — release the difference (the ₹%.0f remainder)"
-          % _rupees(ceiling - actual))
+    _head("Leg 3 — try to void the remainder (what an explicit release would need)")
     sc, v = rail.void(order_id)
     if sc != 200:
-        print(f"  {OK} the rail auto-released it — an explicit VOID is refused: "
-              f"HTTP {sc} \033[2m({v.get('message', '')})\033[0m")
-        print("  \033[2mCapturing less than the hold returns the difference on its own;")
-        print("  there is nothing left to void. No revoke, no teardown, no stranding —")
-        print("  which is more than SBMD gives, where the remainder stays blocked.\033[0m")
+        print(f"  {HM} VOID refused: HTTP {sc} \033[2m({v.get('message', '')})\033[0m")
+        print("  \033[2mCashfree documents this: \"Once captured, a transaction cannot be voided.\"")
+        print("  It does NOT show where the uncaptured remainder went. Measure that with")
+        print("  `python -m amanat.rails.probe_cashfree_release start` — it records what the")
+        print("  API reports over time, up to the documented 7-day expiry.\033[0m")
     else:
         print(f"  {OK} VOID → HTTP {sc}")
 
     _head("What two real rails say about amount-contingent settlement")
     print(f"  {NO} Razorpay manual capture — HTTP 400 "
           "\033[2m'Capture amount must be equal to the amount authorized'\033[0m")
-    print(f"  {OK} Cashfree UPI pre-auth — HTTP 200, captured ₹%.0f of ₹%.0f, "
-          "remainder returned" % (_rupees(actual), _rupees(ceiling)))
+    print(f"  {OK} Cashfree UPI pre-auth (sandbox) — HTTP 200, captured ₹%.0f of ₹%.0f; "
+          "the remainder's release: not observed" % (_rupees(actual), _rupees(ceiling)))
     print("  \033[2mMeasured, not quoted. The negative and the positive are both the point.\033[0m\n")
     return 0
 
@@ -103,7 +107,7 @@ def main() -> int:
         return 2
 
     print("\n\033[1mLIVE RAIL PROBE — Cashfree UPI pre-authorization (sandbox)\033[0m")
-    print("  \033[2mThe first real rail measured to accept a debit below the hold.\033[0m")
+    print("  \033[2mCashfree's sandbox accepts a debit below the hold; Razorpay refuses it.\033[0m")
     return run(rail, 620_00, 470_00)
 
 

@@ -426,3 +426,33 @@ class TestRazorpayPartialCaptureWasMeasured:
         notes = RAILS["razorpay_auth_capture"].capabilities["partial_debit"].notes
         assert "amanat.rails.authorize" in notes
         assert "--capture" in notes
+
+
+
+class TestTheCashfreeReleaseLegIsNotAssumed:
+    """A refused VOID after a capture is a rule Cashfree documents ("Once captured, a
+    transaction cannot be voided"); it is not evidence that the uncaptured remainder
+    was returned. The registry says what was observed and marks the rest unverified."""
+
+    def test_the_engine_will_not_plan_around_an_instant_remainder_release(self):
+        rail = RAILS["cashfree_preauth"]
+        assert rail.permits("remainder_auto_released") is False
+        d = rail.explain("remainder_auto_released")
+        assert d.allowed is False and "unverified" in d.reason
+
+    def test_the_observed_refusal_of_a_void_after_capture_is_kept_as_what_it_is(self):
+        cap = RAILS["cashfree_preauth"].capabilities["void_after_partial_capture"]
+        assert cap.source_tier is SourceTier.OBSERVED and cap.supported is False
+        assert "Capture request already exist" in cap.quote
+
+    def test_the_single_shot_rules_carry_cashfrees_own_words(self):
+        rail = RAILS["cashfree_preauth"]
+        second = rail.explain("multiple_captures")
+        assert second.allowed is False and "captured or voided once" in second.quote
+        partial = rail.explain("partial_void")
+        assert partial.allowed is False and "entire authorised amount" in partial.quote
+
+    def test_the_hold_expiry_is_a_cited_limit(self):
+        limit = RAILS["cashfree_preauth"].limit("hold_expiry_days")
+        assert limit.value == 7 and limit.unit == "days"
+        assert "7 days" in limit.quote
