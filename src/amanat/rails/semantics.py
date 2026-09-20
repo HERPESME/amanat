@@ -708,9 +708,9 @@ SBMD_LIMITS = [
         source_tier=SourceTier.PRIMARY, obtained_on=NPCI_READ_ON, citation=OC228, url=OC228_URL,
         quote=_OC228_BLOCK_CEILING,
         notes=(
-            "Same sentence as the Rs 10,000 ceiling. Never cite the 90 days "
-            "without the amount cap — quoting the window alone reads as a much "
-            "more permissive rail than the one that exists."
+            "Same sentence as the Rs 10,000 ceiling, so the two are cited together: "
+            "quoting the window alone reads as a much more permissive rail than "
+            "the one that exists."
         ),
     ),
     Limit(
@@ -757,8 +757,8 @@ SBMD = RailProfile(
                 "is written with named example categories rather than as a flat "
                 "all-goods prohibition. 'such as' is exemplifying, not "
                 "exhaustive, so the stricter reading (it binds all fixed-price "
-                "goods) is the one to build to - but say out loud that the "
-                "circular states it by example."
+                "goods) is the one the engine uses, and the "
+                "circular states the rule by example."
             ),
         ),
         Capability(
@@ -770,7 +770,7 @@ SBMD = RailProfile(
             notes=(
                 "The carve-out is scoped by AMOUNT UNCERTAINTY, not delivery "
                 "contingency. Cabs and EV charging qualify; a fixed-price kurta "
-                "does not. Grocery is a trap: amount resolves at picking, "
+                "does not. Grocery is outside the carve-out: the amount resolves at picking, "
                 "before dispatch, so debit can and must precede delivery. "
                 "Note also that the carve-out changes only WHEN the debit "
                 "happens - it says nothing about the amount relative to the "
@@ -787,9 +787,9 @@ SBMD = RailProfile(
             quote=_OC228_UNUTILISED,
             notes=(
                 "VERIFIED 21 Aug 2026 against the circular PDF. This is the "
-                "load-bearing capability for amount-contingent settlement, and "
-                "the reason this system stopped refusing its own core mechanism.\n"
-                "Honest reading: neither OC-228 nor OC-200 contains an explicit "
+                "capability that amount-contingent settlement depends on, and "
+                "the reason the engine stopped refusing its own core mechanism.\n"
+                "Reading: neither OC-228 nor OC-200 contains an explicit "
                 "sentence permitting a debit smaller than the block, and neither "
                 "forbids one. It is decided by necessary implication from four "
                 "independent clauses that are incoherent under a debit-equals-"
@@ -824,10 +824,10 @@ SBMD = RailProfile(
                 "Neither circular gives a merchant or an agent a way to place one, and OC-200 "
                 "reserves other modes for later: 'Other mode of initiation shall be envisaged "
                 "later.' An agent can choose a ceiling and present it; it cannot place one. "
-                "For a project whose framing sentence is that an agent must commit to an "
-                "amount before that amount exists, this is the most load-bearing fact about the "
-                "rail, and it was in the scan and in no row until a payments review of 21 Sep "
-                "2026 pointed at it. The quote marks the list's gaps with an ellipsis because "
+                "For an agent that must commit to an amount before that amount exists, "
+                "this is the fact about the rail that most constrains it, and it was in the scan "
+                "and in no row until a payments review of 21 Sep 2026 pointed at it. The quote "
+                "marks the list's gaps with an ellipsis because "
                 "the three methods are separate lines in the circular."
             ),
         ),
@@ -905,22 +905,22 @@ SBMD = RailProfile(
             url=OC200_URL,
             quote=_OC200_MULTIPLE_DEBITS,
             notes=(
-                "THE THIRD LEG OF THIS PROJECT'S MECHANISM IS NOT AUTOMATIC, "
-                "and this is the most consequential thing found on 21 Aug 2026.\n"
+                "The third leg of the mechanism, releasing the difference, is not automatic, "
+                "and this was found on 21 Aug 2026.\n"
                 "'The fund shall be blocked in the account till the time mandate "
                 "is expired, revoked or the mandate amount is exhausted.' The "
-                "rail KEEPS the unused remainder blocked. Neither circular "
+                "rail keeps the unused remainder blocked. Neither circular "
                 "imposes any duty to release it after a partial debit, and "
                 "neither states any timeline for doing so. Release happens only "
                 "because somebody calls revoke or update - see "
                 "`customer_revocable` (PRIMARY) and `merchant_revocable` "
                 "(SECONDARY, on a PSP's documentation: OC-228 5(c) does not say who may revoke).\n"
-                "Consequence for the ceiling model: debit Rs 470 against a "
-                "Rs 620 block and walk away, and Rs 150 stays stranded until the "
+                "Consequence for a ceiling model: debit Rs 470 against a "
+                "Rs 620 block and stop, and Rs 150 stays stranded until the "
                 "customer-chosen end date, up to 90 days. Stranding duration is "
                 "'until someone revokes, else end-of-block', not 'until "
-                "settlement'. Price it that way.\n"
-                "CORROBORATED 21 Aug 2026 by three independent PSP docs, which "
+                "settlement', and a cost model should use that.\n"
+                "Corroborated on 21 Aug 2026 by three independent PSP docs, which "
                 "matters because the primary finding was a negative one and a "
                 "negative read of a scan invites doubt. Razorpay: "
                 "'Ensure customers are informed that their funds remain blocked "
@@ -933,7 +933,7 @@ SBMD = RailProfile(
                 "remaining reserved balance reduces automatically after each "
                 "debit.' All three describe a pool that draws down and stays "
                 "blocked, not one that returns change.\n"
-                "THE ONE CONFLICTING SOURCE, and it should be disclosed rather "
+                "One source conflicts, and it is disclosed here rather "
                 "than dropped. PayU's Reserve Pay page asserts the opposite in "
                 "its examples - 'After finalizing the recharge (e.g., Rs.499), "
                 "the balance Rs.51 is released' - but the same page's feature "
@@ -941,15 +941,15 @@ SBMD = RailProfile(
                 "funds is done by remiters but PayU has built a functionality "
                 "(internal) to revoke the transactions based on end date to "
                 "minimise the funds on hold.' A scheduled revoke is not an "
-                "automatic release. Build to the stricter reading.\n"
-                "THE CONTRAST WORTH BUILDING ON. This is a MULTI-debit finding. "
-                "On the SINGLE-debit sibling - UPI OTM, Setu's 'Reserve' - the "
+                "automatic release, so the stricter reading is the one used.\n"
+                "The contrast that matters: this is a multi-debit finding. "
+                "On the single-debit sibling - UPI OTM, Setu's 'Reserve' - the "
                 "rail does hand the remainder back by itself; see "
                 "`upi_otm.partial_debit`. If the agent commits to exactly one "
                 "debit per block, leg three is free and there is nothing to "
                 "revoke. The stranding problem is the price of keeping the pool "
-                "open for a second debit, and that is a design choice this "
-                "project makes, not a constraint the rail imposes."
+                "open for a second debit, and that is a choice made by whoever "
+                "plans the debits, not a constraint the rail imposes."
             ),
         ),
         Capability(
@@ -973,7 +973,7 @@ SBMD = RailProfile(
                 "gives the customer 'Easy access to revoke the block' in the same terms. OC-200(e) says the "
                 "customer shall 'also' be provided with an option of revoking, which hints that another "
                 "party may revoke; a hint is not a statement.\n"
-                "History, because it is the point: this row was PRIMARY on 5(c), was UNVERIFIED after a "
+                "History: this row was PRIMARY on 5(c), was UNVERIFIED after a "
                 "payments review read the sentence in context on 21 Sep 2026, and is SECONDARY now on the "
                 "PSP page that does say it. `customer_revocable` is PRIMARY and unaffected.\n"
                 "CORRECTION, 21 Aug 2026, kept because it still applies. This note used to end '...so a "
@@ -997,7 +997,7 @@ SBMD = RailProfile(
                 "liability rather than a feature - revocation is one tap and "
                 "neither circular grants the merchant a lock period or any "
                 "protection for a debit in flight.\n"
-                "CORRECTION: this project previously recorded 'code 76 is "
+                "CORRECTION: an earlier version of this registry recorded 'code 76 is "
                 "merchant-revoke-only; code 77 is customer-revocable'. That "
                 "distinction appears in NEITHER circular and should be treated "
                 "as unsourced. What OC-200 clause (e) actually says, for all "
@@ -1045,13 +1045,13 @@ SBMD = RailProfile(
                 "default. OC-228 issuer obligation 5 states the same limits: "
                 "'The block created to be maximum of Rs.10,000 of block limit "
                 "and up to 90 days.'\n"
-                "Never quote the 90 days without the Rs 10,000 in the same "
-                "sentence. For a ceiling-selection thesis the Rs 10,000 is the "
+                "The 90 days and the Rs 10,000 are one sentence in the circular, "
+                "cited together here. For a ceiling-selection thesis the Rs 10,000 is the "
                 "harder constraint: any predicted ceiling above it cannot be "
                 "blocked at all on purpose code 77.\n"
                 "The '90d vs cards 7d vs mandate 60d' comparison still "
                 "originates in PayU MARKETING copy and mislabels OTM as "
-                "'standard mandate'. Do not cite it. For the card comparison use "
+                "'standard mandate', and is not cited here. For the card comparison use "
                 "this registry's own rows: `visa_card_auth.hold_expiry_days_*` "
                 "(5 to 30 days by channel and merchant category, from Visa's own "
                 "guide) and `stripe_card_manual_capture.hold_expiry_days`. "
@@ -1103,10 +1103,10 @@ SBMD = RailProfile(
             url=SETU_UPDATE_URL,
             quote=_SETU_TWO_UPDATES,
             notes=(
-                "[PARTIAL] - a PSP doc describing a RAIL rule, per the "
-                "rail-semantics skill. It is fact for Setu and a lead, not a "
+                "[PARTIAL] - a PSP doc describing a rail rule. It is "
+                "fact for Setu and a lead, not a "
                 "fact, for the rail.\n"
-                "WHAT WAS ESTABLISHED. A modify operation exists that is "
+                "What was established: a modify operation exists that is "
                 "distinct from revoke. Setu's OpenAPI "
                 "(/api-specs/payments/umap.json) carries "
                 "'PUT /api/v1/merchants/mandates/{id}/modify - Modify a mandate "
@@ -1115,14 +1115,14 @@ SBMD = RailProfile(
                 "by id'. The ReservePlus page - Setu's name for the single "
                 "block multi-debit product - lists 'Updating a single block "
                 "multi debit mandate' first among the operations available "
-                "'once it is LIVE'. The mandate SURVIVES: the update flow emits "
+                "'once it is LIVE'. The mandate survives: the update flow emits "
                 "'mandate.updated' and the docs warn that the updated state is "
                 "'a pseudo status. Do not update mandate status based on this.'\n"
                 "The quote above is what narrows it to the amount. Only two "
                 "fields are updatable at all, and one of them - endDate - is "
                 "explicitly excluded for SBMD. By elimination, on an SBMD "
                 "mandate a modify can change the amount and nothing else.\n"
-                "PRIMARY CORROBORATION that a modify exists at scheme level, "
+                "Primary corroboration that a modify exists at scheme level, "
                 "though never that it may decrease. OC-228 names modification "
                 "four times as a first-class lifecycle event: acquiring 5(c) "
                 f"'{_OC228_MERCHANT_REVOKE}' - update and revoke as two "
@@ -1130,36 +1130,35 @@ SBMD = RailProfile(
                 "modification, debit, revoke and expiry'; acquiring 5(e) and "
                 "UPI Apps 2 both require transaction history 'including "
                 "creation, debits, modification'.\n"
-                "SECOND INDEPENDENT SOURCE, payer-PSP side. Razorpay's TPAP Pro "
+                "A second independent source, on the payer-PSP side: Razorpay's TPAP Pro "
                 "API exposes PATCH /v1/upi/tpap/mandates/:umn whose `action` "
                 "parameter takes the two values 'update' and 'revoke' side by "
                 "side, and documents `amount` as: "
                 f"'{_RZP_TPAP_UPDATE_AMOUNT}'\n"
-                "ADOPTION REALITY, and this is the finding that matters. Six "
+                "Adoption: six "
                 "merchant-side PSPs were surveyed by enumerating published API "
-                "surface. Exactly ONE - Setu - exposes modify. Razorpay's "
+                "surface, and exactly one - Setu - exposes modify. Razorpay's "
                 "'Manage Mandates and Tokens' page has two lifecycle calls, "
                 "cancel and delete, and no modify; its Reserve Pay webhooks are "
                 "token.confirmed and token.cancellation_initiated, with no "
                 "token.updated. Cashfree's manage action enum is CANCEL | PAUSE "
                 "| ACTIVATE | CHANGE_PLAN and SBMD supports CANCEL only. PayU "
                 "and Juspay expose no modify. BoxPay publishes no API surface "
-                "for ReservePay at all. So the gap is IMPLEMENTATION, not "
-                "regulation - which is a much more interesting sentence to say "
-                "out loud than 'the rail does not allow it'."
+                "for ReservePay at all. So the gap is implementation, not "
+                "regulation."
             ),
         ),
         Capability(
             name="block_amount_reducible_without_revoke", supported=None,
             source_tier=SourceTier.UNVERIFIED,
             notes=(
-                "STILL UNVERIFIED AFTER A FULL PSP SURVEY, AND DELIBERATELY SO. "
-                "This is the assumption round 4 named as the most likely to be "
-                "false in the whole project. Round 5 could not settle it.\n"
-                "What is now evidenced is that a block's amount is MODIFIABLE "
+                "Still unverified after a survey of the PSPs, and deliberately. "
+                "An earlier review named this as the assumption most likely to be "
+                "false in the whole project, and a later survey could not settle it.\n"
+                "What is now evidenced is that a block's amount is modifiable "
                 "without revoking - see "
                 "`block_amount_modifiable_without_revoke`. What is not "
-                "evidenced anywhere is the DIRECTION. Not one of the six PSP "
+                "evidenced anywhere is the direction. Not one of the six PSP "
                 "doc sets read on 21 Aug 2026, and neither NPCI circular, "
                 "contains a sentence stating whether a modify may lower a "
                 "block's amount, or only raise it, or whether it must stay "
@@ -1175,8 +1174,7 @@ SBMD = RailProfile(
                 "which is the correct default. An agent that assumes it can "
                 "shrink a block and cannot has stranded the user's money for up "
                 "to 90 days and has no fallback that keeps the mandate alive.\n"
-                "HOW TO SETTLE IT, and it is now a one-hour test rather than a "
-                "one-day one, because the endpoint is named: on Setu staging "
+                "To settle it takes a one-hour test, because the endpoint is named. On Setu staging "
                 "(umap.setu.co), create a ReservePlus mandate for Rs 500, "
                 "execute Rs 200, then "
                 "PUT /v1/merchants/mandates/{id}/modify with amountLimit 30000 "
@@ -1185,7 +1183,7 @@ SBMD = RailProfile(
                 "with a directional error (supported=False, and the error string "
                 "is the citation); or it succeeds at the API and the issuer "
                 "declines, which is the answer that matters most and the one no "
-                "document would ever have told us."
+                "document would state."
             ),
         ),
         Capability(
@@ -1196,14 +1194,14 @@ SBMD = RailProfile(
             quote=_SETU_UPDATE_MPIN,
             notes=(
                 "[PARTIAL] - PSP doc describing a rail rule.\n"
-                "THE ASYMMETRY THAT DECIDES WHAT LEG THREE COSTS, and it runs "
+                "The asymmetry that decides what the third leg costs, and it runs "
                 "the wrong way for an autonomous agent.\n"
-                "The DESTRUCTIVE operation is unattended. Razorpay's cancel is "
+                "The destructive operation is unattended. Razorpay's cancel is "
                 "a server-to-server 'PUT /customers/:cid/tokens/:tid/cancel' "
                 "authenticated with the merchant key; Cashfree's is "
                 "'POST /pg/subscriptions/:id/manage' with action CANCEL. No "
                 "customer, no PIN, no app.\n"
-                "The NON-DESTRUCTIVE operation is not. Setu's modify requires "
+                "The non-destructive operation is not. Setu's modify requires "
                 "the customer to open a UPI app and enter their mPIN - by "
                 "intent link or QR for an intent mandate, by responding to a "
                 "collect notification for a collect mandate, and 'An intent "
@@ -1217,12 +1215,12 @@ SBMD = RailProfile(
                 "money, and it is the one that destroys the mandate. Reducing "
                 "the block instead costs a customer interaction - which is the "
                 "same AFA the fresh block after a revoke would have cost. The "
-                "saving from modifying rather than revoking is therefore NOT "
+                "saving from modifying rather than revoking is therefore not "
                 "'one AFA'; it is 'one AFA now instead of one AFA at the next "
                 "purchase', plus the option value of the block surviving in "
-                "between. That is a real saving but a much smaller one than the "
-                "project's cost function currently assumes, and it should be "
-                "modelled as deferral, not avoidance."
+                "between. That is a real saving but a much smaller one than a "
+                "cost model that treats modifying as avoiding an interaction would "
+                "assume, and it is better modelled as deferral, not avoidance."
             ),
         ),
         Capability(
@@ -1233,9 +1231,9 @@ SBMD = RailProfile(
             quote=_RZP_RELEASE_IS_CANCEL,
             notes=(
                 "[PARTIAL] - three PSP docs describing a rail behaviour.\n"
-                "DIRECT ANSWER TO 'is there a release-remainder or close-block-"
-                "early call?' - yes, every PSP has one, and on all three that "
-                "document it, IT IS THE REVOKE. There is no partial release.\n"
+                "Answer to 'is there a release-remainder or close-block-"
+                "early call?': yes, and on all three PSPs that document one "
+                "it is the revoke. There is no partial release.\n"
                 "Razorpay, above: the two ways to release are the Cancel Token "
                 "API and expiry. 'All remaining funds under the token' - never "
                 "some of them.\n"
@@ -1244,13 +1242,13 @@ SBMD = RailProfile(
                 f"then warns: '{_CASHFREE_CANCEL_ONLY}'\n"
                 "Juspay, on a page literally titled 'Release the Blocked "
                 f"Funds': '{_JUSPAY_RELEASE_IS_REVOKE}'\n"
-                "PayU is the honest one. Its Reserve Pay page says under "
+                "PayU states the mechanism plainly. Its Reserve Pay page says under "
                 "'Amount Unblocking': 'Currently, the releasing of funds is "
                 "done by remiters but PayU has built a functionality (internal) "
                 "to revoke the transactions based on end date to minimise the "
                 "funds on hold.' A PSP whose answer to stranded funds is a "
-                "scheduled revoke has told you there is no decrease operation.\n"
-                "ONE PIECE OF GOOD NEWS the circulars do not give you. Razorpay "
+                "scheduled revoke has said, in effect, that there is no decrease operation.\n"
+                "One mitigation the circulars do not give: Razorpay "
                 "bounds worst-case stranding below the 90-day ceiling: 'Razorpay "
                 "automatically triggers a reversal of the remaining funds 10 "
                 "minutes before the token expires.' That is a PSP behaviour, "
@@ -1296,8 +1294,12 @@ RAZORPAY_AUTH_CAPTURE = RailProfile(
             quote=_RAZORPAY_AUTHORIZED_DEBITED,
             obtained_on="2026-09-20",
             notes=(
-                "THE TRAP: Razorpay's 'authorized' state has ALREADY DEBITED the "
-                "customer. It is not a hold. Volunteer this in the pitch."
+                "Razorpay's 'authorized' state is not a hold: its payment-states table says the money "
+                "is deducted from the customer's account by Razorpay at that point and is settled to "
+                "the merchant on capture, and a payment not captured within the manual-capture "
+                "timeout is auto-refunded (`hold_expiry_days`, 3 days at most). Contrast the rows that "
+                "hold funds in the payer's account: `sbmd.funds_held_in_customer_account` and "
+                "`cashfree_preauth.funds_held_in_customer_account`."
             ),
         ),
         Capability(
@@ -1412,29 +1414,28 @@ UPI_OTM = RailProfile(
             quote=_SETU_OTM_AUTO_UNBLOCK,
             notes=(
                 "[PARTIAL] - PSP doc describing a rail rule.\n"
-                "CONFIRMED 21 Aug 2026, and it is the most useful thing round 5 "
-                "found. On a ONE-SHOT block the rail returns the difference by "
-                "itself: 'If a partial debit is done, remaining funds are "
+                "Confirmed 21 Aug 2026 from a PSP doc. On a one-shot block the rail "
+                "returns the difference by itself: 'If a partial debit is done, remaining funds are "
                 "unblocked in the customer bank A/C without any additional need "
                 "for refund/reversal.' No revoke, no modify, no customer AFA, "
                 "no stranded funds. That is precisely the third leg of "
                 "amount-contingent settlement, and OTM gives it away free.\n"
-                "THE PRICE. Setu's Reserve doc fixes sequenceNumber at 1 - one "
+                "The price: Setu's Reserve doc fixes sequenceNumber at 1 - one "
                 "debit and the mandate is spent. BoxPay says the same for OTM: "
                 "'The debit may be full or partial, but can be captured only "
                 "once. If no capture is made, the funds are automatically "
                 "released back to the customer's account at expiry.' So OTM "
                 "buys automatic release by giving up the standing pool.\n"
-                "THE STRAIGHT TRADE this project should state on camera: "
+                "The trade between the two rails: "
                 "SBMD keeps the mandate and strands the change; OTM returns the "
                 "change and spends the mandate. Neither gives both. Any claim "
                 "that a rail does both is a claim to check.\n"
-                "LIMITS DIFFER TOO, and Setu's figures do not match OC-228's: "
+                "The limits differ too, and Setu's figures do not match OC-228's: "
                 "'block funds upto Rs.1 lakh for all MCCs except 6211' with "
                 "'MCC 6211 - Capital Markets & Securities Brokers merchants can "
                 "block upto Rs.5 lakhs'. OC-228 caps a Reserve Pay block at "
-                "Rs 10,000 / 90 days. Do not carry a Rs 1 lakh OTM ceiling into "
-                "an SBMD argument."
+                "Rs 10,000 / 90 days. A Rs 1 lakh OTM ceiling does not carry "
+                "over to SBMD."
             ),
         ),
     ],
@@ -1554,7 +1555,7 @@ CASHFREE_PREAUTH = RailProfile(
                    'PAID, until an explicit CAPTURE'),
             notes=(
                 "Consistent with a pre-auth hold rather than Razorpay's 'authorized' "
-                "trap (where the customer has already been debited): after POST "
+                "state (where the customer has already been debited): after POST "
                 "/simulate the order is PAID (authorised) but the payment carries "
                 "is_captured=false, and only a CAPTURE moved it. The authorisation was "
                 "forced by the sandbox simulator, so this is the sandbox API's "
