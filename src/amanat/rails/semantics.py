@@ -44,11 +44,11 @@ class SourceTier(Enum):
     another after a deploy, whereas a circular changes only by amendment.
     """
 
-    PRIMARY = "primary"          # NPCI circular, RBI directive, network operating regs
+    PRIMARY = "primary"          # the rail's own governing text: a circular, a regulation, a protocol spec
     OBSERVED = "observed"        # measured against the live API — the quote is its response
     SECONDARY = "secondary"      # PSP integration docs — fact for that PSP's own behaviour
     MARKETING = "marketing"      # blog posts, product pages, comparison tables. Never fact.
-    UNVERIFIED = "unverified"    # believed, not confirmed. Never fact.
+    UNVERIFIED = "unverified"    # not established: says neither yes nor no. Never fact.
 
     @property
     def is_fact(self) -> bool:
@@ -60,12 +60,15 @@ class SourceTier(Enum):
 
 
 _TIER_MEANING = {
-    SourceTier.PRIMARY: "NPCI circular, RBI directive, network operating regulation",
+    SourceTier.PRIMARY: "the rail's own governing text: an NPCI circular, an RBI directive, a network "
+                        "operating regulation, or an open protocol's normative specification read at a "
+                        "pinned revision",
     SourceTier.OBSERVED: "measured against the rail's API; the quote is the response it returned "
                          "(see `environment`)",
     SourceTier.SECONDARY: "PSP integration docs — for that PSP's own behaviour",
     SourceTier.MARKETING: "Blog posts, product pages, comparison tables",
-    SourceTier.UNVERIFIED: "Believed, not confirmed",
+    SourceTier.UNVERIFIED: "Not established: the row says neither yes nor no (`supported` is null) "
+                           "and is refused",
 }
 
 
@@ -152,6 +155,11 @@ def _check_evidence(kind: str, name: str, tier: SourceTier, quote: str,
             f"{kind} {name!r} names an environment but is not OBSERVED; an environment "
             f"describes a measurement"
         )
+    if tier is SourceTier.OBSERVED and not obtained_on:
+        raise CapabilityError(
+            f"{kind} {name!r} is OBSERVED but does not say when: obtained_on is required. "
+            f"A measurement without a date is not a measurement; rails change behaviour"
+        )
     if obtained_on:
         try:
             valid = _ISO_DATE.fullmatch(obtained_on) and date.fromisoformat(obtained_on)
@@ -173,7 +181,7 @@ class Capability:
     """
 
     name: str
-    supported: bool
+    supported: bool | None          # None, and only None, for UNVERIFIED: nothing was established
     source_tier: SourceTier
     citation: str = ""
     url: str = ""
@@ -186,6 +194,17 @@ class Capability:
     def __post_init__(self) -> None:
         _check_evidence("capability", self.name, self.source_tier, self.quote,
                         self.environment, self.obtained_on)
+        if self.source_tier is SourceTier.UNVERIFIED:
+            if self.supported is not None:
+                raise CapabilityError(
+                    f"capability {self.name!r} is unverified, so it says neither yes nor no: "
+                    f"supported must be None. Put what is believed in `notes`."
+                )
+        elif self.supported is None:
+            raise CapabilityError(
+                f"capability {self.name!r} claims tier {self.source_tier.value!r} "
+                f"so it must say yes or no; only an UNVERIFIED row may leave supported as None"
+            )
 
     @property
     def is_fact(self) -> bool:
@@ -308,7 +327,7 @@ class RailProfile:
     def permits(self, capability: str) -> bool:
         """True only if the rail supports it AND we can evidence that it does."""
         cap = self.capabilities.get(capability)
-        return bool(cap and cap.supported and cap.is_fact)
+        return bool(cap and cap.supported is True and cap.is_fact)
 
     def explain(self, capability: str) -> Decision:
         cap = self.capabilities.get(capability)
@@ -1002,7 +1021,7 @@ SBMD = RailProfile(
             ),
         ),
         Capability(
-            name="block_amount_reducible_without_revoke", supported=True,
+            name="block_amount_reducible_without_revoke", supported=None,
             source_tier=SourceTier.UNVERIFIED,
             notes=(
                 "STILL UNVERIFIED AFTER A FULL PSP SURVEY, AND DELIBERATELY SO. "
@@ -1246,7 +1265,7 @@ UPI_OTM = RailProfile(
     display_name="UPI One Time Mandate",
     capabilities=[
         Capability(
-            name="post_delivery_debit_goods", supported=True,
+            name="post_delivery_debit_goods", supported=None,
             source_tier=SourceTier.UNVERIFIED,
             notes=(
                 f"CONFLICT, UNRESOLVED. PayU documents: “{_PAYU_OTM_CAPTURE}” which "
@@ -1352,7 +1371,7 @@ CASHFREE_PREAUTH = RailProfile(
             ),
         ),
         Capability(
-            name="remainder_auto_released", supported=True,
+            name="remainder_auto_released", supported=None,
             source_tier=SourceTier.UNVERIFIED,
             citation="not established",
             url=CASHFREE_PREAUTH_URL,

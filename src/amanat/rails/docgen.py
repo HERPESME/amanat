@@ -42,13 +42,19 @@ published as JSON with a schema in [`docs/registry/`](registry/).
 
 {tiers}
 
+A protocol's specification is `PRIMARY` because it *is* the rail; a circular is `PRIMARY`
+because it *binds* the rail. Both are usable as fact about the text, and neither says how
+many banks, PSPs or facilitators have shipped it.
+
 An `OBSERVED` row says what it was observed on. A vendor **sandbox** that forces an
 authorisation is not an issuer and can differ from production; **live** means production
 or public infrastructure (no funds moved by this project). *Obtained* is the date the
 evidence was read or measured; a dash means the repository does not record it.
 
 **Safety property:** absence of evidence is not permission. A capability that is
-`UNVERIFIED` returns `False` from `permits()` even when `supported=True`.
+`UNVERIFIED` says neither yes nor no (`supported` is `None`), and `permits()` returns `False`
+for it. In the *Permitted* column below, `?` means "not established, refused", which is not
+the same as `**no**`, "the source says the rail does not permit it".
 
 """
 
@@ -90,7 +96,7 @@ def render() -> str:
         out.append("| Capability | Permitted | Tier | Obtained | Source |")
         out.append("|---|---|---|---|---|")
         for cap in rail.capabilities.values():
-            verdict = "yes" if rail.permits(cap.name) else "**no**"
+            verdict = "yes" if rail.permits(cap.name) else "**no**" if cap.is_fact else "?"
             src = f"{cap.citation}" if cap.citation else "—"
             out.append(f"| `{cap.name}` | {verdict} | {_tier_label(cap)} | "
                        f"{cap.obtained_on or '—'} | {src} |")

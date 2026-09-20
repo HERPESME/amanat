@@ -78,7 +78,7 @@ def unverified_rail():
         rail_id="_unverified_fixture", display_name="Unverified Fixture Rail",
         capabilities=[
             Capability(
-                name="partial_debit", supported=True,
+                name="partial_debit", supported=None,
                 source_tier=SourceTier.UNVERIFIED,
                 notes="believed, not confirmed — the honest default",
             ),

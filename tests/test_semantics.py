@@ -16,7 +16,7 @@ class TestCitationDiscipline:
             )
 
     def test_unverified_capability_needs_no_quote(self):
-        cap = Capability(name="whatever", supported=False,
+        cap = Capability(name="whatever", supported=None,
                          source_tier=SourceTier.UNVERIFIED)
         assert cap.source_tier is SourceTier.UNVERIFIED
 
@@ -39,7 +39,7 @@ class TestRailProfile:
     def test_unverified_capability_is_not_permitted(self):
         """Absence of evidence is not permission. This is the safety property."""
         rail = RailProfile(rail_id="t", display_name="T", capabilities=[
-            Capability(name="risky", supported=True, source_tier=SourceTier.UNVERIFIED),
+            Capability(name="risky", supported=None, source_tier=SourceTier.UNVERIFIED),
         ])
         assert rail.permits("risky") is False
 
@@ -252,7 +252,7 @@ class TestBlockModification:
         rail = RAILS["sbmd"]
         cap = rail.capabilities["block_amount_reducible_without_revoke"]
         assert cap.source_tier is SourceTier.UNVERIFIED
-        assert cap.supported is True, "we believe it; we have not evidenced it"
+        assert cap.supported is None, "we do not know; the belief lives in the notes"
         assert rail.permits("block_amount_reducible_without_revoke") is False
         assert "not usable as fact" in \
             rail.explain("block_amount_reducible_without_revoke").reason
@@ -374,7 +374,7 @@ class TestObservedTier:
         """For OBSERVED the quote is the API's actual response."""
         with pytest.raises(CapabilityError, match="quote"):
             Capability(name="x", supported=True, source_tier=SourceTier.OBSERVED,
-                       citation="probed", quote="")
+                       citation="probed", quote="", obtained_on="2026-09-20")
 
     def test_setu_credentials_work_but_the_api_does_not_resolve(self):
         """Both halves measured 21 Aug 2026; see amanat.rails.probe.
@@ -469,13 +469,21 @@ class TestEvidenceProvenance:
 
     def _observed(self, **kw):
         base = dict(name="x", supported=True, source_tier=SourceTier.OBSERVED,
-                    citation="probed", quote="HTTP 200")
+                    citation="probed", quote="HTTP 200", obtained_on="2026-09-20")
         base.update(kw)
         return Capability(**base)
 
     def test_an_observed_row_must_say_what_it_was_observed_on(self):
         with pytest.raises(CapabilityError, match="sandbox or live"):
             self._observed()
+
+    def test_an_observed_row_must_say_when(self):
+        """A measurement without a date is not a measurement: rails change behaviour."""
+        with pytest.raises(CapabilityError, match="obtained_on"):
+            self._observed(environment=Environment.SANDBOX, obtained_on="")
+        with pytest.raises(CapabilityError, match="obtained_on"):
+            Limit(name="x", value=1, unit="days", source_tier=SourceTier.OBSERVED,
+                  citation="probed", quote="q", environment=Environment.SANDBOX)
 
     def test_an_observed_row_with_an_environment_is_accepted(self):
         assert self._observed(environment=Environment.SANDBOX).environment is Environment.SANDBOX
@@ -611,3 +619,41 @@ class TestReferenceRailsAreHonestAboutTheirSources:
                 if cap.source_tier is SourceTier.UNVERIFIED:
                     assert "Not established" in cap.notes and len(cap.notes) > 200, (rid, cap.name)
                     assert cap.permits if False else RAILS[rid].permits(cap.name) is False
+
+
+class TestUnverifiedIsUnknown:
+    """An UNVERIFIED row does not say yes or no: nothing was established either way.
+
+    The export's first field is `supported`. A consumer that reads only that field must not be
+    handed a positive assertion on a row where nothing was evidenced, and every such row used to
+    say `true`: `visa_card_auth.over_capture` told a reader that Visa permits clearing above the
+    authorised sum, which the guide does not say.
+    """
+
+    @pytest.mark.parametrize("claim", [True, False])
+    def test_an_unverified_capability_cannot_claim_either_answer(self, claim):
+        with pytest.raises(CapabilityError, match="unverified"):
+            Capability(name="x", supported=claim, source_tier=SourceTier.UNVERIFIED)
+
+    def test_an_unverified_capability_is_unknown(self):
+        assert Capability(name="x", supported=None, source_tier=SourceTier.UNVERIFIED).supported is None
+
+    @pytest.mark.parametrize("tier", [t for t in SourceTier if t is not SourceTier.UNVERIFIED])
+    def test_every_other_tier_must_answer_yes_or_no(self, tier):
+        with pytest.raises(CapabilityError, match="yes or no"):
+            Capability(name="x", supported=None, source_tier=tier, citation="c", url="u", quote="q",
+                       obtained_on="2026-09-20",
+                       environment=Environment.SANDBOX if tier is SourceTier.OBSERVED else None)
+
+    def test_no_registered_row_claims_an_answer_it_did_not_establish(self):
+        for rail in RAILS.values():
+            for cap in rail.capabilities.values():
+                assert (cap.supported is None) == (cap.source_tier is SourceTier.UNVERIFIED), \
+                    (rail.rail_id, cap.name, cap.supported, cap.source_tier)
+
+    def test_an_unknown_row_is_refused_and_says_why(self):
+        rail = RailProfile(rail_id="t", display_name="T", capabilities=[
+            Capability(name="risky", supported=None, source_tier=SourceTier.UNVERIFIED)])
+        d = rail.explain("risky")
+        assert rail.permits("risky") is False
+        assert d.allowed is False and "not usable as fact" in d.reason

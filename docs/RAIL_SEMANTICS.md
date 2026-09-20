@@ -10,11 +10,15 @@ published as JSON with a schema in [`docs/registry/`](registry/).
 
 | Tier | Meaning | Usable as fact? |
 |---|---|---|
-| `PRIMARY` | NPCI circular, RBI directive, network operating regulation | yes |
+| `PRIMARY` | the rail's own governing text: an NPCI circular, an RBI directive, a network operating regulation, or an open protocol's normative specification read at a pinned revision | yes |
 | `OBSERVED` | measured against the rail's API; the quote is the response it returned (see `environment`) | yes |
 | `SECONDARY` | PSP integration docs — for that PSP's own behaviour | yes |
 | `MARKETING` | Blog posts, product pages, comparison tables | **no** |
-| `UNVERIFIED` | Believed, not confirmed | **no** |
+| `UNVERIFIED` | Not established: the row says neither yes nor no (`supported` is null) and is refused | **no** |
+
+A protocol's specification is `PRIMARY` because it *is* the rail; a circular is `PRIMARY`
+because it *binds* the rail. Both are usable as fact about the text, and neither says how
+many banks, PSPs or facilitators have shipped it.
 
 An `OBSERVED` row says what it was observed on. A vendor **sandbox** that forces an
 authorisation is not an issuer and can differ from production; **live** means production
@@ -22,7 +26,9 @@ or public infrastructure (no funds moved by this project). *Obtained* is the dat
 evidence was read or measured; a dash means the repository does not record it.
 
 **Safety property:** absence of evidence is not permission. A capability that is
-`UNVERIFIED` returns `False` from `permits()` even when `supported=True`.
+`UNVERIFIED` says neither yes nor no (`supported` is `None`), and `permits()` returns `False`
+for it. In the *Permitted* column below, `?` means "not established, refused", which is not
+the same as `**no**`, "the source says the rail does not permit it".
 
 
 ## `sbmd` — UPI Reserve Pay (NPCI Single Block Multiple Debit)
@@ -42,7 +48,7 @@ evidence was read or measured; a dash means the repository does not record it.
 | `block_validity_90_days` | yes | `PRIMARY` | 2026-08-21 | NPCI/UPI/OC-228/2025-26, 8 October 2025, Acquiring entities obligation 5(b) |
 | `single_active_block_per_merchant` | yes | `PRIMARY` | 2026-08-21 | NPCI/UPI/OC-228/2025-26, 8 October 2025, Issuer Banks obligation 4 |
 | `block_amount_modifiable_without_revoke` | yes | `SECONDARY` | — | Setu UPI (UMAP), Mandate operations - Update (corroborated by Setu UPI (UMAP), ReservePlus (Single block multi-debit mandate)) |
-| `block_amount_reducible_without_revoke` | **no** | `UNVERIFIED` | — | — |
+| `block_amount_reducible_without_revoke` | ? | `UNVERIFIED` | — | — |
 | `block_modify_requires_customer_afa` | yes | `SECONDARY` | — | Setu UPI (UMAP), Mandate operations - Update |
 | `remainder_release_without_teardown` | **no** | `SECONDARY` | — | Razorpay UPI Reserve Pay (SBMD), Manage Mandates and Tokens; Cashfree UPI Reserve Pay, Implementation Guide step 6 (Manage mandate); Juspay One Time Mandate, Release the Blocked Funds |
 
@@ -294,7 +300,7 @@ A captured payment cannot be captured again (HTTP 400), so there is one capture 
 
 | Capability | Permitted | Tier | Obtained | Source |
 |---|---|---|---|---|
-| `post_delivery_debit_goods` | **no** | `UNVERIFIED` | — | — |
+| `post_delivery_debit_goods` | ? | `UNVERIFIED` | — | — |
 | `partial_debit` | yes | `SECONDARY` | 2026-08-21 | Setu UPI (UMAP), Reserve (One Time Mandates) |
 
 **`post_delivery_debit_goods`**
@@ -319,7 +325,7 @@ LIMITS DIFFER TOO, and Setu's figures do not match OC-228's: 'block funds upto R
 |---|---|---|---|---|
 | `partial_debit` | yes | `OBSERVED` (sandbox) | 2026-08-29 | measured 29 Aug 2026 (sandbox; the authorisation was forced with POST /simulate) — POST /orders/{id}/authorization action CAPTURE ₹470 of a ₹620 hold, HTTP 200 |
 | `void_after_partial_capture` | **no** | `OBSERVED` (sandbox) | 2026-08-29 | measured 29 Aug 2026 (sandbox) — VOID after a partial CAPTURE, HTTP 400 |
-| `remainder_auto_released` | **no** | `UNVERIFIED` | — | not established |
+| `remainder_auto_released` | ? | `UNVERIFIED` | — | not established |
 | `partial_void` | **no** | `SECONDARY` | 2026-09-20 | Cashfree, Pre-Authorisation docs, FAQ (fetched 20 Sep 2026) |
 | `multiple_captures` | **no** | `SECONDARY` | 2026-09-20 | Cashfree, Pre-Authorisation docs, Managing preauthorisation transactions (fetched 20 Sep 2026) |
 | `funds_held_in_customer_account` | yes | `OBSERVED` (sandbox) | 2026-08-29 | measured 29 Aug 2026 — order_status PAID, is_captured false before any capture |
@@ -493,8 +499,8 @@ The two hosts the UMAP docs name for sandbox and production do not exist in publ
 | `incremental_authorization` | yes | `SECONDARY` | 2026-09-20 | Visa, Estimated and Incremental Authorization and Reversal Processing Requirements for Visa Merchants (PDF, ©2024 Visa), p. 3, Incremental authorization request |
 | `buffered_authorisation` | **no** | `SECONDARY` | 2026-09-20 | Visa, Estimated and Incremental Authorization and Reversal Processing Requirements for Visa Merchants (PDF, ©2024 Visa), p. 2, Estimated authorization request |
 | `capped_initial_authorization` | yes | `SECONDARY` | 2026-09-20 | Visa, Estimated and Incremental Authorization and Reversal Processing Requirements for Visa Merchants (PDF, ©2024 Visa), p. 6, Common Questions, initial authorization |
-| `remainder_auto_released` | **no** | `UNVERIFIED` | 2026-09-20 | not established |
-| `over_capture` | **no** | `UNVERIFIED` | 2026-09-20 | not established |
+| `remainder_auto_released` | ? | `UNVERIFIED` | 2026-09-20 | not established |
+| `over_capture` | ? | `UNVERIFIED` | 2026-09-20 | not established |
 
 **Numeric limits** — enforced, not decorative. Unlike capabilities, an unverified limit is still applied: thin evidence means refuse more, never less.
 
@@ -595,7 +601,7 @@ Not established. The guide's only stated route to a higher final amount is an in
 | `void_whole_hold` | yes | `SECONDARY` | 2026-09-20 | Stripe Docs: How Payment Intents and Setup Intents work, Lifecycle table, Cancelled row |
 | `incremental_authorization` | yes | `SECONDARY` | 2026-09-20 | Stripe Docs: Increment an authorisation, introduction |
 | `idempotent_replay` | yes | `SECONDARY` | 2026-09-20 | Stripe API Reference: Idempotent requests, introduction |
-| `partial_void` | **no** | `UNVERIFIED` | 2026-09-20 | not established |
+| `partial_void` | ? | `UNVERIFIED` | 2026-09-20 | not established |
 
 **Numeric limits** — enforced, not decorative. Unlike capabilities, an unverified limit is still applied: thin evidence means refuse more, never less.
 

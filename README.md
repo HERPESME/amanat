@@ -8,7 +8,7 @@
 
 *Block a ceiling. Debit the actual. Prove what the money did.*
 
-[![tests](https://img.shields.io/badge/tests-1254%20passing-2ea44f?style=flat-square)](#testing)
+[![tests](https://img.shields.io/badge/tests-1274-2ea44f?style=flat-square)](#testing)
 [![python](https://img.shields.io/badge/python-3.11%2B-3776ab?style=flat-square)](#quick-start)
 [![live rail](https://img.shields.io/badge/live%20rail-%E2%82%B9470%20of%20%E2%82%B9620%20%C2%B7%20HTTP%20200-2ea44f?style=flat-square)](#what-it-does)
 [![rails](https://img.shields.io/badge/rails-UPI%20SBMD%20%C2%B7%20Cashfree%20%C2%B7%20Razorpay%20%C2%B7%20Setu-6c5ce7?style=flat-square)](#the-evidence-table)
@@ -132,7 +132,7 @@ git clone https://github.com/HERPESME/amanat && cd amanat
 # The eight-act walkthrough — the whole argument in one command
 uv run --with cryptography python -m amanat.demo
 
-# 1254 tests. No API key, no network (Node.js runs the browser-verifier tests).
+# 1274 tests. No API key, no network (Node.js runs the browser-verifier tests).
 uv run --with pytest --with cryptography --with httpx --with fastapi --with pydantic \
        --with numpy --with scikit-learn --with pandas --with pyarrow --with hypothesis pytest tests/ -q
 ```
@@ -278,18 +278,19 @@ Capability(
 )
 ```
 
-**Absence of evidence is not permission.** An `UNVERIFIED` capability returns `False`
-from `permits()` even when `supported=True`. This is why the system spent a day
+**Absence of evidence is not permission.** An `UNVERIFIED` capability says neither yes nor no
+(`supported` is `None`, and the export says `null`), and `permits()` returns `False` for it. This
+is why the system spent a day
 **refusing its own core mechanism** — partial debit was described only in vendor docs
 until the NPCI circular was actually read.
 
 | Tier | Meaning | Usable as fact? |
 |---|---|---|
-| `PRIMARY` | NPCI circular, RBI directive | ✅ |
+| `PRIMARY` | the rail's own governing text: an NPCI circular, an RBI directive, a network's rules, an open protocol's specification at a pinned revision | ✅ |
 | `OBSERVED` | measured against the live API — the quote *is* its response | ✅ |
 | `SECONDARY` | PSP docs, for that PSP's own behaviour | ✅ |
 | `MARKETING` | blog posts, comparison tables | ❌ |
-| `UNVERIFIED` | believed, not confirmed | ❌ |
+| `UNVERIFIED` | not established: neither yes nor no | ❌ |
 
 ### 2 · The evidence chain goes below authorization
 
@@ -590,7 +591,7 @@ uv run --with pytest --with cryptography --with httpx --with fastapi --with pyda
        --with numpy --with scikit-learn --with pandas --with pyarrow --with hypothesis pytest tests/ -q
 ```
 
-**1254 tests, no credential and no network.** If proving the agent is bounded ever
+**1274 tests, no credential and no network.** If proving the agent is bounded ever
 required a live model, the agent would not be bounded.
 
 | Suite | What it pins |

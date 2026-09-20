@@ -235,7 +235,7 @@ VISA_CARD_AUTH = RailProfile(
             ),
         ),
         Capability(
-            name='remainder_auto_released', supported=True,
+            name='remainder_auto_released', supported=None,
             source_tier=SourceTier.UNVERIFIED, obtained_on="2026-09-20",
             citation="not established", url=_VISA_AUTHORIZATION_AND_REVERSAL_PROCESSING_BEST_PRACTICES_FOR_MERCHANTS,
             notes=(
@@ -252,7 +252,7 @@ VISA_CARD_AUTH = RailProfile(
             ),
         ),
         Capability(
-            name='over_capture', supported=True,
+            name='over_capture', supported=None,
             source_tier=SourceTier.UNVERIFIED, obtained_on="2026-09-20",
             citation="not established", url=_VISA_AUTHORIZATION_AND_REVERSAL_PROCESSING_BEST_PRACTICES_FOR_MERCHANTS,
             notes=(
@@ -513,7 +513,7 @@ STRIPE_CARD_MANUAL_CAPTURE = RailProfile(
             ),
         ),
         Capability(
-            name='partial_void', supported=True,
+            name='partial_void', supported=None,
             source_tier=SourceTier.UNVERIFIED, obtained_on="2026-09-20",
             citation="not established", url=_STRIPE_MULTICAPTURE_VARIANT,
             notes=(

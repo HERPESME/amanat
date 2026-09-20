@@ -64,6 +64,6 @@ def test_the_readme_and_project_notes_state_the_number_of_tests_the_suite_collec
         cwd=root, capture_output=True, text=True, timeout=300).stdout
     n = int(re.search(r"(\d+) tests? collected", out).group(1))
     claude = (root / "CLAUDE.md").read_text(encoding="utf-8")
-    assert f"tests-{n}%20passing" in README, f"README badge: the suite collects {n} tests"
+    assert f"badge/tests-{n}-" in README, f"README badge: the suite collects {n} tests"
     assert f"# {n} tests." in README and f"**{n} tests, no credential and no network.**" in README
     assert f"# {n} tests (" in claude, f"CLAUDE.md: the suite collects {n} tests"

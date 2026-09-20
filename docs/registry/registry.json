@@ -5,7 +5,7 @@
     {
       "tier": "primary",
       "usable_as_fact": true,
-      "meaning": "NPCI circular, RBI directive, network operating regulation"
+      "meaning": "the rail's own governing text: an NPCI circular, an RBI directive, a network operating regulation, or an open protocol's normative specification read at a pinned revision"
     },
     {
       "tier": "observed",
@@ -25,7 +25,7 @@
     {
       "tier": "unverified",
       "usable_as_fact": false,
-      "meaning": "Believed, not confirmed"
+      "meaning": "Not established: the row says neither yes nor no (`supported` is null) and is refused"
     }
   ],
   "concepts": [
@@ -596,7 +596,7 @@
         },
         {
           "name": "block_amount_reducible_without_revoke",
-          "supported": true,
+          "supported": null,
           "permitted": false,
           "tier": "unverified",
           "usable_as_fact": false,
@@ -934,7 +934,7 @@
       "capabilities": [
         {
           "name": "post_delivery_debit_goods",
-          "supported": true,
+          "supported": null,
           "permitted": false,
           "tier": "unverified",
           "usable_as_fact": false,
@@ -1036,7 +1036,7 @@
         },
         {
           "name": "remainder_auto_released",
-          "supported": true,
+          "supported": null,
           "permitted": false,
           "tier": "unverified",
           "usable_as_fact": false,
@@ -1554,7 +1554,7 @@
         },
         {
           "name": "remainder_auto_released",
-          "supported": true,
+          "supported": null,
           "permitted": false,
           "tier": "unverified",
           "usable_as_fact": false,
@@ -1570,7 +1570,7 @@
         },
         {
           "name": "over_capture",
-          "supported": true,
+          "supported": null,
           "permitted": false,
           "tier": "unverified",
           "usable_as_fact": false,
@@ -1955,7 +1955,7 @@
         },
         {
           "name": "partial_void",
-          "supported": true,
+          "supported": null,
           "permitted": false,
           "tier": "unverified",
           "usable_as_fact": false,

@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://raw.githubusercontent.com/HERPESME/amanat/main/docs/registry/registry.schema.json",
   "title": "Amanat rail-semantics registry",
-  "description": "What each payment rail is evidenced to permit. The discipline of the project is part of the schema: every row that is not UNVERIFIED carries a verbatim quote; an OBSERVED row names what it was observed on; and a row is `permitted` only if it is supported AND rests on evidence usable as fact. A consumer that validates against this schema inherits those rules.",
+  "description": "What each payment rail is evidenced to permit. The discipline of the project is part of the schema: a row that is not UNVERIFIED carries a non-empty quote (whether the quote is verbatim is decided by the watcher, not by this schema); an UNVERIFIED row says neither yes nor no, so its `supported` is null; an OBSERVED row names what it was observed on; and a row is `permitted` only if it is supported AND rests on evidence usable as fact. A consumer that validates against this schema inherits those rules.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -261,7 +261,7 @@
           }
         },
         {
-          "description": "An observation says what it was observed on; nothing else may.",
+          "description": "An observation says what it was observed on and when it was obtained; nothing else may name an environment.",
           "if": {
             "properties": {
               "tier": {
@@ -279,6 +279,9 @@
                   "sandbox",
                   "live"
                 ]
+              },
+              "obtained_on": {
+                "$ref": "#/$defs/date"
               }
             }
           },
@@ -310,7 +313,11 @@
               "minLength": 1
             },
             "supported": {
-              "type": "boolean"
+              "type": [
+                "boolean",
+                "null"
+              ],
+              "description": "What the source says the rail does: true or false. Null, and only null, for an UNVERIFIED row: nothing was established either way."
             },
             "permitted": {
               "description": "What the policy engine will do: true only if supported AND usable as fact. Absence of evidence is not permission."
@@ -343,6 +350,33 @@
                 "properties": {
                   "permitted": {
                     "const": false
+                  }
+                }
+              }
+            },
+            {
+              "description": "Unverified means unknown: an UNVERIFIED row says neither yes nor no, and every other row says one of them.",
+              "if": {
+                "properties": {
+                  "tier": {
+                    "const": "unverified"
+                  }
+                },
+                "required": [
+                  "tier"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "supported": {
+                    "const": null
+                  }
+                }
+              },
+              "else": {
+                "properties": {
+                  "supported": {
+                    "type": "boolean"
                   }
                 }
               }

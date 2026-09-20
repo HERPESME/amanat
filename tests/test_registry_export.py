@@ -55,6 +55,14 @@ class TestTheExportIsAContract:
         for rail_id, cap in _rows(doc):
             assert cap["permitted"] is RAILS[rail_id].permits(cap["name"]), (rail_id, cap["name"])
 
+    def test_an_unverified_row_exports_no_answer_and_every_other_row_exports_one(self):
+        """`supported: null` is the export's word for "not established"."""
+        for rail_id, cap in _rows(export.build()):
+            if cap["tier"] == "unverified":
+                assert cap["supported"] is None, (rail_id, cap["name"])
+            else:
+                assert isinstance(cap["supported"], bool), (rail_id, cap["name"])
+
     def test_a_limit_is_exported_with_its_number_and_unit(self):
         lim = _first(export.build(), lambda l: l["name"] == "max_block_amount", "limits")
         assert lim["value"] == 10_000_00 and lim["unit"] == "paise" and lim["tier"] == "primary"
@@ -84,6 +92,19 @@ class TestTheSchemaCarriesTheDiscipline:
         with pytest.raises(jsonschema.ValidationError):
             _validate(bad)
 
+    def test_an_unverified_row_cannot_claim_support_either_way(self):
+        for claim in (True, False):
+            bad = copy.deepcopy(export.build())
+            _first(bad, lambda c: c["tier"] == "unverified")["supported"] = claim
+            with pytest.raises(jsonschema.ValidationError):
+                _validate(bad)
+
+    def test_a_row_with_evidence_cannot_be_unknown(self):
+        bad = copy.deepcopy(export.build())
+        _first(bad, lambda c: c["tier"] == "primary")["supported"] = None
+        with pytest.raises(jsonschema.ValidationError):
+            _validate(bad)
+
     def test_a_permitted_row_must_be_supported_and_a_fact(self):
         bad = copy.deepcopy(export.build())
         row = _first(bad, lambda c: c["permitted"])
@@ -101,6 +122,12 @@ class TestTheSchemaCarriesTheDiscipline:
     def test_an_observed_row_must_name_its_environment(self):
         bad = copy.deepcopy(export.build())
         _first(bad, lambda c: c["tier"] == "observed")["environment"] = None
+        with pytest.raises(jsonschema.ValidationError):
+            _validate(bad)
+
+    def test_an_observed_row_must_say_when_it_was_obtained(self):
+        bad = copy.deepcopy(export.build())
+        _first(bad, lambda c: c["tier"] == "observed")["obtained_on"] = None
         with pytest.raises(jsonschema.ValidationError):
             _validate(bad)
 
