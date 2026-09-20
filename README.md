@@ -621,6 +621,36 @@ so neither the prose nor the export can claim more than the runtime honours.
 
 ---
 
+## Status, and what comes next
+
+**Built and tested** (no credential, no network):
+- the governed core: a policy engine with no model call in it, a signed evidence chain whose verification
+  can be pinned to a key and a checkpoint, write-ahead intent with recovery from a lost response, signed
+  human consent, and obligation clocks for holds that outlive their purpose;
+- the registry: 97 capabilities on 14 rails, each with a quote, its source and a date; a watcher that
+  re-reads every quote; eight sandbox probes with a test that fails if a rail's answer changes; a schema,
+  a comparison page and a generated report.
+
+**Not built** — stated so nobody has to ask:
+- witnessed checkpoints and per-actor keys: today a packet on its own proves internal consistency only;
+- probes beyond Cashfree's sandbox (Stripe test mode and an x402 testnet need accounts; Razorpay's
+  authorisation needs a browser), and a nightly run (it needs sandbox credentials as repository secrets);
+- an adapter that sends idempotency keys to a real rail (measured safe on Cashfree's capture only);
+- any integration with a partner's product, an MCP proxy included;
+- push rails (FedNow, ACH, SEPA Instant) in the registry.
+
+**Next, in this order:**
+1. *Independent checkpoints.* Per-actor keys with key ids, a Merkle log with checkpoints cosigned by
+   witnesses (the C2SP transparency-log formats), and a verifier that takes a policy — so an unpinned
+   packet stops being the only mode.
+2. *Retry safety on a real rail.* Probe void and order-creation replay on Cashfree, then let its adapter
+   send idempotency keys, with the measured rows as the justification.
+3. *A conformance kit.* Hold, partial capture, release, refusal and retry as adversarial cases runnable
+   against any rail that has an adapter, reporting containment as numbers.
+4. *Thin adoption vehicles*, only after the above: a stdio MCP guard in front of an agent-payments CLI,
+   and x402 hooks that enforce settled ≤ authorised.
+5. *More rows*, on request: push rails, and any vendor that wants its rail described.
+
 ## Honest limitations
 
 Stated here rather than waiting to be asked.
@@ -653,6 +683,16 @@ Stated here rather than waiting to be asked.
   proves*. Witnessed checkpoints are planned, not built.
 - **`sbmd.block_amount_reducible_without_revoke` is UNVERIFIED.** No circular or PSP doc
   states whether a modify may *lower* an amount, so it is refused.
+- **A quote found on a page shows the page says it, not that the page is right.** The watcher checks words;
+  it cannot check that a vendor's documentation matches its production behaviour.
+- **The interpretation of a row is not machine-verified.** For the Visa, Stripe, Adyen and x402 rows, agents
+  read the sources and a check admitted each quote; whether a row says `supported` or `not supported`, and
+  what its note concludes, was read by a person and can be wrong. A row that a vendor believes is wrong is
+  a bug to report.
+- **The registry is a snapshot.** Pages change and sandboxes change; the nightly jobs that would say so
+  exist but do nothing until credentials are configured.
+- **Fifteen rows cannot be re-read by machine:** the regulator's site answers scripted clients with HTTP 403.
+  Those quotes were transcribed from committed PDFs whose hashes are published.
 
 ---
 

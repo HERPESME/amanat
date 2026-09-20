@@ -36,7 +36,7 @@ Invoke the matching one before touching the corresponding module.
 ## Review agents
 
 `.claude/agents/` holds three adversarial reviewers (`novelty-auditor`,
-`payments-architect`, `panel-skeptic`). **Run them against any new claim before
+`payments-architect`, `adopter-skeptic`). **Run them against any new claim before
 committing to it.** They killed the first design; that is what they are for.
 
 ## Commands
