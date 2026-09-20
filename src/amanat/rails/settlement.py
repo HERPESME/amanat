@@ -1,7 +1,7 @@
 """Amount-contingent settlement on Razorpay's real verbs: capture, then refund.
 
 Razorpay cannot block a ceiling and debit less than it — capture must equal the
-authorized amount (measured, not quoted: see
+authorized amount (documented by Razorpay, and observed by hand in test mode: see
 `test_semantics.TestRazorpayPartialCaptureWasMeasured`). The same *net* outcome
 is still reachable: capture the full ceiling, then refund the difference.
 

@@ -62,7 +62,7 @@ class TestTheReportIsComputedFromTheData:
 
     def test_each_observation_made_by_hand_is_named_with_its_date_and_environment(self):
         by_hand = [(rid, row) for rid, row in ROWS if row["tier"] == "observed" and not row["observation"]]
-        assert len(by_hand) >= 3
+        assert len(by_hand) >= 2, "a login and a lookup; the Razorpay refusal is documented and no longer counted here"
         flat = _flat(MD)
         for rid, row in by_hand:
             assert (f"{report.page.SHORT[rid]}'s {row['name'].replace('_', ' ')}, "
@@ -295,16 +295,16 @@ class TestTheVendorNote:
 
     def test_the_setu_candidate_is_the_registrys_own_observation(self):
         row = next(c for r in DOC["rails"] if r["rail_id"] == "setu_umap" for c in r["capabilities"]
-                   if c["name"] == "api_publicly_reachable")
+                   if c["name"] == "documented_api_hosts_resolve")
         assert row["tier"] == "observed" and not row["observation"], "a lookup made by hand"
-        assert "uatapi.setu.co NXDOMAIN; api.setu.co NXDOMAIN" in row["quote"]
+        assert "no address record" in row["quote"] and "NXDOMAIN" in row["notes"]
         note = _flat(self.NOTE)
         for host in ("uatapi.setu.co", "api.setu.co", "accountservice.setu.co", "bridge.setu.co"):
             assert host in note
         assert "21 Aug 2026" in note and "trigger 3" in note
         assert "Re-run on 21 Sep 2026" in note and "no address record" in note, "the lookup was repeated before sending"
         assert "NXDOMAIN has become NOERROR" in note
-        assert "Re-run on 21 Sep 2026" in row["notes"] and "a name that cannot exist" in row["notes"]
+        assert "21 Sep 2026" in row["notes"] and "a name that cannot exist" in row["notes"]
 
     def test_a_source_that_says_it_is_confidential_is_named_with_the_decision_it_needs(self):
         note = _flat(self.NOTE)

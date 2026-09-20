@@ -9,8 +9,8 @@ snapshot: pages change and sandboxes change, and the point of the registry is th
 ## What is in the registry
 
 14 rails, 107 capabilities, 18 numeric limits. 12 rows rest on recorded probe runs against a vendor's sandbox, each with its stored exchange;
-3 more rest on one-off observations made by hand (Razorpay capture's partial debit, 2026-08-22, sandbox; Setu UMAP's credentials self serve, 2026-08-21, live; Setu UMAP's api publicly reachable, 2026-08-21, live), whose exchanges are not in the evidence store.
-86 quotes were **re-read** from the source they cite on the date above (32 of them cite a source pinned to a revision, where re-reading shows that the quote was transcribed correctly and can never show that anything changed; the other 54 cite pages that can change, and those are the ones the watcher guards); 17 sources could not be read
+2 more rest on one-off observations made by hand (Setu UMAP's credentials self serve, 2026-08-21, live; Setu UMAP's documented api hosts resolve, 2026-09-21, live), whose exchanges are not in the evidence store.
+87 quotes were **re-read** from the source they cite on the date above (32 of them cite a source pinned to a revision, where re-reading shows that the quote was transcribed correctly and can never show that anything changed; the other 55 cite pages that can change, and those are the ones the watcher guards); 17 sources could not be read
 (below); 6 capabilities are **unverified** and therefore refused by the policy engine rather than assumed.
 
 How a row is admitted: it carries a verbatim quote and the page it came from, and `python -m amanat.registry.watch` fetches that page and
@@ -23,7 +23,7 @@ check found its quote, and where a source is silent the row is unverified.
 The rails are not equals, and a count over them mixes three kinds: 5 are UPI and Indian PSP products, the ones this repository has adapters or engine rules for; 3 are card-payment documents: Visa's own guide and two acquirers' documentation, which describe one card mechanism from the network's side and from two acquirers' sides; 6 are specifications of one protocol, x402 (five schemes and one set of extensions), each read at a pinned revision. A count of rails is a count of documents, not of independent systems: read the lists, not only the totals.
 
 - **A smaller capture than the hold** is supported on 10 rails and refused on 2
-  (Razorpay capture (observed, sandbox); x402 exact (primary)); 0 have no evidenced answer. By kind: UPI and Indian PSPs: 3 supported, 1 refused; Card networks and PSPs: 3 supported; Agent-payment protocol: x402: 4 supported, 1 refused.
+  (Razorpay capture (secondary); x402 exact (primary)); 0 have no evidenced answer. By kind: UPI and Indian PSPs: 3 supported, 1 refused; Card networks and PSPs: 3 supported; Agent-payment protocol: x402: 4 supported, 1 refused.
 - **Who gives the rest back, and when** differs more than whether it is given back: supported on
   Stripe (secondary); Adyen (secondary); x402 upto · Solana (primary); refused on UPI Reserve Pay (primary); Visa (secondary); x402 auth-capture (primary); x402 batch (primary); unverified on Cashfree pre-auth (unverified). In words: on UPI Reserve Pay nobody
   does, since the block stays until someone revokes it or its end date arrives, up to 90 days; on x402 `upto` on Solana the escrow does,
@@ -61,7 +61,7 @@ Authorisation holds funds in the payer's account or an escrow, rather than debit
 A settlement may be for less than the amount authorised or blocked. Who may initiate it differs by rail: on card rails the merchant captures unilaterally; on UPI Reserve Pay the debit is initiated by the customer's action on the merchant's platform (OC-228 acquiring obligation 2); in x402 `upto` the resource server sets the amount at settlement.
 
 - **Supported** (10): UPI Reserve Pay (primary); UPI one-time mandate (secondary); Cashfree pre-auth (observed, sandbox); Visa (secondary); Stripe (secondary); Adyen (secondary); x402 upto · EVM (primary); x402 upto · Solana (primary); x402 auth-capture (primary); x402 batch (primary)
-- **Not supported** (2): Razorpay capture (observed, sandbox); x402 exact (primary)
+- **Not supported** (2): Razorpay capture (secondary); x402 exact (primary)
 - **Unverified — refused, not assumed** (0): none
 - **No row for this question** (2): Setu UMAP; x402 (extensions)
 
@@ -197,7 +197,7 @@ Checkpoints of the evidence behind this report. A later export whose streams do 
 | Stream | Lines | Head (SHA-256) |
 |---|---|---|
 | `probes.cashfree_preauth` | 12 | `b1c60cb633918f368e48a4f2538a55ca83b00c2443b6ffd83a89296efa1e374c` |
-| `watch` | 11 | `f4ffb5ca04288fef45b61dd0455b6be34c0144861e041843695b81bd98375f29` |
+| `watch` | 12 | `7b20b0354ff6d7d6f3afa884e32b2e92b9e405a088a6d9321610cc805a9272af` |
 
 Source documents committed to the repository:
 

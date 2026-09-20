@@ -8,7 +8,7 @@
 
 *Block a ceiling. Debit the actual. Prove what the money did.*
 
-[![tests](https://img.shields.io/badge/tests-1428-2ea44f?style=flat-square)](#testing)
+[![tests](https://img.shields.io/badge/tests-1436-2ea44f?style=flat-square)](#testing)
 [![python](https://img.shields.io/badge/python-3.11%2B-3776ab?style=flat-square)](#quick-start)
 [![live rail](https://img.shields.io/badge/live%20rail-%E2%82%B9470%20of%20%E2%82%B9620%20%C2%B7%20HTTP%20200-2ea44f?style=flat-square)](#what-it-does)
 [![rails](https://img.shields.io/badge/rails-UPI%20SBMD%20%C2%B7%20Cashfree%20%C2%B7%20Razorpay%20%C2%B7%20Setu-6c5ce7?style=flat-square)](#the-evidence-table)
@@ -132,7 +132,7 @@ git clone https://github.com/HERPESME/amanat && cd amanat
 # The eight-act walkthrough — the whole argument in one command
 uv run --with cryptography python -m amanat.demo
 
-# 1428 tests. No API key, no network (Node.js runs the browser-verifier tests).
+# 1436 tests. No API key, no network (Node.js runs the browser-verifier tests).
 uv run --with pytest --with cryptography --with httpx --with fastapi --with pydantic \
        --with numpy --with scikit-learn --with pandas --with pyarrow --with hypothesis pytest tests/ -q
 ```
@@ -432,7 +432,7 @@ Reproduce: <code>python -m amanat.rails.probe_cashfree</code>.</td>
 |---|---|---|
 | **UPI SBMD** (Reserve Pay) | 19 | 14 `PRIMARY` · 4 `SECONDARY` · 1 `UNVERIFIED` |
 | **Cashfree** UPI pre-auth | 16 | 12 `OBSERVED` (sandbox, 29 Aug and 20 and 21 Sep 2026) · 3 `SECONDARY` · 1 `UNVERIFIED` — the remainder's release |
-| **Razorpay** manual capture | 6 | 1 `OBSERVED` · 5 `SECONDARY` |
+| **Razorpay** manual capture | 6 | 6 `SECONDARY` |
 | **Setu UMAP** | 3 | 2 `OBSERVED` · 1 `SECONDARY` |
 | **UPI OTM** | 2 | 1 `SECONDARY` · 1 `UNVERIFIED` |
 | *Reference:* **Visa** card authorization | 10 | 9 `SECONDARY` · 1 `UNVERIFIED` |
@@ -647,7 +647,7 @@ uv run --with pytest --with cryptography --with httpx --with fastapi --with pyda
        --with numpy --with scikit-learn --with pandas --with pyarrow --with hypothesis pytest tests/ -q
 ```
 
-**1428 tests, no credential and no network.** If proving the agent is bounded ever
+**1436 tests, no credential and no network.** If proving the agent is bounded ever
 required a live model, the agent would not be bounded.
 
 | Suite | What it pins |

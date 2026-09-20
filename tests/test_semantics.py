@@ -386,13 +386,13 @@ class TestObservedTier:
         rail = RAILS["setu_umap"]
         assert rail.permits("credentials_self_serve") is True
 
-        d = rail.explain("api_publicly_reachable")
+        d = rail.explain("documented_api_hosts_resolve")
         assert d.allowed is False
-        assert "NXDOMAIN" in d.quote
+        assert "no address record" in d.quote
 
     def test_an_unreachable_api_is_recorded_rather_than_omitted(self):
         """Silence would read as 'not investigated'. It was investigated."""
-        cap = RAILS["setu_umap"].capabilities["api_publicly_reachable"]
+        cap = RAILS["setu_umap"].capabilities["documented_api_hosts_resolve"]
         assert cap.source_tier is SourceTier.OBSERVED
         assert "self-serve signup" in cap.notes
 
@@ -411,10 +411,15 @@ class TestRazorpayPartialCaptureWasMeasured:
     what any future probe can prove unaided.
     """
 
-    def test_the_capability_rests_on_an_observation_not_a_doc(self):
+    def test_the_capability_rests_on_the_vendors_documentation_and_says_a_hand_observation_agreed(self):
+        """The one negative about a named competitor carried no stored exchange while every Cashfree
+        positive did, and was labelled OBSERVED. A measurement nobody can read is claimed as one no more:
+        the documented sentence is the evidence, and the observation is said to be by hand."""
         cap = RAILS["razorpay_auth_capture"].capabilities["partial_debit"]
-        assert cap.source_tier is SourceTier.OBSERVED
-        assert "measured 22 Aug 2026" in cap.citation
+        assert cap.source_tier is SourceTier.SECONDARY and cap.environment is None and not cap.probe_id
+        assert "Capture API" in cap.citation and "22 Aug 2026" in cap.citation
+        assert "by hand" in cap.citation and "not stored" in cap.citation
+        assert cap.url == "https://razorpay.com/docs/api/payments/capture/"
 
     def test_partial_debit_is_forbidden_on_this_rail(self):
         d = RAILS["razorpay_auth_capture"].explain("partial_debit")
@@ -521,12 +526,11 @@ class TestEvidenceProvenance:
     def test_what_each_existing_observation_was_made_on(self):
         """Vendor sandboxes are sandbox; Setu's account service and public DNS are live
         infrastructure (no payment was made either way)."""
-        rz = RAILS["razorpay_auth_capture"].capabilities["partial_debit"]
-        assert rz.environment is Environment.SANDBOX
+        assert RAILS["razorpay_auth_capture"].capabilities["partial_debit"].environment is None
         for name in ("partial_debit", "void_after_partial_capture",
                      "funds_held_in_customer_account"):
             assert RAILS["cashfree_preauth"].capabilities[name].environment is Environment.SANDBOX
-        for name in ("credentials_self_serve", "api_publicly_reachable"):
+        for name in ("credentials_self_serve", "documented_api_hosts_resolve"):
             assert RAILS["setu_umap"].capabilities[name].environment is Environment.LIVE
 
     def test_a_measurement_date_in_the_citation_matches_the_structured_date(self):
@@ -885,3 +889,34 @@ class TestTheRetryRowsOnCashfree:
         for rail in RAILS.values():
             for cap in rail.capabilities.values():
                 assert "different orders" not in cap.notes, (rail.rail_id, cap.name)
+
+
+class TestWhatAVendorEngineerWouldHaveObjectedTo:
+    """Rows an adopter review read as a vendor would: a name that says more than the evidence, an email
+    presented as a checkable sentence, and four rows that print "obtained not recorded"."""
+
+    def test_the_setu_row_is_named_for_what_was_observed_a_lookup_not_an_api(self):
+        caps = RAILS["setu_umap"].capabilities
+        assert "api_publicly_reachable" not in caps, "a DNS lookup says nothing about an API's reachability"
+        cap = caps["documented_api_hosts_resolve"]
+        assert cap.supported is False and cap.obtained_on == "2026-09-21"
+        assert "uatapi.setu.co" in cap.quote and "api.setu.co" in cap.quote and "no address record" in cap.quote
+        assert "You have measured a resolver" in cap.notes or "measures a resolver" in cap.notes
+        assert "21 Aug 2026" in cap.notes and "NXDOMAIN" in cap.notes, "the earlier answer is kept as history"
+        assert "inference" in cap.notes
+
+    def test_the_support_reply_row_says_it_is_the_one_row_a_public_source_cannot_check(self):
+        cap = RAILS["cashfree_preauth"].capabilities["self_serve_enablement"]
+        assert "cannot be checked from a public source" in cap.notes and "Cashfree can confirm or correct" in cap.notes
+
+    def test_the_secondary_rows_read_on_21_aug_carry_that_date(self):
+        for rid, name in (("sbmd", "block_amount_modifiable_without_revoke"), ("sbmd", "block_modify_requires_customer_afa"),
+                          ("sbmd", "remainder_release_without_teardown"), ("setu_umap", "block_amount_modifiable_without_revoke")):
+            assert RAILS[rid].capabilities[name].obtained_on == "2026-08-21", (rid, name)
+
+    def test_every_cited_row_carries_the_date_it_was_read(self):
+        """The README says each row has a quote, its source and a date."""
+        for rail in RAILS.values():
+            for row in (*rail.capabilities.values(), *rail.limits.values()):
+                if row.source_tier is not SourceTier.UNVERIFIED:
+                    assert row.obtained_on, (rail.rail_id, row.name)

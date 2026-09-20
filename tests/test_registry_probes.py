@@ -34,9 +34,8 @@ def _records(rail_id):
 # Measured before probes existed: only a quote was kept, so no run backs them. The set may only
 # shrink — as each is re-measured by a probe, it leaves this list.
 LEGACY_OBSERVATIONS = {
-    ("razorpay_auth_capture", "partial_debit"),      # needs a browser Checkout to reach `authorized`
     ("setu_umap", "credentials_self_serve"),         # a login call; no harness yet
-    ("setu_umap", "api_publicly_reachable"),         # DNS; no harness yet
+    ("setu_umap", "documented_api_hosts_resolve"),   # DNS; no harness yet
 }
 
 

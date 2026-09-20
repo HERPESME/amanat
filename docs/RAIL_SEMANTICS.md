@@ -50,10 +50,10 @@ the same as `**no**`, "the source says the rail does not permit it".
 | `purpose_code_77_for_online_goods` | yes | `PRIMARY` | 2026-08-21 | NPCI/UPI/OC.No.200/2024-25, 31 July 2024, clause (c) and purpose-code table at clause (a) |
 | `block_validity_90_days` | yes | `PRIMARY` | 2026-08-21 | NPCI/UPI/OC-228/2025-26, 8 October 2025, Acquiring entities obligation 5(b) |
 | `single_active_block_per_merchant` | yes | `PRIMARY` | 2026-08-21 | NPCI/UPI/OC-228/2025-26, 8 October 2025, Issuer Banks obligation 4 |
-| `block_amount_modifiable_without_revoke` | yes | `SECONDARY` | — | Setu UPI (UMAP), Mandate operations - Update (corroborated by Setu UPI (UMAP), ReservePlus (Single block multi-debit mandate)) |
+| `block_amount_modifiable_without_revoke` | yes | `SECONDARY` | 2026-08-21 | Setu UPI (UMAP), Mandate operations - Update (corroborated by Setu UPI (UMAP), ReservePlus (Single block multi-debit mandate)) |
 | `block_amount_reducible_without_revoke` | ? | `UNVERIFIED` | — | — |
-| `block_modify_requires_customer_afa` | yes | `SECONDARY` | — | Setu UPI (UMAP), Mandate operations - Update |
-| `remainder_release_without_teardown` | **no** | `SECONDARY` | — | Razorpay UPI Reserve Pay (SBMD), Manage Mandates and Tokens; Cashfree UPI Reserve Pay, Implementation Guide step 6 (Manage mandate); Juspay One Time Mandate, Release the Blocked Funds |
+| `block_modify_requires_customer_afa` | yes | `SECONDARY` | 2026-08-21 | Setu UPI (UMAP), Mandate operations - Update |
+| `remainder_release_without_teardown` | **no** | `SECONDARY` | 2026-08-21 | Razorpay UPI Reserve Pay (SBMD), Manage Mandates and Tokens; Cashfree UPI Reserve Pay, Implementation Guide step 6 (Manage mandate); Juspay One Time Mandate, Release the Blocked Funds |
 
 **Numeric limits** — enforced, not decorative. Unlike capabilities, an unverified limit is still applied: thin evidence means refuse more, never less.
 
@@ -260,7 +260,7 @@ One mitigation the circulars do not give: Razorpay bounds worst-case stranding b
 
 | Capability | Permitted | Tier | Obtained | Source |
 |---|---|---|---|---|
-| `partial_debit` | **no** | `OBSERVED` (sandbox) | 2026-08-22 | measured 22 Aug 2026 — POST /payments/{id}/capture, HTTP 400 (docs agree: razorpay.com/docs/api/payments/capture/) |
+| `partial_debit` | **no** | `SECONDARY` | 2026-08-22 | Razorpay Docs, Capture API, Errors table; the same sentence was returned by a test-mode capture on 22 Aug 2026, by hand, and that exchange was not stored |
 | `funds_held_in_customer_account` | **no** | `SECONDARY` | 2026-09-20 | Razorpay docs, Payments, payment states (authorized) |
 | `manual_capture` | yes | `SECONDARY` | 2026-09-20 | Razorpay docs, Payment Capture Settings (Manually Capture Payments) |
 | `expiry_auto_release` | yes | `SECONDARY` | 2026-09-20 | Razorpay Docs, Payment Capture Settings, Manually Capture Payments |
@@ -282,9 +282,9 @@ One mitigation the circulars do not give: Razorpay bounds worst-case stranding b
 
 > Capture amount must be equal to the amount authorized.
 
-— measured 22 Aug 2026 — POST /payments/{id}/capture, HTTP 400 (docs agree: razorpay.com/docs/api/payments/capture/), https://razorpay.com/docs/api/payments/capture/
+— Razorpay Docs, Capture API, Errors table; the same sentence was returned by a test-mode capture on 22 Aug 2026, by hand, and that exchange was not stored, https://razorpay.com/docs/api/payments/capture/
 
-Not a documentation claim. A test-mode payment was driven to 'authorized' (captured=False) through Razorpay Checkout against an order created with payment_capture=0, then a capture of 47000 was attempted against 62000 authorized. The API returned HTTP 400 with this exact sentence — the doc and the live rail agree word for word. Reproduce with `python -m amanat.rails.authorize` then `python -m amanat.rails.probe --capture <pay_id> 47000`. Forecloses amount-contingent settlement on this rail; the negative is the thing worth demonstrating.
+The evidence is Razorpay's own documented error, which the watcher re-reads. It was also observed by hand: a test-mode payment was driven to 'authorized' (captured=False) through Razorpay Checkout against an order created with payment_capture=0, then a capture of 47000 was attempted against 62000 authorized. The API returned HTTP 400 with this exact sentence, so the doc and the rail agreed word for word. That exchange was not stored, so the row does not claim a measurement: an earlier version was OBSERVED, and an adopter review pointed out that the one negative about a named vendor carried no stored exchange while every Cashfree positive did. Reproduce with `python -m amanat.rails.authorize` then `python -m amanat.rails.probe --capture <pay_id> 47000`. Forecloses amount-contingent settlement on this rail.
 
 **`funds_held_in_customer_account`**
 
@@ -436,6 +436,7 @@ Consistent with a pre-auth hold rather than Razorpay's 'authorized' state (where
 > successfully enabled in the Sandbox/Test environment ... block creation, partial debit against the standing block, and the applicable operation for processing the unused balance/remainder
 
 Not self-serve: UPI pre-authorization had to be requested from Cashfree support and was enabled per-account. Recorded as a real constraint on reproducibility - a fresh sandbox signup does NOT have this until the request is answered. Production access was explicitly not granted ('No Production access has been enabled').
+This is the one row that cannot be checked from a public source: Cashfree can confirm or correct it, and a correction will be recorded as one.
 SECONDARY, not OBSERVED: this is the vendor's statement about its own product in a message to the owner of this repository, not a response the API returned, and a reader cannot open it. It was OBSERVED, on a sandbox, until a review on 21 Sep 2026 pointed out that an email is not a measurement. The ticket number is deliberately not published.
 
 **`void_whole_hold`**
@@ -534,8 +535,8 @@ Exactly one of three simultaneous captures succeeded; the others were refused, n
 | Capability | Permitted | Tier | Obtained | Source |
 |---|---|---|---|---|
 | `credentials_self_serve` | yes | `OBSERVED` (live) | 2026-08-21 | probed 21 Aug 2026 — accountservice.setu.co/v1/users/login |
-| `api_publicly_reachable` | **no** | `OBSERVED` (live) | 2026-08-21 | probed 21 Aug 2026 — DNS via Google 8.8.8.8 and Cloudflare 1.1.1.1 |
-| `block_amount_modifiable_without_revoke` | yes | `SECONDARY` | — | Setu, Mandate operations > Update |
+| `documented_api_hosts_resolve` | **no** | `OBSERVED` (live) | 2026-09-21 | probed 21 Sep 2026 — DNS via Google 8.8.8.8 and Cloudflare 1.1.1.1 |
+| `block_amount_modifiable_without_revoke` | yes | `SECONDARY` | 2026-08-21 | Setu, Mandate operations > Update |
 
 **`credentials_self_serve`**
 
@@ -545,15 +546,14 @@ Exactly one of three simultaneous captures succeeded; the others were refused, n
 
 Signup at bridge.setu.co is genuinely self-serve and the token endpoint accepts the resulting credentials.
 
-**`api_publicly_reachable`**
+**`documented_api_hosts_resolve`**
 
-> uatapi.setu.co NXDOMAIN; api.setu.co NXDOMAIN
+> uatapi.setu.co: no address record; api.setu.co: no address record (NOERROR with an empty answer)
 
-— probed 21 Aug 2026 — DNS via Google 8.8.8.8 and Cloudflare 1.1.1.1, https://docs.setu.co/payments/umap/quickstart
+— probed 21 Sep 2026 — DNS via Google 8.8.8.8 and Cloudflare 1.1.1.1, https://docs.setu.co/payments/umap/quickstart
 
-The two hosts the UMAP docs name for sandbox and production do not exist in public DNS, while accountservice.setu.co and bridge.setu.co resolve normally. So the API surface is gated behind onboarding, private DNS or an allowlist — not reachable from a self-serve signup. Invisible until you hold credentials and try: every earlier signal, including a 200 from the token endpoint, said the rail was reachable. Reproduce with `python -m amanat.rails.probe`.
-That explanation is an inference from DNS alone; nothing here shows why the names do not resolve.
-Re-run on 21 Sep 2026 (the row keeps its 21 Aug date): NXDOMAIN has become NOERROR with no address record, from both resolvers, and a name that cannot exist (`zz-amanat-1.setu.co`) answers exactly the same way, so the zone now returns an empty answer for any name it has no address for. Neither host has an A, AAAA or CNAME record and neither is reachable by HTTPS from here; accountservice.setu.co and bridge.setu.co still resolve. The finding stands as 'no address record', not as NXDOMAIN.
+The two hosts the UMAP docs name for sandbox and production have no address record in public DNS, while accountservice.setu.co and bridge.setu.co resolve normally. This measures a resolver, not Setu's API: it says the documented hostnames cannot be reached by address from a self-serve signup, and nothing about why. The likeliest reasons are an allowlist, private DNS or onboarding gating, and DNS alone does not show which; that explanation is an inference. It is invisible until you hold credentials and try: every earlier signal, including a 200 from the token endpoint, said the rail was reachable. Reproduce with `python -m amanat.rails.probe` or `dig uatapi.setu.co`.
+History: on 21 Aug 2026 both names answered NXDOMAIN. Re-run on 21 Sep 2026, they answer NOERROR with no address record from both resolvers, and a name that cannot exist (`zz-amanat-1.setu.co`) answers exactly the same way, so the zone now returns an empty answer for any name it has no address for. Neither host has an A, AAAA or CNAME record and neither is reachable by HTTPS from here. The finding stands as 'no address record', not as NXDOMAIN. The row was named `api_publicly_reachable` until an adopter review pointed out that a DNS lookup does not measure an API.
 
 **`block_amount_modifiable_without_revoke`**
 

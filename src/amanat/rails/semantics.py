@@ -1098,7 +1098,7 @@ SBMD = RailProfile(
         ),
         Capability(
             name="block_amount_modifiable_without_revoke", supported=True,
-            source_tier=SourceTier.SECONDARY,
+            source_tier=SourceTier.SECONDARY, obtained_on=NPCI_READ_ON,
             citation=f"{SETU_UPDATE} (corroborated by {SETU_RESERVE_PLUS})",
             url=SETU_UPDATE_URL,
             quote=_SETU_TWO_UPDATES,
@@ -1188,7 +1188,7 @@ SBMD = RailProfile(
         ),
         Capability(
             name="block_modify_requires_customer_afa", supported=True,
-            source_tier=SourceTier.SECONDARY,
+            source_tier=SourceTier.SECONDARY, obtained_on=NPCI_READ_ON,
             citation=SETU_UPDATE,
             url=SETU_UPDATE_URL,
             quote=_SETU_UPDATE_MPIN,
@@ -1225,7 +1225,7 @@ SBMD = RailProfile(
         ),
         Capability(
             name="remainder_release_without_teardown", supported=False,
-            source_tier=SourceTier.SECONDARY,
+            source_tier=SourceTier.SECONDARY, obtained_on=NPCI_READ_ON,
             citation=f"{RZP_MANAGE}; {CASHFREE_RESERVE_PAY}; {JUSPAY_OTM_RELEASE}",
             url=RZP_MANAGE_URL,
             quote=_RZP_RELEASE_IS_CANCEL,
@@ -1268,22 +1268,25 @@ RAZORPAY_AUTH_CAPTURE = RailProfile(
     capabilities=[
         Capability(
             name="partial_debit", supported=False,
-            source_tier=SourceTier.OBSERVED, environment=Environment.SANDBOX, obtained_on="2026-08-22",
-            citation=("measured 22 Aug 2026 — POST /payments/{id}/capture, "
-                      "HTTP 400 (docs agree: razorpay.com/docs/api/payments/capture/)"),
+            source_tier=SourceTier.SECONDARY, obtained_on="2026-08-22",
+            citation=("Razorpay Docs, Capture API, Errors table; the same sentence was returned by a "
+                      "test-mode capture on 22 Aug 2026, by hand, and that exchange was not stored"),
             url="https://razorpay.com/docs/api/payments/capture/",
             quote=_RAZORPAY_FULL_CAPTURE,
             notes=(
-                "Not a documentation claim. A test-mode payment was driven to "
+                "The evidence is Razorpay's own documented error, which the watcher re-reads. "
+                "It was also observed by hand: a test-mode payment was driven to "
                 "'authorized' (captured=False) through Razorpay Checkout against "
                 "an order created with payment_capture=0, then a capture of "
                 "47000 was attempted against 62000 authorized. The API returned "
-                "HTTP 400 with this exact sentence — the doc and the live rail "
-                "agree word for word. Reproduce with "
+                "HTTP 400 with this exact sentence, so the doc and the rail agreed "
+                "word for word. That exchange was not stored, so the row does not "
+                "claim a measurement: an earlier version was OBSERVED, and an adopter "
+                "review pointed out that the one negative about a named vendor carried "
+                "no stored exchange while every Cashfree positive did. Reproduce with "
                 "`python -m amanat.rails.authorize` then "
                 "`python -m amanat.rails.probe --capture <pay_id> 47000`. "
-                "Forecloses amount-contingent settlement on this rail; the "
-                "negative is the thing worth demonstrating."
+                "Forecloses amount-contingent settlement on this rail."
             ),
         ),
         Capability(
@@ -1577,6 +1580,8 @@ CASHFREE_PREAUTH = RailProfile(
                 "constraint on reproducibility - a fresh sandbox signup does NOT "
                 "have this until the request is answered. Production access was "
                 "explicitly not granted ('No Production access has been enabled').\n"
+                "This is the one row that cannot be checked from a public source: Cashfree "
+                "can confirm or correct it, and a correction will be recorded as one.\n"
                 "SECONDARY, not OBSERVED: this is the vendor's statement about its own "
                 "product in a message to the owner of this repository, not a response "
                 "the API returned, and a reader cannot open it. It was OBSERVED, on a "
@@ -1733,34 +1738,35 @@ SETU_UMAP = RailProfile(
                   "token endpoint accepts the resulting credentials.",
         ),
         Capability(
-            name="api_publicly_reachable", supported=False,
-            source_tier=SourceTier.OBSERVED, environment=Environment.LIVE, obtained_on="2026-08-21",
-            citation="probed 21 Aug 2026 — DNS via Google 8.8.8.8 and Cloudflare 1.1.1.1",
+            name="documented_api_hosts_resolve", supported=False,
+            source_tier=SourceTier.OBSERVED, environment=Environment.LIVE, obtained_on="2026-09-21",
+            citation="probed 21 Sep 2026 — DNS via Google 8.8.8.8 and Cloudflare 1.1.1.1",
             url="https://docs.setu.co/payments/umap/quickstart",
-            quote="uatapi.setu.co NXDOMAIN; api.setu.co NXDOMAIN",
+            quote=("uatapi.setu.co: no address record; api.setu.co: no address record "
+                   "(NOERROR with an empty answer)"),
             notes=(
-                "The two hosts the UMAP docs name for sandbox and production do "
-                "not exist in public DNS, while accountservice.setu.co and "
-                "bridge.setu.co resolve normally. So the API surface is gated "
-                "behind onboarding, private DNS or an allowlist — not reachable "
-                "from a self-serve signup. Invisible until you hold credentials "
-                "and try: every earlier signal, including a 200 from the token "
-                "endpoint, said the rail was reachable. Reproduce with "
-                "`python -m amanat.rails.probe`.\n"
-                "That explanation is an inference from DNS alone; nothing here shows why "
-                "the names do not resolve.\n"
-                "Re-run on 21 Sep 2026 (the row keeps its 21 Aug date): NXDOMAIN has become "
-                "NOERROR with no address record, from both resolvers, and a name that "
-                "cannot exist (`zz-amanat-1.setu.co`) answers exactly the same way, so "
-                "the zone now returns an empty answer for any name it has no address for. "
-                "Neither host has an A, AAAA or CNAME record and neither is reachable by "
-                "HTTPS from here; accountservice.setu.co and bridge.setu.co still resolve. "
-                "The finding stands as 'no address record', not as NXDOMAIN."
+                "The two hosts the UMAP docs name for sandbox and production have no address "
+                "record in public DNS, while accountservice.setu.co and bridge.setu.co resolve "
+                "normally. This measures a resolver, not Setu's API: it says the documented "
+                "hostnames cannot be reached by address from a self-serve signup, and nothing "
+                "about why. The likeliest reasons are an allowlist, private DNS or onboarding "
+                "gating, and DNS alone does not show which; that explanation is an inference. "
+                "It is invisible until you hold credentials and try: every earlier signal, "
+                "including a 200 from the token endpoint, said the rail was reachable. "
+                "Reproduce with `python -m amanat.rails.probe` or `dig uatapi.setu.co`.\n"
+                "History: on 21 Aug 2026 both names answered NXDOMAIN. Re-run on 21 Sep 2026, "
+                "they answer NOERROR with no address record from both resolvers, and a name "
+                "that cannot exist (`zz-amanat-1.setu.co`) answers exactly the same way, so the "
+                "zone now returns an empty answer for any name it has no address for. Neither "
+                "host has an A, AAAA or CNAME record and neither is reachable by HTTPS from "
+                "here. The finding stands as 'no address record', not as NXDOMAIN. The row was "
+                "named `api_publicly_reachable` until an adopter review pointed out that a DNS "
+                "lookup does not measure an API."
             ),
         ),
         Capability(
             name="block_amount_modifiable_without_revoke", supported=True,
-            source_tier=SourceTier.SECONDARY,
+            source_tier=SourceTier.SECONDARY, obtained_on=NPCI_READ_ON,
             citation="Setu, Mandate operations > Update",
             url="https://docs.setu.co/payments/umap/mandates/generic/update",
             quote=("There are only two updates possible on a UPI mandate … "
