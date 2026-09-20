@@ -75,8 +75,11 @@ def test_the_readme_states_the_capture_reference_facts_the_stored_runs_hold():
     from amanat.registry import report
 
     facts = report._probe_facts(None)
-    words = {2: "two", 5: "five", 8: "eight"}
     flat = " ".join(README.split())
-    assert f"on each of the {words[len(facts['captured'])]} holds that saw a successful capture" in flat
-    assert f"each of the {words[len(facts['voided'])]} voided holds" in flat
+    captured = {r for refs in facts["captured"].values() for r in refs}
+    voided = {r for refs in facts["voided"].values() for r in refs}
+    assert captured == {"CAP_12121"} and voided == {"VOID_12121"}, "the README says the references are constant"
+    assert 0 < len(facts["captured"]) < facts["orders"], "some holds saw no capture: the wording must not say 'every order'"
+    assert "on every hold that saw a successful capture the capture carries the same `action_reference` (`CAP_12121`)" in flat
+    assert "every voided hold carries `VOID_12121`" in flat
     assert "eight different orders" not in flat

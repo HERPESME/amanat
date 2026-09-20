@@ -103,6 +103,56 @@ CASHFREE = [
               "(HTTP {status}: {message}): the key was not honoured", status="4xx",
               after=(("capture1", "2xx"),))]),
     _cashfree(
+        "idempotent_void_replay",
+        "Hold ₹620, void it with an idempotency key, repeat the same void with the same key, then once more "
+        "with a different key as a control. If the same key returns the first result and the different key is "
+        "refused, the key is what the rail honours.",
+        [Step("void1", "void", {"hold": _H, "idempotency_key": "k1"}),
+         Step("replay", "void", {"hold": _H, "idempotency_key": "k1"}),
+         Step("control", "void", {"hold": _H, "idempotency_key": "k2"})],
+        [Rule("idempotent_void_replay", "replay", True,
+              "repeating the void with the same idempotency key returned HTTP {status} with the first result, "
+              "while the same call under a different key was refused",
+              status="2xx", after=(("void1", "2xx"), ("control", "4xx")),
+              where=(("authorization.action", "VOID"),)),
+         Rule("idempotent_void_replay", "replay", False,
+              "repeating the void with the same idempotency key was refused (HTTP {status}: {message}): "
+              "the key was not honoured", status="4xx", after=(("void1", "2xx"),))]),
+    _cashfree(
+        "duplicate_order_refused",
+        "Hold ₹620, then create an order under the same order id again. Is a repeated order creation refused, "
+        "or does it make a second order?",
+        [Step("again", "recreate_order", {"hold": _H, "amount": HOLD})],
+        [Rule("duplicate_order_refused", "again", True,
+              "creating an order under an id that already exists was refused with HTTP {status}: {message}",
+              status="4xx"),
+         Rule("duplicate_order_refused", "again", False,
+              "creating an order under an id that already exists returned HTTP {status}: a second order was "
+              "accepted", status="2xx")]),
+    _cashfree(
+        "payment_replay_refused",
+        "Hold ₹620 (authorised), then submit the same UPI collect against the same payment session again. Is a "
+        "repeated payment refused, or does it make a second authorisation?",
+        [Step("again", "pay_again", {"hold": _H})],
+        [Rule("payment_replay_refused", "again", True,
+              "submitting the payment again on an order that was already authorised was refused with HTTP "
+              "{status}: {message}", status="4xx"),
+         Rule("payment_replay_refused", "again", False,
+              "submitting the payment again on an order that was already authorised returned HTTP {status}: "
+              "a second attempt was accepted", status="2xx")]),
+    _cashfree(
+        "idempotency_key_reuse_refused",
+        "Hold ₹620, capture ₹470 under an idempotency key, then reuse that key for a capture of ₹300. If the "
+        "reuse is refused, a retry can never be confused with a different request.",
+        [Step("capture1", "capture", {"hold": _H, "amount": PART, "idempotency_key": "k1"}),
+         Step("reuse", "capture", {"hold": _H, "amount": FIRST, "idempotency_key": "k1"})],
+        [Rule("idempotency_key_reuse_refused", "reuse", True,
+              "reusing an idempotency key for a different amount was refused with HTTP {status}: {message}",
+              status="4xx", after=(("capture1", "2xx"),)),
+         Rule("idempotency_key_reuse_refused", "reuse", False,
+              "reusing an idempotency key for a different amount returned HTTP {status}: the first result was "
+              "returned for a request it did not answer", status="2xx", after=(("capture1", "2xx"),))]),
+    _cashfree(
         "concurrent_capture",
         "Hold ₹620 and fire three captures (₹300, ₹200, ₹100) at the same instant. Does exactly one win?",
         [Step("race", "capture_parallel", {"hold": _H, "amounts": [FIRST, SECOND, THIRD]})],

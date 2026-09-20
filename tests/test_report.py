@@ -288,10 +288,9 @@ class TestTheVendorNote:
         assert "CAP_12121" in self.NOTE and "VOID_12121" in self.NOTE
         assert "Duplicate capture_id present" in self.NOTE
         facts = report._probe_facts(None)
-        words = {2: "two", 5: "five"}
         note = _flat(self.NOTE)
-        assert f"each of the {words[len(facts['captured'])]} holds that saw a successful capture" in note
-        assert f"each of the {words[len(facts['voided'])]} voided holds" in note
+        assert {r for refs in facts["captured"].values() for r in refs} == {"CAP_12121"}
+        assert "on every hold that saw a successful capture" in note.lower() and "every voided hold carries" in note
         assert "eight different" not in self.NOTE, "the capture references belong to the holds that saw a capture"
 
     def test_the_setu_candidate_is_the_registrys_own_observation(self):
@@ -391,6 +390,15 @@ class TestTheComparisonSaysWhoAndWhenNotOnlyWhether:
     def test_the_visa_windows_are_by_channel_and_merchant_category_not_only_category(self):
         assert "by channel and merchant category" in MD
         assert "by merchant category" not in MD.replace("channel and merchant category", "")
+
+    def test_the_retry_bullet_says_what_else_the_sandbox_refused_and_measures_void_as_well_as_capture(self):
+        block = _flat(MD[MD.index("- **A retry that acts once**"):MD.index("- **Some questions have no answer yet**")])
+        assert "on capture" in block and "on void" in block
+        assert ("a repeated order creation, a repeated payment and a reused key with a different request were "
+                "each refused") in block
+        for name in ("duplicate_order_refused", "payment_replay_refused", "idempotency_key_reuse_refused"):
+            row = self._row("cashfree_preauth", name)
+            assert row["tier"] == "observed" and row["supported"] is True and row["observation"], name
 
     def test_the_idempotency_bullet_says_x402s_extension_is_optional(self):
         block = _flat(MD[MD.index("- **A retry that acts once**"):MD.index("- **Some questions have no answer yet**")])

@@ -117,6 +117,17 @@ CONCEPTS = {
         "A repeated request under the same idempotency key acts once and returns the first result.",
     "idempotent_capture_replay":
         "A repeated capture under the same idempotency key returns the first result, while the same call under another key is refused.",
+    "idempotent_void_replay":
+        "A repeated void under the same idempotency key returns the first result, while the same call under "
+        "another key is refused.",
+    "duplicate_order_refused":
+        "Creating an order under an id that already exists is refused rather than making a second order.",
+    "payment_replay_refused":
+        "Submitting a payment again on an order that is already authorised is refused rather than authorising "
+        "it twice.",
+    "idempotency_key_reuse_refused":
+        "Reusing an idempotency key for a different request is refused rather than answered with the first "
+        "request's result.",
     "concurrent_capture_single_winner":
         "Of several simultaneous captures against one hold, exactly one succeeds and the rest are refused.",
     "settled_amount_verifiable_against_usage":
@@ -1616,10 +1627,66 @@ CASHFREE_PREAUTH = RailProfile(
             notes=("Repeating a capture with the same idempotency key returns the first result instead of "
                    "being refused as a second capture, and the control (the identical call under another "
                    "key) is refused — so the key is what the rail honours. That makes a retry after a lost "
-                   "response safe on this endpoint. Measured on CAPTURE only: order creation and VOID were "
-                   "not probed. Sandbox caveat: every capture response, on eight different orders, carries "
-                   "the same action_reference (CAP_12121), so the refusal text is probably a sandbox "
-                   "artefact and should not be read as production's wording."),
+                   "response safe on this endpoint. The same holds for VOID (`idempotent_void_replay`), and a "
+                   "repeated order creation, a repeated payment and a reused key with another amount are each "
+                   "refused (`duplicate_order_refused`, `payment_replay_refused`, "
+                   "`idempotency_key_reuse_refused`). Sandbox caveat: on every hold that saw a successful "
+                   "capture the capture carries the same action_reference (CAP_12121), so the refusal text "
+                   "is probably a sandbox artefact and should not be read as production's wording."),
+        ),
+        Capability(
+            name="idempotent_void_replay", supported=True,
+            probe_id="cashfree_preauth.idempotent_void_replay",
+            source_tier=SourceTier.OBSERVED, environment=Environment.SANDBOX, obtained_on="2026-09-21",
+            citation=("measured 21 Sep 2026 (sandbox) — the same VOID repeated under one "
+                      "x-idempotency-key, then under a different key"),
+            url=CASHFREE_PREAUTH_URL,
+            quote=('same key: HTTP 200 · authorization {"action":"VOID","status":"SUCCESS"}; a different key: '
+                   'HTTP 400 · "transaction is already voided"'),
+            notes=("Repeating a void with the same idempotency key returns the first result, and the control "
+                   "(the identical call under another key) is refused as already voided, so the key is what "
+                   "the rail honours. A retry of a release after a lost response is therefore safe on this "
+                   "endpoint. Sandbox caveat: the void reference is the same constant (VOID_12121) on every "
+                   "voided hold."),
+        ),
+        Capability(
+            name="duplicate_order_refused", supported=True,
+            probe_id="cashfree_preauth.duplicate_order_refused",
+            source_tier=SourceTier.OBSERVED, environment=Environment.SANDBOX, obtained_on="2026-09-21",
+            citation=("measured 21 Sep 2026 (sandbox) — POST /orders repeated under the id of an order that "
+                      "already exists"),
+            url=CASHFREE_PREAUTH_URL,
+            quote='HTTP 409 · order_already_exists · "order with same id is already present"',
+            notes=("A repeated order creation is refused, not accepted as a second order, so an order id "
+                   "derived from a retry key makes the creation of a hold safe to repeat: the second attempt "
+                   "learns the order exists and reads it. The probe repeats the same amount; in exploration "
+                   "(not stored) a different amount, and a call carrying an idempotency key, were refused the "
+                   "same way and the stored order kept its first amount."),
+        ),
+        Capability(
+            name="payment_replay_refused", supported=True,
+            probe_id="cashfree_preauth.payment_replay_refused",
+            source_tier=SourceTier.OBSERVED, environment=Environment.SANDBOX, obtained_on="2026-09-21",
+            citation=("measured 21 Sep 2026 (sandbox) — the UPI collect submitted again against an order "
+                      "that was already authorised"),
+            url=CASHFREE_PREAUTH_URL,
+            quote='HTTP 400 · order_inactive · "order is no longer active"',
+            notes=("A repeated payment on an authorised order is refused, so replaying the second step of "
+                   "placing a hold cannot authorise it twice. The authorisation was forced by the sandbox "
+                   "simulator; what an issuer does with a second collect request is not measured."),
+        ),
+        Capability(
+            name="idempotency_key_reuse_refused", supported=True,
+            probe_id="cashfree_preauth.idempotency_key_reuse_refused",
+            source_tier=SourceTier.OBSERVED, environment=Environment.SANDBOX, obtained_on="2026-09-21",
+            citation=("measured 21 Sep 2026 (sandbox) — CAPTURE of ₹470 under an idempotency key, then the "
+                      "same key for a CAPTURE of ₹300"),
+            url=CASHFREE_PREAUTH_URL,
+            quote='HTTP 422 · idempotency_error · "invalid body in request for x-idempotency-key"',
+            notes=("A key reused for a different request is refused instead of being answered with the "
+                   "first request's result, so a retry cannot be confused with a different request. The "
+                   "same refusal was seen in exploration (not stored) when a key that had captured was "
+                   "reused for a void."),
         ),
         Capability(
             name="concurrent_capture_single_winner", supported=True,

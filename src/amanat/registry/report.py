@@ -248,6 +248,20 @@ def _measured_idempotency(doc: dict) -> str:
     return _join(rows)
 
 
+_REFUSALS = {"duplicate_order_refused": "a repeated order creation", "payment_replay_refused": "a repeated payment",
+             "idempotency_key_reuse_refused": "a reused key with a different request"}
+
+
+def _measured_refusals(doc: dict) -> str:
+    """What else a sandbox was measured to refuse on a retry, in the words of the rows that say so."""
+    found = [_REFUSALS[row["name"]] for r in doc["rails"] for row in r["capabilities"]
+             if row["name"] in _REFUSALS and row["tier"] == "observed" and row["supported"] is True and row["observation"]]
+    if not found:
+        return ""
+    joined = found[0] if len(found) == 1 else ", ".join(found[:-1]) + " and " + found[-1]
+    return f"; on the same sandbox {joined} {'was' if len(found) == 1 else 'were'} each refused"
+
+
 def render(doc: dict | None = None, store_dir: Path | None = None) -> str:
     doc = doc if doc is not None else export.build(store_dir)
     facts = _probe_facts(store_dir)
@@ -301,7 +315,7 @@ check found its quote, and where a source is silent the row is unverified.
   releases: after them the merchant still owes a reversal, and Visa assesses a Misuse of Authorization System Fee on authorizations matched to
   neither a clearing nor a reversal. Only on some rails does the deadline end the agent's obligation.
 - **A retry that acts once** is documented for {len(idem["yes"])} rails ({_join(idem["yes"])}); x402's is an optional extension, so a server
-  that leaves it off is still conformant. Separately, measured: {_measured_idempotency(doc)}.
+  that leaves it off is still conformant. Separately, measured: {_measured_idempotency(doc)}{_measured_refusals(doc)}.
 - **Some questions have no answer yet**: {st["unverified"]} capabilities are unverified. They are listed below with what was read.
 
 ## Question by question

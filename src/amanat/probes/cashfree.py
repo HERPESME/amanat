@@ -61,12 +61,13 @@ class TracingCashfree(CashfreePreAuthRail):
 
 
 class CashfreeHarness:
-    """`hold`, `capture`, `void`, `fetch` and `capture_parallel` against the sandbox."""
+    """`hold`, `capture`, `void`, `fetch` and `capture_parallel` against the sandbox, and the repeats
+    (`recreate_order`, `pay_again`) that ask whether a retry acts once."""
 
     rail_id = "cashfree_preauth"
     environment = Environment.SANDBOX
     name = "cashfree_preauth/sandbox"
-    ops = frozenset({"hold", "capture", "void", "fetch", "capture_parallel"})
+    ops = frozenset({"hold", "capture", "void", "fetch", "capture_parallel", "recreate_order", "pay_again"})
 
     def __init__(self, client_id: str | None = None, client_secret: str | None = None, *,
                  base: str = SANDBOX_BASE, rail_factory: Callable[..., TracingCashfree] = TracingCashfree,
@@ -135,7 +136,10 @@ class CashfreeHarness:
         time.sleep(self.settle_seconds)
         step("order", lambda: r.fetch_order(order_id))
         step("payments", lambda: r.fetch_payments(order_id))
-        return OpResult(exs, handle={"order_id": order_id, "cf_payment_id": cf_id, "amount": amount})
+        # The session id is what a repeated payment must present. It is a handle, never a record: the
+        # runner redacts it from every exchange, and the handle itself is not stored.
+        return OpResult(exs, handle={"order_id": order_id, "cf_payment_id": cf_id, "amount": amount,
+                                     "payment_session_id": session})
 
     def _op_capture(self, hold: dict, amount: int, idempotency_key: str | None = None) -> OpResult:
         r = self.rail
@@ -150,9 +154,29 @@ class CashfreeHarness:
             r._extra_headers = {}
         return OpResult([e])
 
-    def _op_void(self, hold: dict) -> OpResult:
+    def _op_void(self, hold: dict, idempotency_key: str | None = None) -> OpResult:
         r = self.rail
-        return OpResult([self._exchange(r, "void", lambda: r.void(hold["order_id"]))])
+        extra = None
+        if idempotency_key:
+            key = self.idempotency_key(hold, idempotency_key)
+            r._extra_headers = {"x-idempotency-key": key}
+            extra = {"idempotency_key": key}
+        try:
+            e = self._exchange(r, "void", lambda: r.void(hold["order_id"]), extra=extra)
+        finally:
+            r._extra_headers = {}
+        return OpResult([e])
+
+    def _op_recreate_order(self, hold: dict, amount: int) -> OpResult:
+        """Ask for an order under an id that already exists: is the repeat refused, or is it a second order?"""
+        r = self.rail
+        return OpResult([self._exchange(r, "order_recreate", lambda: r.create_preauth_order(
+            hold["order_id"], amount, customer=_CUSTOMER))])
+
+    def _op_pay_again(self, hold: dict) -> OpResult:
+        """Submit the payment again against an order that is already authorised."""
+        r = self.rail
+        return OpResult([self._exchange(r, "pay_again", lambda: r.pay_upi_collect(hold["payment_session_id"]))])
 
     def _op_fetch(self, hold: dict) -> OpResult:
         r, oid = self.rail, hold["order_id"]

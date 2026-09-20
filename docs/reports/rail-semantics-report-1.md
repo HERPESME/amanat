@@ -8,7 +8,7 @@ snapshot: pages change and sandboxes change, and the point of the registry is th
 
 ## What is in the registry
 
-14 rails, 103 capabilities, 18 numeric limits. 8 rows rest on recorded probe runs against a vendor's sandbox, each with its stored exchange;
+14 rails, 107 capabilities, 18 numeric limits. 12 rows rest on recorded probe runs against a vendor's sandbox, each with its stored exchange;
 3 more rest on one-off observations made by hand (Razorpay capture's partial debit, 2026-08-22, sandbox; Setu UMAP's credentials self serve, 2026-08-21, live; Setu UMAP's api publicly reachable, 2026-08-21, live), whose exchanges are not in the evidence store.
 86 quotes were **re-read** from the source they cite on the date above (32 of them cite a source pinned to a revision, where re-reading shows that the quote was transcribed correctly and can never show that anything changed; the other 54 cite pages that can change, and those are the ones the watcher guards); 17 sources could not be read
 (below); 6 capabilities are **unverified** and therefore refused by the policy engine rather than assumed.
@@ -37,7 +37,7 @@ The rails are not equals, and a count over them mixes three kinds: 5 are UPI and
   releases: after them the merchant still owes a reversal, and Visa assesses a Misuse of Authorization System Fee on authorizations matched to
   neither a clearing nor a reversal. Only on some rails does the deadline end the agent's obligation.
 - **A retry that acts once** is documented for 3 rails (Stripe (secondary); Adyen (secondary); x402 (extensions) (primary)); x402's is an optional extension, so a server
-  that leaves it off is still conformant. Separately, measured: Cashfree pre-auth's sandbox, on capture.
+  that leaves it off is still conformant. Separately, measured: Cashfree pre-auth's sandbox, on capture; Cashfree pre-auth's sandbox, on void; on the same sandbox a repeated order creation, a repeated payment and a reused key with a different request were each refused.
 - **Some questions have no answer yet**: 6 capabilities are unverified. They are listed below with what was read.
 
 ## Question by question
@@ -146,7 +146,7 @@ A repeated request under the same idempotency key acts once and returns the firs
 
 ## What was measured
 
-8 probes ran against Cashfree's UPI pre-authorisation sandbox, 8 holds in all, each answer stored with the
+12 probes ran against Cashfree's UPI pre-authorisation sandbox, 12 holds in all, each answer stored with the
 exchange that produced it. The authorisation is forced with `POST /simulate`, so this is the sandbox API's word.
 
 | Row | Answer | The rail's words | Observed | Evidence |
@@ -158,9 +158,13 @@ exchange that produced it. The authorisation is forced with `POST /simulate`, so
 | `cashfree_preauth.over_capture` | not supported | HTTP 400 · "Total capture amount can not be grater than transaction amount" | 2026-09-20 | `d8e09c1f58cc` |
 | `cashfree_preauth.capture_after_void` | not supported | HTTP 400 · "transaction is already voided" | 2026-09-20 | `72998d2bca6c` |
 | `cashfree_preauth.idempotent_capture_replay` | supported | same key: HTTP 200 · authorization {"action":"CAPTURE","status":"SUCCESS","captured_amount":470}; a different key: HTTP 400 · "Duplicate capture_id present" | 2026-09-20 | `11dd03981a35` |
+| `cashfree_preauth.idempotent_void_replay` | supported | same key: HTTP 200 · authorization {"action":"VOID","status":"SUCCESS"}; a different key: HTTP 400 · "transaction is already voided" | 2026-09-20 | `1e8ddfffe652` |
+| `cashfree_preauth.duplicate_order_refused` | supported | HTTP 409 · order_already_exists · "order with same id is already present" | 2026-09-20 | `ac51b7adaea6` |
+| `cashfree_preauth.payment_replay_refused` | supported | HTTP 400 · order_inactive · "order is no longer active" | 2026-09-20 | `d96de63cc492` |
+| `cashfree_preauth.idempotency_key_reuse_refused` | supported | HTTP 422 · idempotency_error · "invalid body in request for x-idempotency-key" | 2026-09-20 | `b1c60cb63391` |
 | `cashfree_preauth.concurrent_capture_single_winner` | supported | one HTTP 200 · authorization {"action":"CAPTURE","status":"SUCCESS"}; two HTTP 400 · "Event has already been initiated" | 2026-09-20 | `d0442a001281` |
 
-Caveat from the stored records: on each of the 5 holds that saw a successful capture, the capture carries the same `action_reference` (CAP_12121), and each of the 2 voided holds carries VOID_12121, so the wording of the refusal of a second capture is probably a sandbox artefact. The outcome agrees with the vendor's documented rule that a transaction is captured or voided once.
+Caveat from the stored records: on each of the 6 holds that saw a successful capture, the capture carries the same `action_reference` (CAP_12121), and each of the 3 voided holds carries VOID_12121, so the wording of the refusal of a second capture is probably a sandbox artefact. The outcome agrees with the vendor's documented rule that a transaction is captured or voided once.
 
 ## What could not be established
 
@@ -192,7 +196,7 @@ Checkpoints of the evidence behind this report. A later export whose streams do 
 
 | Stream | Lines | Head (SHA-256) |
 |---|---|---|
-| `probes.cashfree_preauth` | 8 | `d0442a0012814763b3acbcaf16188af2e874f5a90fea9d9045aa2acfb118df18` |
+| `probes.cashfree_preauth` | 12 | `b1c60cb633918f368e48a4f2538a55ca83b00c2443b6ffd83a89296efa1e374c` |
 | `watch` | 11 | `f4ffb5ca04288fef45b61dd0455b6be34c0144861e041843695b81bd98375f29` |
 
 Source documents committed to the repository:

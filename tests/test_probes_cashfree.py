@@ -143,6 +143,50 @@ class TestTheOtherOperations:
         h.run_op("void", {"hold": hold})
         assert h.responder.sent[-1][2] == {"action": "VOID"}
 
+    def test_a_void_can_carry_an_idempotency_key_for_that_call_only(self):
+        h = harness(happy)
+        hold = self._held(h)
+        first = h.run_op("void", {"hold": hold, "idempotency_key": "k1"})
+        h.run_op("void", {"hold": hold})
+        with_key, without = h.responder.headers_seen[-2], h.responder.headers_seen[-1]
+        assert "x-idempotency-key" in with_key and "x-idempotency-key" not in without
+        assert first.exchanges[0].request["idempotency_key"] == with_key["x-idempotency-key"]
+        assert first.exchanges[0].request["json"] == {"action": "VOID"} and "headers" not in first.exchanges[0].request
+
+    def test_recreating_an_order_posts_the_same_order_id_and_amount_again(self):
+        h = harness(happy)
+        hold = self._held(h)
+        res = h.run_op("recreate_order", {"hold": hold, "amount": 62_000})
+        assert [e.label for e in res.exchanges] == ["order_recreate"]
+        method, path, body = h.responder.sent[-1]
+        assert (method, path) == ("POST", "/orders")
+        assert body["order_id"] == hold["order_id"] and body["order_amount"] == 620.0
+        assert body["order_note"] == "preauth_transaction"
+
+    def test_paying_again_submits_the_holds_own_session_to_the_payment_endpoint(self):
+        h = harness(happy)
+        hold = self._held(h)
+        res = h.run_op("pay_again", {"hold": hold})
+        assert [e.label for e in res.exchanges] == ["pay_again"]
+        method, path, body = h.responder.sent[-1]
+        assert (method, path) == ("POST", "/orders/sessions") and body["payment_session_id"] == "session_abc"
+
+    def test_the_hold_handle_carries_the_session_a_replayed_payment_needs(self):
+        hold = self._held(harness(happy))
+        assert hold["payment_session_id"] == "session_abc"
+
+    def test_a_replayed_payment_never_puts_the_session_in_the_record(self):
+        def refuse_again(m, p, b):
+            if p == "/orders/sessions" and len([1 for _ in seen]) > 0:
+                return 400, {"code": "order_inactive", "message": "order is no longer active"}
+            if p == "/orders/sessions":
+                seen.append(1)
+            return happy(m, p, b)
+        seen = []
+        text = json.dumps(run_probe("cashfree_preauth.payment_replay_refused", refuse_again))
+        for banned in ("session_abc", "x-client-secret", "customer_details"):
+            assert banned not in text, banned
+
     def test_fetch_reads_the_order_its_payments_and_its_refunds(self):
         h = harness(happy)
         res = h.run_op("fetch", {"hold": self._held(h)})
@@ -224,7 +268,9 @@ class TestTheCatalogue:
         caps = {r.capability for p in catalogue.PROBES.values() for r in p.rules}
         assert caps >= {"partial_debit", "over_capture", "multiple_captures", "void_whole_hold",
                         "void_after_partial_capture", "capture_after_void", "idempotent_capture_replay",
-                        "concurrent_capture_single_winner", "funds_held_in_customer_account"}
+                        "concurrent_capture_single_winner", "funds_held_in_customer_account",
+                        "idempotent_void_replay", "duplicate_order_refused", "payment_replay_refused",
+                        "idempotency_key_reuse_refused"}
 
     def test_for_rail_returns_only_that_rails_probes(self):
         assert {p.rail_id for p in catalogue.for_rail("cashfree_preauth")} == {"cashfree_preauth"}
@@ -376,3 +422,124 @@ class TestReadingTheSandboxAnswers:
         runner.record(obs, path)
         assert store.verify(path).length == 1
         assert runner.latest_findings(path)[("cashfree_preauth.partial_capture", "partial_debit")]["supported"] is True
+
+
+class TestReadingTheRetryAnswers:
+    """Retry safety, one question per probe. The shapes are the ones the sandbox returned on 21 Sep 2026."""
+
+    VOID_OK = (200, {"authorization": {"action": "VOID", "status": "SUCCESS", "action_reference": "VOID_12121"}})
+    ALREADY_VOIDED = (400, {"code": "order_id_voided", "message": "transaction is already voided"})
+
+    @staticmethod
+    def _voids(*answers):
+        seq, calls = list(answers), []
+
+        def respond(m, p, b):
+            if p.endswith("/authorization") and b["action"] == "VOID":
+                calls.append(1)
+                return seq[len(calls) - 1]
+            return happy(m, p, b)
+        return respond
+
+    def test_the_same_key_replaying_the_first_void_while_another_key_is_refused_is_idempotency(self):
+        f = finding(run_probe("cashfree_preauth.idempotent_void_replay",
+                              self._voids(self.VOID_OK, self.VOID_OK, self.ALREADY_VOIDED)), "idempotent_void_replay")
+        assert f["supported"] is True and "under a different key was refused" in f["basis"]
+
+    def test_if_a_different_key_is_accepted_too_the_replay_proves_nothing(self):
+        f = finding(run_probe("cashfree_preauth.idempotent_void_replay",
+                              self._voids(self.VOID_OK, self.VOID_OK, self.VOID_OK)), "idempotent_void_replay")
+        assert f["supported"] is None
+
+    def test_a_replay_refused_as_already_voided_means_the_key_was_not_honoured(self):
+        f = finding(run_probe("cashfree_preauth.idempotent_void_replay",
+                              self._voids(self.VOID_OK, self.ALREADY_VOIDED, self.ALREADY_VOIDED)), "idempotent_void_replay")
+        assert f["supported"] is False and "not honoured" in f["basis"] and "already voided" in f["basis"]
+
+    def test_a_replay_after_a_void_that_failed_says_nothing(self):
+        f = finding(run_probe("cashfree_preauth.idempotent_void_replay",
+                              self._voids(*[self.ALREADY_VOIDED] * 3)), "idempotent_void_replay")
+        assert f["supported"] is None
+
+    @staticmethod
+    def _second_order(answer):
+        """The first POST /orders (the hold) succeeds; the repeated one gets `answer`."""
+        posts = []
+
+        def respond(m, p, b):
+            if m == "POST" and p == "/orders":
+                posts.append(1)
+                return answer if len(posts) > 1 else happy(m, p, b)
+            return happy(m, p, b)
+        return respond
+
+    def test_an_order_created_twice_under_one_id_and_refused_is_a_refusal_not_a_second_order(self):
+        f = finding(run_probe("cashfree_preauth.duplicate_order_refused", self._second_order(
+            (409, {"code": "order_already_exists", "message": "order with same id is already present"}))),
+            "duplicate_order_refused")
+        assert f["supported"] is True and "already present" in f["basis"]
+
+    def test_a_second_order_accepted_under_the_same_id_is_the_hazard(self):
+        f = finding(run_probe("cashfree_preauth.duplicate_order_refused",
+                              self._second_order((200, {"order_id": "x", "order_status": "ACTIVE"}))),
+                    "duplicate_order_refused")
+        assert f["supported"] is False and "second order was accepted" in f["basis"]
+
+    def test_a_timeout_on_the_repeated_order_is_not_an_answer(self):
+        f = finding(run_probe("cashfree_preauth.duplicate_order_refused", self._second_order((503, {"message": "x"}))),
+                    "duplicate_order_refused")
+        assert f["supported"] is None
+
+    @staticmethod
+    def _second_payment(answer):
+        posts = []
+
+        def respond(m, p, b):
+            if p == "/orders/sessions":
+                posts.append(1)
+                return answer if len(posts) > 1 else happy(m, p, b)
+            return happy(m, p, b)
+        return respond
+
+    def test_a_payment_submitted_again_on_an_authorised_order_and_refused_cannot_double_authorise(self):
+        f = finding(run_probe("cashfree_preauth.payment_replay_refused", self._second_payment(
+            (400, {"code": "order_inactive", "message": "order is no longer active"}))), "payment_replay_refused")
+        assert f["supported"] is True and "no longer active" in f["basis"]
+
+    def test_a_second_payment_accepted_is_the_hazard(self):
+        f = finding(run_probe("cashfree_preauth.payment_replay_refused",
+                              self._second_payment((200, {"cf_payment_id": 10}))), "payment_replay_refused")
+        assert f["supported"] is False and "second attempt was accepted" in f["basis"]
+
+    @staticmethod
+    def _captures_by_key(second):
+        seq, calls = [(200, CAPTURE_OK), second], []
+
+        def respond(m, p, b):
+            if p.endswith("/authorization") and b["action"] == "CAPTURE":
+                calls.append(1)
+                return seq[len(calls) - 1]
+            return happy(m, p, b)
+        return respond
+
+    def test_a_key_reused_for_a_different_amount_and_refused_cannot_be_confused_with_the_first_request(self):
+        f = finding(run_probe("cashfree_preauth.idempotency_key_reuse_refused", self._captures_by_key(
+            (422, {"code": "request_invalid", "type": "idempotency_error",
+                   "message": "invalid body in request for x-idempotency-key"}))), "idempotency_key_reuse_refused")
+        assert f["supported"] is True and "invalid body" in f["basis"]
+
+    def test_a_key_reused_for_a_different_amount_that_returns_the_first_result_is_the_hazard(self):
+        f = finding(run_probe("cashfree_preauth.idempotency_key_reuse_refused", self._captures_by_key((200, CAPTURE_OK))),
+                    "idempotency_key_reuse_refused")
+        assert f["supported"] is False and "did not answer" in f["basis"]
+
+    def test_a_reuse_after_a_first_capture_that_failed_says_nothing(self):
+        seq, calls = [(400, {"message": "no"}), (400, {"message": "no"})], []
+
+        def respond(m, p, b):
+            if p.endswith("/authorization"):
+                calls.append(1)
+                return seq[len(calls) - 1]
+            return happy(m, p, b)
+        assert finding(run_probe("cashfree_preauth.idempotency_key_reuse_refused", respond),
+                       "idempotency_key_reuse_refused")["supported"] is None

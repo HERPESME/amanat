@@ -365,6 +365,10 @@ LIMITS DIFFER TOO, and Setu's figures do not match OC-228's: 'block funds upto R
 | `over_capture` | **no** | `OBSERVED` (sandbox) | 2026-09-20 | measured 20 Sep 2026 (sandbox) — CAPTURE ₹700 against a ₹620 hold, HTTP 400 |
 | `capture_after_void` | **no** | `OBSERVED` (sandbox) | 2026-09-20 | measured 20 Sep 2026 (sandbox) — CAPTURE after a VOID, HTTP 400 |
 | `idempotent_capture_replay` | yes | `OBSERVED` (sandbox) | 2026-09-20 | measured 20 Sep 2026 (sandbox) — the same CAPTURE repeated under one x-idempotency-key, then under a different key |
+| `idempotent_void_replay` | yes | `OBSERVED` (sandbox) | 2026-09-21 | measured 21 Sep 2026 (sandbox) — the same VOID repeated under one x-idempotency-key, then under a different key |
+| `duplicate_order_refused` | yes | `OBSERVED` (sandbox) | 2026-09-21 | measured 21 Sep 2026 (sandbox) — POST /orders repeated under the id of an order that already exists |
+| `payment_replay_refused` | yes | `OBSERVED` (sandbox) | 2026-09-21 | measured 21 Sep 2026 (sandbox) — the UPI collect submitted again against an order that was already authorised |
+| `idempotency_key_reuse_refused` | yes | `OBSERVED` (sandbox) | 2026-09-21 | measured 21 Sep 2026 (sandbox) — CAPTURE of ₹470 under an idempotency key, then the same key for a CAPTURE of ₹300 |
 | `concurrent_capture_single_winner` | yes | `OBSERVED` (sandbox) | 2026-09-20 | measured 20 Sep 2026 (sandbox) — three CAPTUREs (₹300, ₹200, ₹100) fired at the same instant against one ₹620 hold |
 
 **Numeric limits** — enforced, not decorative. Unlike capabilities, an unverified limit is still applied: thin evidence means refuse more, never less.
@@ -472,7 +476,47 @@ A released hold cannot be drawn on. Cashfree's guide states the same rule: "Once
 
 *Probe `cashfree_preauth.idempotent_capture_replay`: latest conclusive answer supported (2026-09-20, sandbox; 1 conclusive run).*
 
-Repeating a capture with the same idempotency key returns the first result instead of being refused as a second capture, and the control (the identical call under another key) is refused — so the key is what the rail honours. That makes a retry after a lost response safe on this endpoint. Measured on CAPTURE only: order creation and VOID were not probed. Sandbox caveat: every capture response, on eight different orders, carries the same action_reference (CAP_12121), so the refusal text is probably a sandbox artefact and should not be read as production's wording.
+Repeating a capture with the same idempotency key returns the first result instead of being refused as a second capture, and the control (the identical call under another key) is refused — so the key is what the rail honours. That makes a retry after a lost response safe on this endpoint. The same holds for VOID (`idempotent_void_replay`), and a repeated order creation, a repeated payment and a reused key with another amount are each refused (`duplicate_order_refused`, `payment_replay_refused`, `idempotency_key_reuse_refused`). Sandbox caveat: on every hold that saw a successful capture the capture carries the same action_reference (CAP_12121), so the refusal text is probably a sandbox artefact and should not be read as production's wording.
+
+**`idempotent_void_replay`**
+
+> same key: HTTP 200 · authorization {"action":"VOID","status":"SUCCESS"}; a different key: HTTP 400 · "transaction is already voided"
+
+— measured 21 Sep 2026 (sandbox) — the same VOID repeated under one x-idempotency-key, then under a different key, https://www.cashfree.com/docs/api-reference/payments/latest/payments/authorize
+
+*Probe `cashfree_preauth.idempotent_void_replay`: latest conclusive answer supported (2026-09-20, sandbox; 1 conclusive run).*
+
+Repeating a void with the same idempotency key returns the first result, and the control (the identical call under another key) is refused as already voided, so the key is what the rail honours. A retry of a release after a lost response is therefore safe on this endpoint. Sandbox caveat: the void reference is the same constant (VOID_12121) on every voided hold.
+
+**`duplicate_order_refused`**
+
+> HTTP 409 · order_already_exists · "order with same id is already present"
+
+— measured 21 Sep 2026 (sandbox) — POST /orders repeated under the id of an order that already exists, https://www.cashfree.com/docs/api-reference/payments/latest/payments/authorize
+
+*Probe `cashfree_preauth.duplicate_order_refused`: latest conclusive answer supported (2026-09-20, sandbox; 1 conclusive run).*
+
+A repeated order creation is refused, not accepted as a second order, so an order id derived from a retry key makes the creation of a hold safe to repeat: the second attempt learns the order exists and reads it. The probe repeats the same amount; in exploration (not stored) a different amount, and a call carrying an idempotency key, were refused the same way and the stored order kept its first amount.
+
+**`payment_replay_refused`**
+
+> HTTP 400 · order_inactive · "order is no longer active"
+
+— measured 21 Sep 2026 (sandbox) — the UPI collect submitted again against an order that was already authorised, https://www.cashfree.com/docs/api-reference/payments/latest/payments/authorize
+
+*Probe `cashfree_preauth.payment_replay_refused`: latest conclusive answer supported (2026-09-20, sandbox; 1 conclusive run).*
+
+A repeated payment on an authorised order is refused, so replaying the second step of placing a hold cannot authorise it twice. The authorisation was forced by the sandbox simulator; what an issuer does with a second collect request is not measured.
+
+**`idempotency_key_reuse_refused`**
+
+> HTTP 422 · idempotency_error · "invalid body in request for x-idempotency-key"
+
+— measured 21 Sep 2026 (sandbox) — CAPTURE of ₹470 under an idempotency key, then the same key for a CAPTURE of ₹300, https://www.cashfree.com/docs/api-reference/payments/latest/payments/authorize
+
+*Probe `cashfree_preauth.idempotency_key_reuse_refused`: latest conclusive answer supported (2026-09-20, sandbox; 1 conclusive run).*
+
+A key reused for a different request is refused instead of being answered with the first request's result, so a retry cannot be confused with a different request. The same refusal was seen in exploration (not stored) when a key that had captured was reused for a void.
 
 **`concurrent_capture_single_winner`**
 

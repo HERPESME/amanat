@@ -52,9 +52,9 @@ the observation; a correction is marked as one, not silently edited.
 Nothing has been sent. These are the items in the current data that would need this step before a
 report is published.
 
-1. **Cashfree sandbox: a constant capture reference.** On each of the five holds that saw a successful
-   capture, the capture carries `action_reference: CAP_12121` (and each of the two voided holds carries
-   `VOID_12121`), and a second capture is refused with "Duplicate capture_id present". The outcome matches
+1. **Cashfree sandbox: a constant capture reference.** On every hold that saw a successful capture, the
+   capture carries `action_reference: CAP_12121` (and every voided hold carries `VOID_12121`), and a second
+   capture is refused with "Duplicate capture_id present". The outcome matches
    the documented rule that a transaction can only be captured or voided once; the wording, and the
    constant reference, look like a sandbox artefact. Evidence:
    `docs/observations/store/probes.cashfree_preauth.jsonl`.

@@ -849,3 +849,39 @@ class TestVoidAfterPartialCaptureIsAnsweredForMoreThanCashfree:
     def test_cashfree_still_refuses_and_is_measured(self):
         cap = RAILS["cashfree_preauth"].capabilities["void_after_partial_capture"]
         assert cap.supported is False and cap.source_tier is SourceTier.OBSERVED
+
+
+class TestTheRetryRowsOnCashfree:
+    """Retry safety, measured on 21 Sep 2026: a retry after a lost response acts once, on all three actions."""
+
+    ROWS = {
+        "idempotent_void_replay": ("cashfree_preauth.idempotent_void_replay", "transaction is already voided"),
+        "duplicate_order_refused": ("cashfree_preauth.duplicate_order_refused", "order_already_exists"),
+        "payment_replay_refused": ("cashfree_preauth.payment_replay_refused", "order is no longer active"),
+        "idempotency_key_reuse_refused": ("cashfree_preauth.idempotency_key_reuse_refused", "invalid body in request"),
+    }
+
+    def test_each_is_a_sandbox_observation_backed_by_its_own_probe(self):
+        for name, (probe, _) in self.ROWS.items():
+            cap = RAILS["cashfree_preauth"].capabilities[name]
+            assert cap.source_tier is SourceTier.OBSERVED and cap.environment is Environment.SANDBOX, name
+            assert cap.probe_id == probe and cap.supported is True and cap.obtained_on == "2026-09-21", name
+
+    def test_each_quotes_what_the_sandbox_said(self):
+        for name, (_, words) in self.ROWS.items():
+            assert words in RAILS["cashfree_preauth"].capabilities[name].quote, name
+
+    def test_each_has_a_shared_definition_so_the_comparison_can_ask_the_same_question_of_another_rail(self):
+        for name in self.ROWS:
+            assert name in CONCEPTS, name
+
+    def test_the_capture_replay_note_says_what_else_was_measured_and_counts_holds_not_orders(self):
+        note = RAILS["cashfree_preauth"].capabilities["idempotent_capture_replay"].notes
+        assert "eight different orders" not in note and "on eight" not in note
+        assert "every hold that saw a successful capture" in note
+        assert "were not probed" not in note and "idempotent_void_replay" in note
+
+    def test_no_published_row_counts_capture_responses_across_orders(self):
+        for rail in RAILS.values():
+            for cap in rail.capabilities.values():
+                assert "different orders" not in cap.notes, (rail.rail_id, cap.name)

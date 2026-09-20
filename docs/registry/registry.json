@@ -211,6 +211,34 @@
       ]
     },
     {
+      "name": "idempotent_void_replay",
+      "definition": "A repeated void under the same idempotency key returns the first result, while the same call under another key is refused.",
+      "rails": [
+        "cashfree_preauth"
+      ]
+    },
+    {
+      "name": "duplicate_order_refused",
+      "definition": "Creating an order under an id that already exists is refused rather than making a second order.",
+      "rails": [
+        "cashfree_preauth"
+      ]
+    },
+    {
+      "name": "payment_replay_refused",
+      "definition": "Submitting a payment again on an order that is already authorised is refused rather than authorising it twice.",
+      "rails": [
+        "cashfree_preauth"
+      ]
+    },
+    {
+      "name": "idempotency_key_reuse_refused",
+      "definition": "Reusing an idempotency key for a different request is refused rather than answered with the first request's result.",
+      "rails": [
+        "cashfree_preauth"
+      ]
+    },
+    {
       "name": "concurrent_capture_single_winner",
       "definition": "Of several simultaneous captures against one hold, exactly one succeeds and the rest are refused.",
       "rails": [
@@ -270,8 +298,8 @@
   "stores": [
     {
       "stream": "probes.cashfree_preauth",
-      "length": 8,
-      "head": "d0442a0012814763b3acbcaf16188af2e874f5a90fea9d9045aa2acfb118df18"
+      "length": 12,
+      "head": "b1c60cb633918f368e48a4f2538a55ca83b00c2443b6ffd83a89296efa1e374c"
     },
     {
       "stream": "watch",
@@ -1326,7 +1354,7 @@
           "citation": "measured 20 Sep 2026 (sandbox) — the same CAPTURE repeated under one x-idempotency-key, then under a different key",
           "url": "https://www.cashfree.com/docs/api-reference/payments/latest/payments/authorize",
           "quote": "same key: HTTP 200 · authorization {\"action\":\"CAPTURE\",\"status\":\"SUCCESS\",\"captured_amount\":470}; a different key: HTTP 400 · \"Duplicate capture_id present\"",
-          "notes": "Repeating a capture with the same idempotency key returns the first result instead of being refused as a second capture, and the control (the identical call under another key) is refused — so the key is what the rail honours. That makes a retry after a lost response safe on this endpoint. Measured on CAPTURE only: order creation and VOID were not probed. Sandbox caveat: every capture response, on eight different orders, carries the same action_reference (CAP_12121), so the refusal text is probably a sandbox artefact and should not be read as production's wording.",
+          "notes": "Repeating a capture with the same idempotency key returns the first result instead of being refused as a second capture, and the control (the identical call under another key) is refused — so the key is what the rail honours. That makes a retry after a lost response safe on this endpoint. The same holds for VOID (`idempotent_void_replay`), and a repeated order creation, a repeated payment and a reused key with another amount are each refused (`duplicate_order_refused`, `payment_replay_refused`, `idempotency_key_reuse_refused`). Sandbox caveat: on every hold that saw a successful capture the capture carries the same action_reference (CAP_12121), so the refusal text is probably a sandbox artefact and should not be read as production's wording.",
           "verification": null,
           "observation": {
             "probe_id": "cashfree_preauth.idempotent_capture_replay",
@@ -1335,6 +1363,114 @@
               "supported": true,
               "observed_on": "2026-09-20",
               "evidence_hash": "11dd03981a35e462d9079ac5b108233d706487fccfe7a7328c4bf54d841aa528",
+              "environment": "sandbox",
+              "agrees": true
+            },
+            "changes": []
+          }
+        },
+        {
+          "name": "idempotent_void_replay",
+          "supported": true,
+          "permitted": true,
+          "tier": "observed",
+          "usable_as_fact": true,
+          "environment": "sandbox",
+          "obtained_on": "2026-09-21",
+          "probe_id": "cashfree_preauth.idempotent_void_replay",
+          "citation": "measured 21 Sep 2026 (sandbox) — the same VOID repeated under one x-idempotency-key, then under a different key",
+          "url": "https://www.cashfree.com/docs/api-reference/payments/latest/payments/authorize",
+          "quote": "same key: HTTP 200 · authorization {\"action\":\"VOID\",\"status\":\"SUCCESS\"}; a different key: HTTP 400 · \"transaction is already voided\"",
+          "notes": "Repeating a void with the same idempotency key returns the first result, and the control (the identical call under another key) is refused as already voided, so the key is what the rail honours. A retry of a release after a lost response is therefore safe on this endpoint. Sandbox caveat: the void reference is the same constant (VOID_12121) on every voided hold.",
+          "verification": null,
+          "observation": {
+            "probe_id": "cashfree_preauth.idempotent_void_replay",
+            "runs": 1,
+            "latest": {
+              "supported": true,
+              "observed_on": "2026-09-20",
+              "evidence_hash": "1e8ddfffe652e2ef4c8e5053e074ad67050bcd13f3d7c86d97546b3bfc0d6c79",
+              "environment": "sandbox",
+              "agrees": true
+            },
+            "changes": []
+          }
+        },
+        {
+          "name": "duplicate_order_refused",
+          "supported": true,
+          "permitted": true,
+          "tier": "observed",
+          "usable_as_fact": true,
+          "environment": "sandbox",
+          "obtained_on": "2026-09-21",
+          "probe_id": "cashfree_preauth.duplicate_order_refused",
+          "citation": "measured 21 Sep 2026 (sandbox) — POST /orders repeated under the id of an order that already exists",
+          "url": "https://www.cashfree.com/docs/api-reference/payments/latest/payments/authorize",
+          "quote": "HTTP 409 · order_already_exists · \"order with same id is already present\"",
+          "notes": "A repeated order creation is refused, not accepted as a second order, so an order id derived from a retry key makes the creation of a hold safe to repeat: the second attempt learns the order exists and reads it. The probe repeats the same amount; in exploration (not stored) a different amount, and a call carrying an idempotency key, were refused the same way and the stored order kept its first amount.",
+          "verification": null,
+          "observation": {
+            "probe_id": "cashfree_preauth.duplicate_order_refused",
+            "runs": 1,
+            "latest": {
+              "supported": true,
+              "observed_on": "2026-09-20",
+              "evidence_hash": "ac51b7adaea6215e47dfd35f9d815daf839308c10e76191f466c130f26bd4e08",
+              "environment": "sandbox",
+              "agrees": true
+            },
+            "changes": []
+          }
+        },
+        {
+          "name": "payment_replay_refused",
+          "supported": true,
+          "permitted": true,
+          "tier": "observed",
+          "usable_as_fact": true,
+          "environment": "sandbox",
+          "obtained_on": "2026-09-21",
+          "probe_id": "cashfree_preauth.payment_replay_refused",
+          "citation": "measured 21 Sep 2026 (sandbox) — the UPI collect submitted again against an order that was already authorised",
+          "url": "https://www.cashfree.com/docs/api-reference/payments/latest/payments/authorize",
+          "quote": "HTTP 400 · order_inactive · \"order is no longer active\"",
+          "notes": "A repeated payment on an authorised order is refused, so replaying the second step of placing a hold cannot authorise it twice. The authorisation was forced by the sandbox simulator; what an issuer does with a second collect request is not measured.",
+          "verification": null,
+          "observation": {
+            "probe_id": "cashfree_preauth.payment_replay_refused",
+            "runs": 1,
+            "latest": {
+              "supported": true,
+              "observed_on": "2026-09-20",
+              "evidence_hash": "d96de63cc492833f2c61500257c9120ee570c87336d23d28a81eb2dd9e0f2886",
+              "environment": "sandbox",
+              "agrees": true
+            },
+            "changes": []
+          }
+        },
+        {
+          "name": "idempotency_key_reuse_refused",
+          "supported": true,
+          "permitted": true,
+          "tier": "observed",
+          "usable_as_fact": true,
+          "environment": "sandbox",
+          "obtained_on": "2026-09-21",
+          "probe_id": "cashfree_preauth.idempotency_key_reuse_refused",
+          "citation": "measured 21 Sep 2026 (sandbox) — CAPTURE of ₹470 under an idempotency key, then the same key for a CAPTURE of ₹300",
+          "url": "https://www.cashfree.com/docs/api-reference/payments/latest/payments/authorize",
+          "quote": "HTTP 422 · idempotency_error · \"invalid body in request for x-idempotency-key\"",
+          "notes": "A key reused for a different request is refused instead of being answered with the first request's result, so a retry cannot be confused with a different request. The same refusal was seen in exploration (not stored) when a key that had captured was reused for a void.",
+          "verification": null,
+          "observation": {
+            "probe_id": "cashfree_preauth.idempotency_key_reuse_refused",
+            "runs": 1,
+            "latest": {
+              "supported": true,
+              "observed_on": "2026-09-20",
+              "evidence_hash": "b1c60cb633918f368e48a4f2538a55ca83b00c2443b6ffd83a89296efa1e374c",
               "environment": "sandbox",
               "agrees": true
             },
