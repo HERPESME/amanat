@@ -268,3 +268,49 @@ class TestSettlementIsIdempotent:
                 return d
         r = settle_capture_refund(Partial(620_00), "pay_X", actual=470_00)
         assert r.ok is False
+
+
+class LostAcknowledgement(FakeRazorpay):
+    """The refund lands on the rail, but the response is lost (a 504 to the caller)."""
+
+    def __init__(self, authorized, status="authorized", *, refunded_elsewhere=0):
+        super().__init__(authorized, status)
+        self.refunded = 0
+        self.refunded_elsewhere = refunded_elsewhere
+        self._first = True
+
+    def fetch_payment(self, payment_id):
+        d = super().fetch_payment(payment_id)
+        d["amount_refunded"] = self.refunded
+        return d
+
+    def refund(self, payment_id, amount):
+        self.calls.append(("refund", payment_id, amount))
+        if self._first:
+            self._first = False
+            self.refunded = self.refunded_elsewhere or amount     # it DID land (or someone else's did)
+            return 504, {"error": {"description": "gateway timeout"}}
+        self.refunded += amount
+        return 200, {"id": "rfnd_SECOND", "amount": amount, "status": "processed"}
+
+
+class TestALostRefundResponseIsNotRefundedTwice:
+    """Retrying a refund after an ambiguous failure without looking first refunds
+    the customer twice — the merchant's money, returned twice."""
+
+    def test_a_refund_that_landed_is_confirmed_by_reading_the_rail_not_repeated(self):
+        rail = LostAcknowledgement(authorized=620_00)
+        r = settle_capture_refund(rail, "pay_X", actual=470_00, sleep=lambda s: None)
+        assert r.ok and r.refunded == 150_00 and r.net == 470_00
+        assert [c for c in rail.calls if c[0] == "refund"] == [("refund", "pay_X", 150_00)]
+        refunded = [e for e in r.chain.entries if e.payload.get("transition") == "REFUNDED"]
+        assert len(refunded) == 1
+        assert "re-read" in refunded[0].payload["note"]
+
+    def test_a_refund_state_that_matches_nothing_stops_the_retries_and_records_it(self):
+        rail = LostAcknowledgement(authorized=620_00, refunded_elsewhere=5_00)
+        r = settle_capture_refund(rail, "pay_X", actual=470_00, sleep=lambda s: None)
+        assert r.ok is False and r.compensation_required is True
+        assert len([c for c in rail.calls if c[0] == "refund"]) == 1
+        comp = [e for e in r.chain.entries if e.event_type is EventType.COMPENSATION]
+        assert comp and comp[-1].payload["rule"] == "refund_state_mismatch"

@@ -159,13 +159,31 @@ def settle_capture_refund(rail, payment_id: str, actual: int, *,
     # The return leg. From here the customer's full ceiling is gone, so a
     # failure is not a refusal — it is money owed. Retry within a bound, then
     # record the debt explicitly rather than let it live only in a log line.
+    #
+    # A non-200 answer is ambiguous: the refund may have landed and only the
+    # response been lost. Repeating it blind would refund the customer twice, so
+    # before every retry the rail is read: a refund equal to the difference is
+    # confirmed, not repeated; any other refunded amount stops the retries.
     refund_id = ""
+    confirmed_by_reread = False
     if difference > 0:
         last_body: dict = {}
+        outcome = "failed"
+        seen_refunded = 0
         for attempt in range(1, refund_attempts + 1):
+            if attempt > 1:
+                seen_refunded = int(
+                    rail.fetch_payment(payment_id).get("amount_refunded", 0) or 0)
+                if seen_refunded == difference:
+                    outcome, confirmed_by_reread = "confirmed", True
+                    break
+                if seen_refunded != 0:
+                    outcome = "mismatch"
+                    break
             sc, body = rail.refund(payment_id, difference)
             if sc == 200:
                 refund_id = body.get("id", "")
+                outcome = "ok"
                 break
             last_body = body
             chain.append(Actor.RAIL, EventType.RAIL_TRANSITION, {
@@ -175,30 +193,44 @@ def settle_capture_refund(rail, payment_id: str, actual: int, *,
             })
             if attempt < refund_attempts:
                 sleep(0.5 * attempt)
-        else:
+
+        if outcome in ("failed", "mismatch"):
+            rule = ("refund_state_mismatch" if outcome == "mismatch"
+                    else "refund_failed_after_capture")
             chain.append(Actor.POLICY, EventType.COMPENSATION, {
-                "rule": "refund_failed_after_capture",
+                "rule": rule,
                 "payment_id": payment_id,
                 "captured": ceiling,
                 "refund_due": difference,
                 "attempts": refund_attempts,
+                "refunded_seen": seen_refunded,
                 "last_response": str(last_body)[:160],
                 "note": ("the customer's full ceiling was captured and the "
                          "difference could not be returned; this obligation is "
-                         "recorded here and is completed by re-running settlement"),
+                         "recorded here and is completed by re-running settlement"
+                         if outcome == "failed" else
+                         "a refund of a different size is already on the rail; retrying "
+                         "would compound it, so the obligation is recorded for a person "
+                         "to reconcile"),
             })
             return SettlementResult(
                 False,
-                f"capture succeeded but the refund of {difference} failed after "
-                f"{refund_attempts} attempts; compensation of {difference} is "
-                "owed and recorded",
+                (f"capture succeeded but the refund of {difference} failed after "
+                 f"{refund_attempts} attempts; compensation of {difference} is "
+                 "owed and recorded") if outcome == "failed" else
+                (f"capture succeeded but the rail already shows {seen_refunded} refunded "
+                 f"against the {difference} owed; retries stopped and the obligation is "
+                 "recorded"),
                 chain, ceiling=ceiling, actual=actual, net=ceiling,
                 payment_id=payment_id, compensation_required=True,
                 refund_due=difference)
 
         chain.append(Actor.RAIL, EventType.RAIL_TRANSITION, {
             "transition": "REFUNDED", "amount": difference, "ref": refund_id,
-            "note": "the difference between ceiling and actual, returned",
+            "note": ("the difference between ceiling and actual, returned — confirmed by "
+                     "re-reading the rail after an ambiguous response; the refund id is "
+                     "unknown" if confirmed_by_reread else
+                     "the difference between ceiling and actual, returned"),
         })
 
     # The honest cost of doing it this way rather than on SBMD. Recorded as a
