@@ -8,8 +8,9 @@ snapshot: pages change and sandboxes change, and the point of the registry is th
 
 ## What is in the registry
 
-14 rails, 97 capabilities, 18 numeric limits. 11 rows were **measured** against a
-vendor's API; 81 quotes were **re-read** from the source they cite on the date above; 14 sources could not be read
+14 rails, 97 capabilities, 18 numeric limits. 8 rows rest on recorded probe runs against a vendor's sandbox, each with its stored exchange;
+3 more rest on one-off observations made by hand (Razorpay capture's partial debit, 2026-08-22, sandbox; Setu UMAP's credentials self serve, 2026-08-21, live; Setu UMAP's api publicly reachable, 2026-08-21, live), whose exchanges are not in the evidence store.
+81 quotes were **re-read** from the source they cite on the date above (31 of them cite a source pinned to a revision, where re-reading shows that the quote was transcribed correctly and can never show that anything changed; the other 50 cite pages that can change, and those are the ones the watcher guards); 14 sources could not be read
 (below); 8 capabilities are **unverified** and therefore refused by the policy engine rather than assumed.
 
 How a row is admitted: it carries a verbatim quote and the page it came from, and `python -m amanat.registry.watch` fetches that page and
@@ -19,13 +20,23 @@ check found its quote, and where a source is silent the row is unverified.
 
 ## What the comparison shows
 
+The rails are not equals, and a count over them mixes three kinds: 5 are UPI and Indian PSP products, the ones this repository has adapters or engine rules for; 3 are card-payment documents: Visa's own guide and two acquirers' documentation, which describe one card mechanism from the network's side and from two acquirers' sides; 6 are specifications of one protocol, x402 (five schemes and one set of extensions), each read at a pinned revision. A count of rails is a count of documents, not of independent systems: read the lists, not only the totals.
+
 - **A smaller capture than the hold** is supported on 10 rails and refused on 2
-  (Razorpay capture (observed, sandbox); x402 exact (primary)); 0 have no evidenced answer.
-- **Whether the rest is released without further action** is a real difference between rails, not a detail: supported on
-  Stripe (secondary); Adyen (secondary); x402 upto · Solana (primary); refused on UPI Reserve Pay (primary); x402 auth-capture (primary); x402 batch (primary); unverified on Cashfree pre-auth (unverified); Visa (unverified).
-- **A hold's life differs by rail**: Razorpay capture 3 days, Cashfree pre-auth 7 days, Stripe 7 days, Adyen 28 days, Visa 5–30 days by merchant category. After that the rail, not the agent, decides what becomes of the hold.
-- **A retry that acts once** is documented for 3 rails (Stripe (secondary); Adyen (secondary); x402 (extensions) (primary)) and, separately, measured:
-  Cashfree pre-auth's sandbox, on capture.
+  (Razorpay capture (observed, sandbox); x402 exact (primary)); 0 have no evidenced answer. By kind: UPI and Indian PSPs: 3 supported, 1 refused; Card networks and PSPs: 3 supported; Agent-payment protocol: x402: 4 supported, 1 refused.
+- **Who gives the rest back, and when** differs more than whether it is given back: supported on
+  Stripe (secondary); Adyen (secondary); x402 upto · Solana (primary); refused on UPI Reserve Pay (primary); x402 auth-capture (primary); x402 batch (primary); unverified on Cashfree pre-auth (unverified); Visa (unverified). In words: on UPI Reserve Pay nobody
+  does, since the block stays until someone revokes it or its end date arrives, up to 90 days; on x402 `upto` on Solana the escrow does,
+  in the same settlement; on Stripe and Adyen the acquirer cancels the unclaimed amount, neither page says when the cardholder's issuer frees
+  the balance, and Adyen's holds only while multiple partial capture, which is off by default, stays off; on Cashfree and Visa nothing is
+  established, so the engine refuses to plan around it.
+- **A hold's life differs by rail, and so does what its deadline means**: Razorpay capture 3 days, Cashfree pre-auth 7 days, Stripe 7 days, Adyen 28 days, Visa 5–30 days by channel and merchant category. Razorpay refunds an uncaptured payment after
+  at most that long, an upper bound on a timeout the merchant sets, and the money then takes 5–7 working days to arrive; Cashfree's page says
+  the funds are released; Adyen's own expiry leaves the payment neither capturable nor cancellable; Visa's figures are clearing deadlines, not
+  releases: after them the merchant still owes a reversal, and Visa assesses a Misuse of Authorization System Fee on authorizations matched to
+  neither a clearing nor a reversal. Only on some rails does the deadline end the agent's obligation.
+- **A retry that acts once** is documented for 3 rails (Stripe (secondary); Adyen (secondary); x402 (extensions) (primary)); x402's is an optional extension, so a server
+  that leaves it off is still conformant. Separately, measured: Cashfree pre-auth's sandbox, on capture.
 - **Some questions have no answer yet**: 8 capabilities are unverified. They are listed below with what was read.
 
 ## Question by question
@@ -40,6 +51,7 @@ Authorisation holds funds in the payer's account or an escrow, rather than debit
 - **Supported** (8): UPI Reserve Pay (primary); Cashfree pre-auth (observed, sandbox); Visa (secondary); Stripe (secondary); Adyen (secondary); x402 upto · Solana (primary); x402 auth-capture (primary); x402 batch (primary)
 - **Not supported** (3): Razorpay capture (secondary); x402 exact (primary); x402 upto · EVM (primary)
 - **Unverified — refused, not assumed** (0): none
+- **No row for this question** (3): UPI one-time mandate; Setu UMAP; x402 (extensions)
 
 11 of 11 rails with a row for this question have an answer that rests on evidence usable as fact.
 
@@ -50,6 +62,7 @@ A settlement may be for less than the amount authorised or blocked. Who may init
 - **Supported** (10): UPI Reserve Pay (primary); UPI one-time mandate (secondary); Cashfree pre-auth (observed, sandbox); Visa (secondary); Stripe (secondary); Adyen (secondary); x402 upto · EVM (primary); x402 upto · Solana (primary); x402 auth-capture (primary); x402 batch (primary)
 - **Not supported** (2): Razorpay capture (observed, sandbox); x402 exact (primary)
 - **Unverified — refused, not assumed** (0): none
+- **No row for this question** (2): Setu UMAP; x402 (extensions)
 
 12 of 12 rails with a row for this question have an answer that rests on evidence usable as fact.
 
@@ -60,6 +73,7 @@ The merchant may capture more than the amount authorised.
 - **Supported** (1): Stripe (secondary)
 - **Not supported** (7): Razorpay capture (secondary); Cashfree pre-auth (observed, sandbox); Adyen (secondary); x402 exact (primary); x402 upto · EVM (primary); x402 upto · Solana (primary); x402 auth-capture (primary)
 - **Unverified — refused, not assumed** (1): Visa (unverified)
+- **No row for this question** (5): UPI Reserve Pay; UPI one-time mandate; Setu UMAP; x402 (extensions); x402 batch
 
 8 of 9 rails with a row for this question have an answer that rests on evidence usable as fact.
 
@@ -70,6 +84,7 @@ One authorisation may be drawn on more than once.
 - **Supported** (4): Stripe (secondary); Adyen (secondary); x402 auth-capture (primary); x402 batch (primary)
 - **Not supported** (4): Razorpay capture (secondary); Cashfree pre-auth (secondary); x402 upto · EVM (primary); x402 upto · Solana (primary)
 - **Unverified — refused, not assumed** (0): none
+- **No row for this question** (6): UPI Reserve Pay; UPI one-time mandate; Setu UMAP; Visa; x402 (extensions); x402 exact
 
 8 of 8 rails with a row for this question have an answer that rests on evidence usable as fact.
 
@@ -80,6 +95,7 @@ Part of a hold may be released without capturing it, by a partial reversal or a 
 - **Supported** (3): Visa (secondary); Adyen (secondary); x402 batch (primary)
 - **Not supported** (2): Cashfree pre-auth (secondary); x402 auth-capture (primary)
 - **Unverified — refused, not assumed** (1): Stripe (unverified)
+- **No row for this question** (8): UPI Reserve Pay; Razorpay capture; UPI one-time mandate; Setu UMAP; x402 (extensions); x402 exact; x402 upto · EVM; x402 upto · Solana
 
 5 of 6 rails with a row for this question have an answer that rests on evidence usable as fact.
 
@@ -90,6 +106,7 @@ A whole hold may be released before anything is captured.
 - **Supported** (6): Cashfree pre-auth (observed, sandbox); Visa (secondary); Stripe (secondary); Adyen (secondary); x402 upto · Solana (primary); x402 auth-capture (primary)
 - **Not supported** (0): none
 - **Unverified — refused, not assumed** (0): none
+- **No row for this question** (8): UPI Reserve Pay; Razorpay capture; UPI one-time mandate; Setu UMAP; x402 (extensions); x402 exact; x402 upto · EVM; x402 batch
 
 6 of 6 rails with a row for this question have an answer that rests on evidence usable as fact.
 
@@ -100,6 +117,7 @@ After a partial capture the uncaptured remainder is released without any further
 - **Supported** (3): Stripe (secondary); Adyen (secondary); x402 upto · Solana (primary)
 - **Not supported** (3): UPI Reserve Pay (primary); x402 auth-capture (primary); x402 batch (primary)
 - **Unverified — refused, not assumed** (2): Cashfree pre-auth (unverified); Visa (unverified)
+- **No row for this question** (6): Razorpay capture; UPI one-time mandate; Setu UMAP; x402 (extensions); x402 exact; x402 upto · EVM
 
 6 of 8 rails with a row for this question have an answer that rests on evidence usable as fact.
 
@@ -110,6 +128,7 @@ A repeated request under the same idempotency key acts once and returns the firs
 - **Supported** (3): Stripe (secondary); Adyen (secondary); x402 (extensions) (primary)
 - **Not supported** (0): none
 - **Unverified — refused, not assumed** (0): none
+- **No row for this question** (11): UPI Reserve Pay; Razorpay capture; UPI one-time mandate; Cashfree pre-auth; Setu UMAP; Visa; x402 exact; x402 upto · EVM; x402 upto · Solana; x402 auth-capture; x402 batch
 
 3 of 3 rails with a row for this question have an answer that rests on evidence usable as fact.
 
@@ -129,7 +148,7 @@ exchange that produced it. The authorisation is forced with `POST /simulate`, so
 | `cashfree_preauth.idempotent_capture_replay` | supported | same key: HTTP 200 · authorization {"action":"CAPTURE","status":"SUCCESS","captured_amount":470}; a different key: HTTP 400 · "Duplicate capture_id present" | 2026-09-20 | `11dd03981a35` |
 | `cashfree_preauth.concurrent_capture_single_winner` | supported | one HTTP 200 · authorization {"action":"CAPTURE","status":"SUCCESS"}; two HTTP 400 · "Event has already been initiated" | 2026-09-20 | `d0442a001281` |
 
-Caveat from the stored records: every one of the 7 capture responses, across 8 orders, carries the same `action_reference` (CAP_12121), so the wording of the refusal of a second capture is probably a sandbox artefact. The outcome agrees with the vendor's documented rule that a transaction is captured or voided once.
+Caveat from the stored records: on each of the 5 holds that saw a successful capture, the capture carries the same `action_reference` (CAP_12121), and each of the 2 voided holds carries VOID_12121, so the wording of the refusal of a second capture is probably a sandbox artefact. The outcome agrees with the vendor's documented rule that a transaction is captured or voided once.
 
 ## What could not be established
 
@@ -148,7 +167,7 @@ Sources that could not be read on the date above (reported as unreadable, never 
 
 - 14 rows cite `www.npci.org.in (HTTP 403)`
 
-The regulator's site refuses scripted clients, so the two NPCI circulars the primary rows were transcribed from are committed and their hashes are exported. Visa's guide is treated as secondary because it says the Visa Rules govern in any conflict, and the Rules have not been read.
+The regulator's site refuses scripted clients, so the two NPCI circulars the primary rows were transcribed from are committed and their hashes are exported. Visa's guide is treated as secondary because it says the Visa Rules govern in any conflict, and the Rules have not been read. It also carries a confidentiality notice on its last page although Visa hosts it publicly; this report and the registry quote it only in short, attributed sentences, and will remove them on request.
 
 ## Reproduce it
 

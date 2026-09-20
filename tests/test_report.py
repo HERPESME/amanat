@@ -21,6 +21,11 @@ MD = report.render(DOC)
 ROWS = [(r["rail_id"], row) for r in DOC["rails"] for row in r["capabilities"]]
 
 
+def _flat(text):
+    """Markdown ignores where a paragraph was wrapped; so does a reader."""
+    return " ".join(text.split())
+
+
 def _count(concept):
     got = {"yes": 0, "no": 0}
     for _, row in ROWS:
@@ -45,11 +50,30 @@ class TestTheReportIsComputedFromTheData:
         reread = sum(1 for x in every if x["verification"] and x["verification"]["result"]
                      in ("verified", "verified_fragments", "verified_by_copy"))
         unread = sum(1 for x in every if x["verification"] and x["verification"]["result"] == "unfetchable")
-        observed = sum(1 for x in every if x["tier"] == "observed")
+        probed = sum(1 for x in every if x["tier"] == "observed" and x["observation"])
+        by_hand = sum(1 for x in every if x["tier"] == "observed" and not x["observation"])
         unverified = sum(1 for _, x in ROWS if x["tier"] == "unverified")
         assert f"{len(DOC['rails'])} rails, {caps} capabilities, {limits} numeric limits" in MD
-        assert f"{observed} rows were **measured**" in MD and f"{reread} quotes were **re-read**" in MD
+        assert f"{probed} rows rest on recorded probe runs against a vendor's sandbox, each with its stored exchange" in MD
+        assert f"{by_hand} more rest on one-off observations made by hand" in MD
+        assert "were **measured**" not in MD, "a support reply or a DNS lookup is not a measurement against an API"
+        assert f"{reread} quotes were **re-read**" in MD
         assert f"{unread} sources could not be read" in MD and f"{unverified} capabilities are **unverified**" in MD
+
+    def test_each_observation_made_by_hand_is_named_with_its_date_and_environment(self):
+        by_hand = [(rid, row) for rid, row in ROWS if row["tier"] == "observed" and not row["observation"]]
+        assert len(by_hand) >= 3
+        flat = _flat(MD)
+        for rid, row in by_hand:
+            assert (f"{report.page.SHORT[rid]}'s {row['name'].replace('_', ' ')}, "
+                    f"{row['obtained_on']}, {row['environment']}") in flat, (rid, row["name"])
+
+    def test_the_sources_pinned_to_a_revision_are_named_as_unable_to_show_drift(self):
+        st = report.page._stats(DOC)
+        flat = _flat(MD)
+        assert (f"{st['pinned']} of them cite a source pinned to a revision, where re-reading shows that the quote "
+                f"was transcribed correctly and can never show that anything changed") in flat
+        assert f"the other {st['reread'] - st['pinned']} cite pages that can change" in flat
 
     def test_the_headline_on_partial_capture_counts_what_the_rows_say(self):
         c = _count("partial_debit")
@@ -165,7 +189,51 @@ class TestTheProbeFactsComeFromTheStoredRuns:
 
     def test_a_constant_capture_reference_is_reported_with_its_count(self, tmp_path):
         out = report.render(DOC, self._run(tmp_path, 4, ["CAP_777"]))
-        assert "every one of the 4 capture responses, across 4 orders, carries the same `action_reference` (CAP_777)" in out
+        assert ("on each of the 4 holds that saw a successful capture, the capture carries the same "
+                "`action_reference` (CAP_777)") in out
+
+    def test_a_hold_that_saw_no_successful_capture_is_not_counted_among_them(self, tmp_path):
+        """Three holds, one of which was refused a capture: the count is of captures that happened."""
+        path = tmp_path / "probes.cashfree_preauth.jsonl"
+        for i, body in enumerate([{"authorization": {"action": "CAPTURE", "action_reference": "CAP_1"}},
+                                  {"message": "Total capture amount can not be grater than transaction amount"},
+                                  {"authorization": {"action": "CAPTURE", "action_reference": "CAP_1"}}]):
+            ex = [{"step": "hold", "op": "hold", "label": "order_create", "request": {}, "status": 200,
+                   "response": {"order_id": f"o{i}"}, "error": None, "at": "t"},
+                  {"step": "capture", "op": "capture", "label": "capture", "request": {}, "status": 200 if i != 1 else 400,
+                   "response": body, "error": None, "at": "t"}]
+            runner.record({"probe_id": f"cashfree_preauth.p{i}", "rail_id": "cashfree_preauth", "environment": "sandbox",
+                           "exchanges": ex, "findings": [], "finished_at": f"2026-09-2{i}T00:00:00Z"}, path)
+        out = report.render(DOC, tmp_path)
+        assert "3 holds in all" in out
+        assert "on each of the 2 holds that saw a successful capture" in out
+
+    def test_a_capture_reference_read_back_from_a_listing_is_the_same_capture(self, tmp_path):
+        """A payments listing repeats the reference of the capture it lists: one hold, one capture."""
+        path = tmp_path / "probes.cashfree_preauth.jsonl"
+        ex = [{"step": "hold", "op": "hold", "label": "order_create", "request": {}, "status": 200,
+               "response": {"order_id": "o1"}, "error": None, "at": "t"},
+              {"step": "capture", "op": "capture", "label": "capture", "request": {}, "status": 200,
+               "response": {"authorization": {"action": "CAPTURE", "action_reference": "CAP_1"}}, "error": None, "at": "t"},
+              {"step": "check", "op": "fetch", "label": "payments", "request": {}, "status": 200,
+               "response": [{"authorization": {"action": "CAPTURE", "action_reference": "CAP_1"}}], "error": None, "at": "t"}]
+        runner.record({"probe_id": "cashfree_preauth.p", "rail_id": "cashfree_preauth", "environment": "sandbox",
+                       "exchanges": ex, "findings": [], "finished_at": "2026-09-20T00:00:00Z"}, path)
+        out = report.render(DOC, tmp_path)
+        assert "on each of the 1 holds that saw a successful capture" in out
+
+    def test_voided_holds_are_reported_apart_from_captured_ones(self, tmp_path):
+        path = tmp_path / "probes.cashfree_preauth.jsonl"
+        for i, (action, ref) in enumerate([("CAPTURE", "CAP_1"), ("VOID", "VOID_1"), ("VOID", "VOID_1")]):
+            ex = [{"step": "hold", "op": "hold", "label": "order_create", "request": {}, "status": 200,
+                   "response": {"order_id": f"o{i}"}, "error": None, "at": "t"},
+                  {"step": "x", "op": "capture", "label": "capture", "request": {}, "status": 200,
+                   "response": {"authorization": {"action": action, "action_reference": ref}}, "error": None, "at": "t"}]
+            runner.record({"probe_id": f"cashfree_preauth.p{i}", "rail_id": "cashfree_preauth", "environment": "sandbox",
+                           "exchanges": ex, "findings": [], "finished_at": f"2026-09-2{i}T00:00:00Z"}, path)
+        out = report.render(DOC, tmp_path)
+        assert "on each of the 1 holds that saw a successful capture, the capture carries the same `action_reference` (CAP_1)" in out
+        assert "each of the 2 voided holds carries VOID_1" in out
 
     def test_references_that_vary_are_not_called_constant(self, tmp_path):
         out = report.render(DOC, self._run(tmp_path, 4, ["CAP_1", "CAP_2"]))
@@ -179,6 +247,9 @@ class TestTheProbeFactsComeFromTheStoredRuns:
         facts = report._probe_facts(None)
         assert f"{facts['probes']} probes ran" in MD and f"{facts['orders']} holds in all" in MD
         assert facts["refs"].get("CAP_12121", 0) >= 1 and "(CAP_12121)" in MD
+        assert f"on each of the {len(facts['captured'])} holds that saw a successful capture" in MD
+        assert f"each of the {len(facts['voided'])} voided holds carries VOID_12121" in MD
+        assert 0 < len(facts["captured"]) < facts["orders"], "some holds were refused or voided, not captured"
 
 
 class TestTheCheckpointsPinTheEvidence:
@@ -216,7 +287,121 @@ class TestTheVendorNote:
         assert "CAP_12121" in refs and "VOID_12121" in refs
         assert "CAP_12121" in self.NOTE and "VOID_12121" in self.NOTE
         assert "Duplicate capture_id present" in self.NOTE
-        assert f"{report._probe_facts(None)['orders']} different" in self.NOTE.replace("eight", "8") or "eight different" in self.NOTE
+        facts = report._probe_facts(None)
+        words = {2: "two", 5: "five"}
+        note = _flat(self.NOTE)
+        assert f"each of the {words[len(facts['captured'])]} holds that saw a successful capture" in note
+        assert f"each of the {words[len(facts['voided'])]} voided holds" in note
+        assert "eight different" not in self.NOTE, "the capture references belong to the holds that saw a capture"
+
+    def test_the_setu_candidate_is_the_registrys_own_observation(self):
+        row = next(c for r in DOC["rails"] if r["rail_id"] == "setu_umap" for c in r["capabilities"]
+                   if c["name"] == "api_publicly_reachable")
+        assert row["tier"] == "observed" and not row["observation"], "a lookup made by hand"
+        assert "uatapi.setu.co NXDOMAIN; api.setu.co NXDOMAIN" in row["quote"]
+        note = _flat(self.NOTE)
+        for host in ("uatapi.setu.co", "api.setu.co", "accountservice.setu.co", "bridge.setu.co"):
+            assert host in note
+        assert "21 Aug 2026" in note and "trigger 3" in note
+
+    def test_a_source_that_says_it_is_confidential_is_named_with_the_decision_it_needs(self):
+        note = _flat(self.NOTE)
+        assert "## Sources that carry a notice" in note
+        assert "proprietary and confidential to Visa" in note and "does not commit a copy" in note
+        assert "a decision for the owner" in note
+        assert not list((ROOT / "docs" / "sources").glob("*isa*")), "the Visa guide is not committed"
 
     def test_nothing_in_it_claims_a_vendor_has_been_told(self):
         assert "Nothing has been sent." in self.NOTE
+
+
+class TestTheRailsAreNotEquals:
+    """A count of rails mixes a regulator's rule, two acquirers' documentation and six documents of one protocol."""
+
+    def test_the_report_says_how_the_rails_divide_and_the_numbers_are_the_groups(self):
+        kinds = [len(ids) for _, ids in report.page.GROUPS]
+        assert sum(kinds) == len(DOC["rails"]), "every rail is in exactly one group"
+        assert (f"{kinds[0]} are UPI and Indian PSP products" in MD and f"{kinds[1]} are card-payment documents" in MD
+                and f"{kinds[2]} are specifications of one protocol" in MD)
+        assert "A count of rails is a count of documents, not of independent systems" in MD
+
+    def test_every_group_has_a_description_so_a_new_group_forces_a_sentence(self):
+        assert set(report.GROUP_KIND) == {name for name, _ in report.page.GROUPS}
+
+    def test_the_partial_capture_headline_is_broken_down_by_kind(self):
+        line = next(l for l in MD.splitlines() if l.startswith("- **A smaller capture than the hold**"))
+        block = MD[MD.index(line):MD.index("- **Who gives the rest back")]
+        for name, ids in report.page.GROUPS:
+            yes = sum(1 for r in DOC["rails"] if r["rail_id"] in ids for c in r["capabilities"]
+                      if c["name"] == "partial_debit" and c["tier"] != "unverified" and c["supported"])
+            assert f"{name}: {yes} supported" in block, name
+
+    def test_the_x402_group_is_five_schemes_and_one_set_of_extensions(self):
+        (_, ids), = [g for g in report.page.GROUPS if g[0].startswith("Agent-payment protocol")]
+        assert len(ids) == 6 and "five schemes and one set of extensions" in MD
+
+
+class TestTheComparisonSaysWhoAndWhenNotOnlyWhether:
+    """Two rails can both show a tick for 'the rest is released' while one returns it in a
+    transaction and the other in a week. The words say who, and each claim is pinned to a row."""
+
+    def _row(self, rail, name):
+        return next(c for r in DOC["rails"] if r["rail_id"] == rail for c in r["capabilities"] if c["name"] == name)
+
+    def _limit(self, rail, name):
+        return next(c for r in DOC["rails"] if r["rail_id"] == rail for c in r["limits"] if c["name"] == name)
+
+    def test_the_bullet_names_who_releases_and_when(self):
+        block = _flat(MD[MD.index("- **Who gives the rest back, and when**"):MD.index("- **A hold's life differs")])
+        for phrase in ("nobody does", "the escrow does", "the acquirer cancels", "issuer frees the balance",
+                       "off by default", "nothing is established"):
+            assert phrase in block, phrase
+
+    def test_each_claim_in_the_bullet_is_pinned_to_the_row_that_backs_it(self):
+        v = report._verdict
+        assert v(self._row("sbmd", "remainder_auto_released")) == "no"
+        assert v(self._row("x402_upto_svm", "remainder_auto_released")) == "yes"
+        assert v(self._row("stripe_card_manual_capture", "remainder_auto_released")) == "yes"
+        assert v(self._row("adyen_card_auth", "remainder_auto_released")) == "yes"
+        assert v(self._row("cashfree_preauth", "remainder_auto_released")) == "unk"
+        assert v(self._row("visa_card_auth", "remainder_auto_released")) == "unk"
+        assert "Disabled by default" in self._row("adyen_card_auth", "multiple_captures")["notes"]
+        assert "does not say when" in self._row("stripe_card_manual_capture", "remainder_auto_released")["notes"]
+        assert "do not say when" in self._row("adyen_card_auth", "remainder_auto_released")["notes"]
+
+    def test_the_hold_life_bullet_says_what_each_deadline_means(self):
+        block = _flat(MD[MD.index("- **A hold's life differs"):MD.index("- **A retry that acts once**")])
+        assert "and so does what its deadline means" in block
+        for phrase in ("upper bound", "neither capturable nor cancellable", "clearing deadlines, not releases",
+                       "Misuse of Authorization"):
+            assert phrase in block, phrase
+        assert "After that the rail, not the agent, decides" not in MD, "false for Visa and for Adyen"
+
+    def test_each_claim_in_the_hold_life_bullet_is_pinned_to_the_row_that_backs_it(self):
+        assert "no longer be captured or cancelled" in self._limit("adyen_card_auth", "hold_expiry_days")["notes"]
+        assert "5-7 working days" in self._limit("razorpay_auth_capture", "auto_refund_speed_working_days_max")["quote"]
+        assert "maximum time from a valid estimated authorization to processing" in \
+            self._limit("visa_card_auth", "hold_expiry_days_card_present")["notes"]
+        visa_quotes = " ".join(c["quote"] for r in DOC["rails"] if r["rail_id"] == "visa_card_auth" for c in r["capabilities"])
+        assert "Misuse of Authorization" in visa_quotes
+
+    def test_the_visa_windows_are_by_channel_and_merchant_category_not_only_category(self):
+        assert "by channel and merchant category" in MD
+        assert "by merchant category" not in MD.replace("channel and merchant category", "")
+
+    def test_the_idempotency_bullet_says_x402s_extension_is_optional(self):
+        block = _flat(MD[MD.index("- **A retry that acts once**"):MD.index("- **Some questions have no answer yet**")])
+        assert "optional extension" in block and "still conformant" in block
+        assert "Optional extension" in self._row("x402", "idempotent_replay")["notes"]
+
+    def test_every_question_says_how_many_rails_have_no_row_for_it(self):
+        defs = {c["name"]: c for c in DOC["concepts"]}
+        for name in report.HEADLINE:
+            section = MD[MD.index(f"### `{name}`"):]
+            section = section[:section.index("\n### ")] if "\n### " in section else section
+            with_row = {r["rail_id"] for r in DOC["rails"] if any(c["name"] == name for c in r["capabilities"])}
+            without = [r["rail_id"] for r in DOC["rails"] if r["rail_id"] not in with_row]
+            if without:
+                assert f"**No row for this question** ({len(without)})" in section, name
+            else:
+                assert "No row for this question" not in section, name

@@ -47,16 +47,17 @@ the observation; a correction is marked as one, not silently edited.
 > above. If it is wrong, or the behaviour is intended, tell me and I will correct it or add your
 > explanation beside it. I have not tested anything against production.
 
-## Candidates, as of 2026-09-20
+## Candidates, as of 2026-09-21
 
 Nothing has been sent. These are the items in the current data that would need this step before a
 report is published.
 
-1. **Cashfree sandbox: a constant capture reference.** Every capture response, on eight different
-   orders, carries `action_reference: CAP_12121` (and every void `VOID_12121`), and a second capture is
-   refused with "Duplicate capture_id present". The outcome matches the documented rule that a
-   transaction can only be captured or voided once; the wording, and the constant reference, look like a
-   sandbox artefact. Evidence: `docs/observations/store/probes.cashfree_preauth.jsonl`.
+1. **Cashfree sandbox: a constant capture reference.** On each of the five holds that saw a successful
+   capture, the capture carries `action_reference: CAP_12121` (and each of the two voided holds carries
+   `VOID_12121`), and a second capture is refused with "Duplicate capture_id present". The outcome matches
+   the documented rule that a transaction can only be captured or voided once; the wording, and the
+   constant reference, look like a sandbox artefact. Evidence:
+   `docs/observations/store/probes.cashfree_preauth.jsonl`.
 2. **Cashfree: the uncaptured remainder.** The pre-authorisation guide says an authorisation not
    captured within seven days is released and does not say what becomes of the remainder of a partial
    capture. A dated measurement is running; the question, not a defect, is what to ask.
@@ -64,3 +65,18 @@ report is published.
    "must be less than or equal to the original amount", while the overcapture page says "Overcapture
    allows you to capture with an amount that’s higher than the authorised amount for a card payment."
    The second is an opt-in with eligibility conditions, so this is a wording gap rather than an error.
+4. **Setu: two documented hosts that did not resolve.** On 21 Aug 2026 the UMAP quickstart named
+   `uatapi.setu.co` (sandbox) and `api.setu.co` (production), and neither resolved in public DNS from two
+   resolvers, while `accountservice.setu.co` and `bridge.setu.co` did. The documented behaviour could not be
+   reproduced (trigger 3). This is one lookup on one day, so it is re-run before anything is sent, and the
+   likeliest explanation is an allowlist or private DNS rather than an error. It is recorded as an
+   observation made by hand: the answer is not in the evidence store.
+
+## Sources that carry a notice
+
+Visa's *Authorization and Reversal Processing Requirements for Merchants* is hosted publicly by Visa, and
+its last page says the information is proprietary and confidential to Visa and must not be published or
+disclosed in whole or in part without written permission. The registry quotes it in short, attributed
+sentences and does not commit a copy. Whether that is acceptable is a decision for the owner of this
+repository: ask Visa, or remove the `visa_card_auth` rail and regenerate. Until that is decided, the Visa
+quotations come out on request, without discussion.

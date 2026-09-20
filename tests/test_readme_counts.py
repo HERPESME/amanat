@@ -67,3 +67,16 @@ def test_the_readme_and_project_notes_state_the_number_of_tests_the_suite_collec
     assert f"badge/tests-{n}-" in README, f"README badge: the suite collects {n} tests"
     assert f"# {n} tests." in README and f"**{n} tests, no credential and no network.**" in README
     assert f"# {n} tests (" in claude, f"CLAUDE.md: the suite collects {n} tests"
+
+
+def test_the_readme_states_the_capture_reference_facts_the_stored_runs_hold():
+    """The README once said 'every capture response, on eight different orders'; the store holds five
+    holds that saw a capture (and two that were voided), out of eight."""
+    from amanat.registry import report
+
+    facts = report._probe_facts(None)
+    words = {2: "two", 5: "five", 8: "eight"}
+    flat = " ".join(README.split())
+    assert f"on each of the {words[len(facts['captured'])]} holds that saw a successful capture" in flat
+    assert f"each of the {words[len(facts['voided'])]} voided holds" in flat
+    assert "eight different orders" not in flat

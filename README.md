@@ -8,7 +8,7 @@
 
 *Block a ceiling. Debit the actual. Prove what the money did.*
 
-[![tests](https://img.shields.io/badge/tests-1279-2ea44f?style=flat-square)](#testing)
+[![tests](https://img.shields.io/badge/tests-1301-2ea44f?style=flat-square)](#testing)
 [![python](https://img.shields.io/badge/python-3.11%2B-3776ab?style=flat-square)](#quick-start)
 [![live rail](https://img.shields.io/badge/live%20rail-%E2%82%B9470%20of%20%E2%82%B9620%20%C2%B7%20HTTP%20200-2ea44f?style=flat-square)](#what-it-does)
 [![rails](https://img.shields.io/badge/rails-UPI%20SBMD%20%C2%B7%20Cashfree%20%C2%B7%20Razorpay%20%C2%B7%20Setu-6c5ce7?style=flat-square)](#the-evidence-table)
@@ -132,7 +132,7 @@ git clone https://github.com/HERPESME/amanat && cd amanat
 # The eight-act walkthrough — the whole argument in one command
 uv run --with cryptography python -m amanat.demo
 
-# 1279 tests. No API key, no network (Node.js runs the browser-verifier tests).
+# 1301 tests. No API key, no network (Node.js runs the browser-verifier tests).
 uv run --with pytest --with cryptography --with httpx --with fastapi --with pydantic \
        --with numpy --with scikit-learn --with pandas --with pyarrow --with hypothesis pytest tests/ -q
 ```
@@ -528,9 +528,10 @@ never read as a refusal — only an answer to the question is a finding. What th
 
 The idempotency row is the one that changes what this project can build: a retry after a lost
 response is safe on this endpoint, in this sandbox. Two limits on all of it. The authorisation is
-forced with `POST /simulate`, so this is Cashfree's sandbox, not an issuer; and every capture
-response, on eight different orders, carries the same `action_reference` (`CAP_12121`), so the
-"Duplicate capture_id" wording is probably a sandbox artefact. And none of it says where the
+forced with `POST /simulate`, so this is Cashfree's sandbox, not an issuer; and on each of the five
+holds that saw a successful capture the capture carries the same `action_reference` (`CAP_12121`), and
+each of the two voided holds carries `VOID_12121`, so the "Duplicate capture_id" wording is probably a
+sandbox artefact. And none of it says where the
 uncaptured remainder goes — that leg is measured separately (see the release log above).
 
 ### Clocks — a hold that outlives what it was for
@@ -594,7 +595,7 @@ uv run --with pytest --with cryptography --with httpx --with fastapi --with pyda
        --with numpy --with scikit-learn --with pandas --with pyarrow --with hypothesis pytest tests/ -q
 ```
 
-**1279 tests, no credential and no network.** If proving the agent is bounded ever
+**1301 tests, no credential and no network.** If proving the agent is bounded ever
 required a live model, the agent would not be bounded.
 
 | Suite | What it pins |

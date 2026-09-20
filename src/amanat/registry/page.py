@@ -17,6 +17,7 @@ docs/registry. It says what a cell means as well as what it says: a sandbox is n
 from __future__ import annotations
 
 import json
+import re
 from collections import Counter
 from html import escape
 from pathlib import Path
@@ -40,6 +41,9 @@ SHORT = {
     "x402_batch_settlement": "x402 batch",
 }
 _REREAD = ("verified", "verified_fragments", "verified_by_copy")
+# A source addressed by a commit hash cannot change, so re-reading it shows that a quote was
+# transcribed correctly, and can never show that the vendor moved.
+_PINNED = re.compile(r"/[0-9a-f]{40}/")
 _VERDICT = {"yes": "✓", "no": "✗", "unk": "?"}
 _VERDICT_WORDS = {"yes": "supported", "no": "not supported", "unk": "unverified — refused, not assumed"}
 
@@ -100,10 +104,14 @@ def _stats(doc: dict) -> dict:
     return {"rails": len(doc["rails"]), "capabilities": len(caps),
             "limits": sum(len(r["limits"]) for r in doc["rails"]),
             "observed": sum(1 for r in rows if r["tier"] == "observed"),
+            "probed": sum(1 for r in rows if r["tier"] == "observed" and r["observation"]),
+            "by_hand": sum(1 for r in rows if r["tier"] == "observed" and not r["observation"]),
             "unverified": sum(1 for r in caps if r["tier"] == "unverified"),
             "checks": checks,
             "checked": sum(checks.values()),                                 # rows with a source to check
             "reread": sum(checks[k] for k in _REREAD),                       # the quote was found there
+            "pinned": sum(1 for r in rows if r["verification"] and r["verification"]["result"] in _REREAD
+                          and _PINNED.search(r["url"])),                     # ... at a revision that cannot change
             "unreadable": checks["unfetchable"]}                             # the source could not be read
 
 
@@ -303,7 +311,8 @@ Each cell below is one rail’s answer with the sentence it rests on, the date i
 re-read since. Where a source is silent the cell says so and the policy engine refuses, rather than assumes.</p>
 <ul class="stats">
 <li><b>{stats["rails"]}</b>rails</li><li><b>{stats["capabilities"]}</b>capabilities</li><li><b>{stats["limits"]}</b>limits</li>
-<li><b>{stats["observed"]}</b>measured against an API</li><li><b>{stats["reread"]}</b>quotes re-read from their source</li>
+<li><b>{stats["probed"]}</b>probed against a sandbox, exchange stored</li><li><b>{stats["by_hand"]}</b>observed by hand, exchange not stored</li>
+<li><b>{stats["reread"]}</b>quotes re-read from their source</li><li><b>{stats["pinned"]}</b>of those at a pinned revision, which cannot drift</li>
 <li><b>{stats["unreadable"]}</b>sources that could not be read</li>
 <li><b>{stats["unverified"]}</b>unverified (refused)</li><li><b>{_e(doc["as_of"])}</b>as of</li></ul>
 </header>

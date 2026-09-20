@@ -280,12 +280,15 @@ class TestWhatItSaysAboutItsOwnEvidence:
         reread = sum(1 for row in every if row["verification"] and row["verification"]["result"]
                      in ("verified", "verified_fragments", "verified_by_copy"))
         unread = sum(1 for row in every if row["verification"] and row["verification"]["result"] == "unfetchable")
-        observed = sum(1 for row in every if row["tier"] == "observed")
+        probed = sum(1 for row in every if row["tier"] == "observed" and row["observation"])
+        by_hand = sum(1 for row in every if row["tier"] == "observed" and not row["observation"])
         assert f'<b>{len(DOC["rails"])}</b>rails' in HTML
         assert f'<b>{caps}</b>capabilities' in HTML and f'<b>{limits}</b>limits' in HTML
         assert reread > 0 and f'<b>{reread}</b>quotes re-read from their source' in HTML
         assert unread > 0 and f'<b>{unread}</b>sources that could not be read' in HTML
-        assert f'<b>{observed}</b>measured against an API' in HTML
+        assert probed > 0 and f'<b>{probed}</b>probed against a sandbox, exchange stored' in HTML
+        assert by_hand > 0 and f'<b>{by_hand}</b>observed by hand, exchange not stored' in HTML
+        assert "measured against an API" not in HTML
 
     def test_a_source_that_could_not_be_read_is_never_counted_as_re_read(self):
         """The headline once said 97 quotes were re-read; 15 of them could not even be fetched."""
@@ -326,3 +329,35 @@ class TestThePublishedFileIsCurrent:
     def test_the_committed_page_is_the_one_the_code_writes(self):
         committed = (ROOT / "docs" / "registry" / "index.html").read_text(encoding="utf-8")
         assert committed == page.render(), "run: python -m amanat.registry.page"
+
+
+class TestWhatARereadCanAndCannotShow:
+    """Re-reading a page can show that a quote drifted. Re-reading a commit cannot."""
+
+    PIN = "https://raw.githubusercontent.com/x402-foundation/x402/c9160a6cbf0fc831ac7036d400ef2d671493e392/specs/schemes/upto/scheme_upto.md"
+
+    def test_a_source_pinned_to_a_revision_is_counted_apart_from_a_page_that_can_change(self):
+        st = page._stats(DOC)
+        every = [row for r in DOC["rails"] for row in (*r["capabilities"], *r["limits"])]
+        pinned = sum(1 for row in every if row["verification"] and row["verification"]["result"] in page._REREAD
+                     and re.search(r"/[0-9a-f]{40}/", row["url"]))
+        assert st["pinned"] == pinned > 0
+        assert st["reread"] > st["pinned"], "the vendor pages are the ones the watcher actually guards"
+        assert f'<b>{pinned}</b>of those at a pinned revision, which cannot drift' in HTML
+
+    def test_one_more_pinned_row_moves_one_from_guarded_to_pinned(self):
+        bad = copy.deepcopy(DOC)
+        row = next(c for r in bad["rails"] for c in (*r["capabilities"], *r["limits"])
+                   if c["verification"] and c["verification"]["result"] in page._REREAD
+                   and not re.search(r"/[0-9a-f]{40}/", c["url"]))
+        before = page._stats(bad)["pinned"]
+        row["url"] = self.PIN
+        assert page._stats(bad)["pinned"] == before + 1
+
+    def test_a_pinned_row_that_could_not_be_read_is_not_counted_as_pinned_and_reread(self):
+        bad = copy.deepcopy(DOC)
+        for r in bad["rails"]:
+            for row in (*r["capabilities"], *r["limits"]):
+                if row["verification"]:
+                    row["verification"]["result"] = "unfetchable"
+        assert page._stats(bad)["pinned"] == 0
