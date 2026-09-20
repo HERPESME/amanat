@@ -2,10 +2,10 @@
 
     uv run --with cryptography python -m amanat.dispute.demo
 
-An agent settles a cab fare against a real AP2 authorization. Then three
-cardholder disputes are adjudicated against the signed record. The point the
-market has no answer for: every agent-payment standard proves the agent was
-*permitted* and stops; this says what actually happened, and cites the entries.
+An agent settles a cab fare against an AP2 authorization. Then three cardholder
+disputes are adjudicated against the signed record: authorization establishes what
+the agent was *permitted* to do; this says what the record shows happened, and
+cites the entries.
 """
 from __future__ import annotations
 

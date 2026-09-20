@@ -44,6 +44,15 @@ class TestRealRailReceipt:
         assert data["measured"]["debited"] == 470_00
         assert data["measured"]["held"] == 620_00
 
+    def test_the_console_does_not_claim_the_remainder_came_back(self):
+        """It states what was measured: the capture. The release was not observed."""
+        m = client.get("/api/real-rail").json()["measured"]
+        assert "returned" not in m
+        assert m["remainder"] == 150_00
+        assert m["remainder_release"] == "unverified"
+        assert m["date"] == client.get("/api/real-rail").json()["packet"]["entries"][0][
+            "timestamp"][:10]                      # the run's own date, not a hardcoded one
+
     def test_real_rail_packet_carries_a_measured_debit_transition(self):
         packet = client.get("/api/real-rail").json()["packet"]
         debits = [e for e in packet["entries"]
@@ -98,11 +107,60 @@ class TestReApprovalOverHttp:
     block settle — all in one verifiable packet that names who raised the cap.
     """
 
-    def reapp(self, budget, ceiling, actual, payee="citycabs"):
-        return client.post("/api/reapprove", json={
-            "envelope": {"budget": budget, "per_txn": budget, "payee": payee, "hours": 6},
-            "ceiling": ceiling, "actual": actual, "payee": payee,
-        })
+    def request(self, budget, ceiling, actual, payee="citycabs"):
+        return {"envelope": {"budget": budget, "per_txn": budget, "payee": payee, "hours": 6},
+                "ceiling": ceiling, "actual": actual, "payee": payee}
+
+    def signed_consent(self, request, key):
+        """The two-step flow, with the human's key held HERE — as the browser holds its own.
+
+        The server never receives a private key: it hands back the exact consent
+        to sign for this envelope and this public key, and later verifies the result.
+        """
+        from amanat.policy.consent import sign_consent
+        pub = key.public_key().public_bytes_raw().hex()
+        body = client.post("/api/reapprove/consent", json={**request, "public_key": pub}).json()
+        return sign_consent(body["consent"], key)
+
+    def reapp(self, budget, ceiling, actual, payee="citycabs", key=None):
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+        request = self.request(budget, ceiling, actual, payee)
+        key = key or Ed25519PrivateKey.generate()
+        return client.post("/api/reapprove",
+                           json={**request, "consent": self.signed_consent(request, key)})
+
+    def test_the_server_hands_back_the_exact_consent_to_sign_for_this_key(self):
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+        key = Ed25519PrivateKey.generate()
+        pub = key.public_key().public_bytes_raw().hex()
+        r = client.post("/api/reapprove/consent",
+                        json={**self.request(1_000_00, 1_200_00, 1_150_00), "public_key": pub})
+        body = r.json()["consent"]
+        assert body["event"] == "envelope_widened" and "signature" not in body
+        assert body["cnf"]["jwk"]["x"] == pub
+        assert body["from"]["max_total"] == 1_000_00 and body["to"]["max_total"] >= 1_200_00
+
+    def test_a_reapproval_without_a_consent_is_rejected(self):
+        r = client.post("/api/reapprove", json=self.request(1_000_00, 1_200_00, 1_150_00))
+        assert r.status_code == 422
+
+    def test_a_consent_signed_for_a_different_envelope_does_not_raise_the_cap(self):
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+        key = Ed25519PrivateKey.generate()
+        other = self.signed_consent(self.request(500_00, 1_200_00, 1_150_00), key)
+        r = client.post("/api/reapprove",
+                        json={**self.request(1_000_00, 1_200_00, 1_150_00), "consent": other})
+        by = {s["type"]: s for s in r.json()["steps"]}
+        assert by["approve_raise"]["ok"] is False
+        assert by["debit"]["ok"] is False
+
+    def test_the_key_that_widened_the_cap_is_the_one_the_human_signed_with(self):
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+        key = Ed25519PrivateKey.generate()
+        data = self.reapp(1_000_00, 1_200_00, 1_150_00, key=key).json()
+        w = next(e for e in data["packet"]["entries"]
+                 if e["payload"].get("event") == "envelope_widened")
+        assert w["payload"]["cnf"]["jwk"]["x"] == key.public_key().public_bytes_raw().hex()
 
     def test_over_cap_is_refused_then_settles_after_a_signed_raise(self):
         data = self.reapp(1_000_00, 1_200_00, 1_150_00).json()

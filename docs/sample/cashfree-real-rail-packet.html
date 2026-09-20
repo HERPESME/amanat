@@ -18,25 +18,55 @@
   <h1>Evidence packet — <code>cab-cashfree-preauth</code></h1>
   <div id="banner" class="banner"><span id="banner-text">Verifying…</span></div>
   <p>public key <code id="pk"></code> · <span id="count"></span></p>
+  <p id="trust" style="color:#9aa3b2;font-size:13px"></p>
   <div><button onclick="verifyAll()">Re-verify</button>
        <button onclick="tamper()">Tamper</button>
        <button onclick="location.reload()">Reset</button></div>
   <div id="entries"></div>
-  <script id="packet" type="application/json">{"version": 1, "subject": "cab-cashfree-preauth", "public_key": "8ead252ad46f96fb1bd08d0a64aafddf2c275a773f50372b43f93e893f686678", "genesis_hash": "0000000000000000000000000000000000000000000000000000000000000000", "entries": [{"seq": 0, "prev_hash": "0000000000000000000000000000000000000000000000000000000000000000", "timestamp": "2026-08-29T06:23:11.357102+00:00", "actor": "human", "event_type": "envelope", "payload": {"subject": "cab-cashfree-preauth", "max_total": 100000, "max_per_txn": 80000, "allowed_payees": ["citycabs"], "expires_at": "2026-08-29T12:23:11.351329+00:00", "intent_text": "Book a cab to the airport, cap it at \u20b91,000."}, "hash": "f691dd2edb2c4c36e73443985637fe762e97538fa2527815a88cb491d434629d", "signature": "6c7ed4d1c50e76af53ec7f35711281e937b38d5b2cce2d6137868d149d7524e3ff9838d6746943e7a42edf00472399decb77fe599a51d7b7dcff11e87239aa04"}, {"seq": 1, "prev_hash": "f691dd2edb2c4c36e73443985637fe762e97538fa2527815a88cb491d434629d", "timestamp": "2026-08-29T06:23:11.358132+00:00", "actor": "agent", "event_type": "proposal", "payload": {"action": "reserve", "amount": 500000, "payee": "citycabs", "reason": "fat-fingered ceiling"}, "hash": "90951917a20fe3e09582b7067f277198e11c2116b976db66c2c0e7db4011ef88", "signature": "c1cebe5befb23129d5df03539865f896c7216970482143a15585324e51f09501164e022252b3e7f57f0caa0d1b6278f3764cb56b53b8fad2a903fdc642e0f20e"}, {"seq": 2, "prev_hash": "90951917a20fe3e09582b7067f277198e11c2116b976db66c2c0e7db4011ef88", "timestamp": "2026-08-29T06:23:11.358292+00:00", "actor": "policy", "event_type": "refusal", "payload": {"action": "reserve", "proposed_amount": 500000, "payee": "citycabs", "rail": "cashfree_preauth", "allowed": false, "reason": "reserving 500000 would exceed the envelope budget 100000 (already blocked 0)", "citation": "", "quote": ""}, "hash": "6517bda92a4ad39500f98ab358a7c322a9a70a9ba0e87dba37f6769054b7df70", "signature": "fee1f8eae802acce419381cb68157cc39fde13dc0182a26c98df2a2f993af856828753020a8c504e4af02c29367d60507b20e1e0c754e18c19f6489a79ad9508"}, {"seq": 3, "prev_hash": "6517bda92a4ad39500f98ab358a7c322a9a70a9ba0e87dba37f6769054b7df70", "timestamp": "2026-08-29T06:23:11.358421+00:00", "actor": "agent", "event_type": "proposal", "payload": {"action": "reserve", "amount": 62000, "payee": "citycabs", "reason": "p95 of the fare distribution"}, "hash": "96ffcb052bfeef1a38ddb715dc79887c0deb124409769f0088e96073c5236ac3", "signature": "5db740708270035d24e7065c25ae30800bbf60125ad579bfdd96bf3bbe17d3c6dea0f0f4ac8a3d15936f0f282b6ef0985cbad6cd2c0fa7f9c16f64aee157710d"}, {"seq": 4, "prev_hash": "96ffcb052bfeef1a38ddb715dc79887c0deb124409769f0088e96073c5236ac3", "timestamp": "2026-08-29T06:23:11.358554+00:00", "actor": "policy", "event_type": "policy_decision", "payload": {"action": "reserve", "proposed_amount": 62000, "payee": "citycabs", "rail": "cashfree_preauth", "allowed": true, "reason": "permitted on Cashfree UPI pre-authorization", "citation": "", "quote": ""}, "hash": "2cc83fa274f9b9c6a18a0840d2790319757dc8c3eddb6b0e126564198b49224c", "signature": "b2ec6742d169830d235fe60d87c79c2a1ab86beeb9a53ae96a3da3c2d41ba981f4a5e5136fe87c45f20ac257e599aff967c8f7f3114f7de8845c34a5a5660903"}, {"seq": 5, "prev_hash": "2cc83fa274f9b9c6a18a0840d2790319757dc8c3eddb6b0e126564198b49224c", "timestamp": "2026-08-29T06:23:12.302515+00:00", "actor": "rail", "event_type": "rail_transition", "payload": {"action": "reserve", "amount": 62000, "outcome": "applied", "rail": "cashfree_preauth", "order_id": "amanat_pa_1787984591", "cf_payment_id": "214200287549376", "http_status": 200, "note": "UPI pre-auth hold placed live \u2014 funds held in the customer's account, not debited"}, "hash": "83843fab917114a053115cddafe54183870ca6efc2cc8052d134769e74a7b9f7", "signature": "2efe3a6ae29b4d36d9f00b9cd02e54a0edfb63deb53a870ec87e2e89f993b3de919b992bcf52add46a1eb6fe7391dd56795de45aef82d6b25e14bd8b5d150807"}, {"seq": 6, "prev_hash": "83843fab917114a053115cddafe54183870ca6efc2cc8052d134769e74a7b9f7", "timestamp": "2026-08-29T06:23:12.302992+00:00", "actor": "agent", "event_type": "proposal", "payload": {"action": "debit", "amount": 47000, "payee": "citycabs", "reason": "metered fare"}, "hash": "de47f08f46865e1f0b7f4e79d78b7892ec32b01f28ba0b70bab9be7d2badb58e", "signature": "c431a4f3ea67957d0bbc93817eea19def9de43d4224421341c59b2407c28dced2580ad1f7ca153b5d75870d5cdb5ac5411056ebc90545f7fcedb9cf277433006"}, {"seq": 7, "prev_hash": "de47f08f46865e1f0b7f4e79d78b7892ec32b01f28ba0b70bab9be7d2badb58e", "timestamp": "2026-08-29T06:23:12.303308+00:00", "actor": "policy", "event_type": "policy_decision", "payload": {"action": "debit", "proposed_amount": 47000, "payee": "citycabs", "rail": "cashfree_preauth", "allowed": true, "reason": "permitted on Cashfree UPI pre-authorization", "citation": "", "quote": ""}, "hash": "6936b08fa033d99401e85d71d66401ebc11a4f35bd184f5d5159b13a091b1d74", "signature": "5ca050f5779e41ca8a92496dd3fe590acb080dd7de693e4e12294ba2284cddae0978f57de21e8b44fc344622dba711d9aeb27ab4e8499049f5c3f67523318507"}, {"seq": 8, "prev_hash": "6936b08fa033d99401e85d71d66401ebc11a4f35bd184f5d5159b13a091b1d74", "timestamp": "2026-08-29T06:23:12.853887+00:00", "actor": "rail", "event_type": "rail_transition", "payload": {"action": "debit", "amount": 47000, "outcome": "applied", "rail": "cashfree_preauth", "order_id": "amanat_pa_1787984591", "http_status": 200, "captured_amount_rupees": 470.0, "payment_message": "PRE_AUTH|Transaction Success", "note": "partial capture accepted live \u2014 Razorpay refuses the same shape with HTTP 400"}, "hash": "4bf49fbeb21d12a1ff4aaf1f0d6867125662f8b73a1db205cd6594c3ac0fc041", "signature": "7ed84e59cd19e54c096240191405d000517c229653f7df689de4e967695534247f482c77ddbb64c55f341646c816cb6b16f324e9728a3f0947f9a11fec2e050c"}, {"seq": 9, "prev_hash": "4bf49fbeb21d12a1ff4aaf1f0d6867125662f8b73a1db205cd6594c3ac0fc041", "timestamp": "2026-08-29T06:23:12.854265+00:00", "actor": "rail", "event_type": "rail_transition", "payload": {"action": "release", "amount": 15000, "outcome": "auto_released", "rail": "cashfree_preauth", "order_id": "amanat_pa_1787984591", "note": "the uncaptured remainder is returned by the rail on its own; an explicit VOID afterward is refused (nothing left to void)"}, "hash": "3d9b1a7afcfe0425823f6c3be575358b345eb56d0602214e45bb71b4e555cb18", "signature": "e656e48673857fe3caaf578e644f56464373e44e0d4f4312a5f50e23fe0938685f6152ab433d45447f1cb2f0b1310b7280ace14ab1b49ead54f8373647c93b0d"}]}</script>
+  <script id="packet" type="application/json">{"version": 2, "canonicalization": "jcs-int", "subject": "cab-cashfree-preauth", "public_key": "17977a60537d54aa33072ac25c0d5efc3589bc9c9904643bc7dcade91aa03bfb", "genesis_hash": "0000000000000000000000000000000000000000000000000000000000000000", "entries": [{"seq": 0, "prev_hash": "0000000000000000000000000000000000000000000000000000000000000000", "timestamp": "2026-09-20T12:55:20.777775+00:00", "actor": "human", "event_type": "envelope", "payload": {"subject": "cab-cashfree-preauth", "max_total": 100000, "max_per_txn": 80000, "allowed_payees": ["citycabs"], "expires_at": "2026-09-20T18:55:20.768968+00:00", "intent_text": "Book a cab to the airport, cap it at \u20b91,000."}, "hash": "96cb9d7a65b166b92849146d1d774ca342349f55243def3cc28b83cd0c4315ad", "signature": "1ae71ba8fb74c81b65d6f410d8025f712162caedaa458649b32d1019aeca8f4b21e6ccd8ca4abda0eb87905df39b49809114fd49bcca885b0672db45a6288004"}, {"seq": 1, "prev_hash": "96cb9d7a65b166b92849146d1d774ca342349f55243def3cc28b83cd0c4315ad", "timestamp": "2026-09-20T12:55:20.780557+00:00", "actor": "agent", "event_type": "proposal", "payload": {"action": "reserve", "amount": 500000, "payee": "citycabs", "reason": "fat-fingered ceiling"}, "hash": "7d77c6b673dc91509d06b12fe0ab849d4c87c7c36bb694c3f1cce24a69caa2e2", "signature": "debebb9ae52666de1cfa4b2b46a469fca1835fc7448fa72bbcc27cdab6b3f5f7c74edf8a3d936eacfcd0c73a6f5dcc21da97950c6d8011593dddfaa9b706e106"}, {"seq": 2, "prev_hash": "7d77c6b673dc91509d06b12fe0ab849d4c87c7c36bb694c3f1cce24a69caa2e2", "timestamp": "2026-09-20T12:55:20.780741+00:00", "actor": "policy", "event_type": "refusal", "payload": {"action": "reserve", "proposed_amount": 500000, "payee": "citycabs", "rail": "cashfree_preauth", "allowed": false, "reason": "reserving 500000 would exceed the envelope budget 100000 (already committed 0: 0 debited + 0 held)", "citation": "", "quote": ""}, "hash": "d996980883b3a294e03ce535354dd27410a0afc651708317e3f75026c012a9bb", "signature": "4bdb329cf3ac58dc9a25c14602f68438b80b11d8b3d8b808eb9de2cfb3c2e6445d206ba1b1b266d51a618e73feae25d702f03496be5508f934a88793d7558603"}, {"seq": 3, "prev_hash": "d996980883b3a294e03ce535354dd27410a0afc651708317e3f75026c012a9bb", "timestamp": "2026-09-20T12:55:20.780914+00:00", "actor": "agent", "event_type": "proposal", "payload": {"action": "reserve", "amount": 62000, "payee": "citycabs", "reason": "p95 of the fare distribution"}, "hash": "499f89e4830975f43107669f21d9bf0f5bcb020e5d9ec2849ac67fe249935c89", "signature": "400f399764bdf15614b92f99b8b09cf8fe6e92c2dd722cd273da6557cb7554a2b3ab010700b3345bb5eb7deef4801b99a87970af4defb8efbfa9800859491408"}, {"seq": 4, "prev_hash": "499f89e4830975f43107669f21d9bf0f5bcb020e5d9ec2849ac67fe249935c89", "timestamp": "2026-09-20T12:55:20.781074+00:00", "actor": "policy", "event_type": "policy_decision", "payload": {"action": "reserve", "proposed_amount": 62000, "payee": "citycabs", "rail": "cashfree_preauth", "allowed": true, "reason": "permitted on Cashfree UPI pre-authorization", "citation": "", "quote": ""}, "hash": "16bf4500ac2cf38b25b21195bf80e94b6ee5775a3deda550ecff9db70f45afae", "signature": "c24943c96b7c2ee917cc4ce97363e61b7411e1770caa150c3ffa70b06faa4953adb480ad4ebafe1e2c0f02c50030ff269bbab45f99a263d73b8c1716827ca402"}, {"seq": 5, "prev_hash": "16bf4500ac2cf38b25b21195bf80e94b6ee5775a3deda550ecff9db70f45afae", "timestamp": "2026-09-20T12:55:22.081903+00:00", "actor": "rail", "event_type": "rail_transition", "payload": {"action": "reserve", "amount": 62000, "outcome": "applied", "rail": "cashfree_preauth", "order_id": "amanat_pa_1789908920", "cf_payment_id": "1455182406290096640", "http_status": 200, "note": "UPI pre-auth hold placed live \u2014 funds held in the customer's account, not debited"}, "hash": "8ef7c2e7bff9913ab8f2bf1bff4c79acff997a67d53f9863e25491681ee67383", "signature": "79ba627325ae15dbb5868d8092408274877b296759edcac30609ac3f6dc970ed29a9a6f2059f2ba2a0d155442aaf978fd892d21e41993cbf5c0d1951226b6300"}, {"seq": 6, "prev_hash": "8ef7c2e7bff9913ab8f2bf1bff4c79acff997a67d53f9863e25491681ee67383", "timestamp": "2026-09-20T12:55:22.082722+00:00", "actor": "agent", "event_type": "proposal", "payload": {"action": "debit", "amount": 47000, "payee": "citycabs", "reason": "metered fare"}, "hash": "e028b6d6591ccb40570bf57dddd5334436e5f4cbceaeda984966d68795e5290d", "signature": "76f3bbe12fda9cba26fdf9dcacca276d7bbe803411bab13c858e33d3dc5a19df7eb7839f542f8fc9684313f176b09ef4f4b9d94d21378a2ee99fdb724f3a2f01"}, {"seq": 7, "prev_hash": "e028b6d6591ccb40570bf57dddd5334436e5f4cbceaeda984966d68795e5290d", "timestamp": "2026-09-20T12:55:22.083192+00:00", "actor": "policy", "event_type": "policy_decision", "payload": {"action": "debit", "proposed_amount": 47000, "payee": "citycabs", "rail": "cashfree_preauth", "allowed": true, "reason": "permitted on Cashfree UPI pre-authorization", "citation": "", "quote": ""}, "hash": "2bd259658ca7fe5abf3ba81da88773d77e195b4f5181bee2a4af3b8ab9a8c6a3", "signature": "7183f8328a8f019868bbfff0fc2758fe0991ea2a246918993a21904de5c7e071d1c38f339529c58cc9f60f61ba54b313c5836b7c76f88e94c4b0e4454d74e003"}, {"seq": 8, "prev_hash": "2bd259658ca7fe5abf3ba81da88773d77e195b4f5181bee2a4af3b8ab9a8c6a3", "timestamp": "2026-09-20T12:55:23.054971+00:00", "actor": "rail", "event_type": "rail_transition", "payload": {"action": "debit", "amount": 47000, "outcome": "applied", "rail": "cashfree_preauth", "order_id": "amanat_pa_1789908920", "http_status": 200, "captured_amount": 47000, "payment_message": "PRE_AUTH|Transaction Success", "note": "partial capture accepted in the sandbox \u2014 Razorpay refuses the same shape with HTTP 400"}, "hash": "d6c951081c2ab45ea718d51fd4dc785dbe6eb1fdc7c390a790696c820fd8c4f5", "signature": "5ef9634deec0a96b2cf6d7505799f4f16a82fb52e82f2040a8e9294f7f4c60086d8177f522e4c16eed44e6048319d22d7a8ec6defb67f437c44943b67e9f060f"}, {"seq": 9, "prev_hash": "d6c951081c2ab45ea718d51fd4dc785dbe6eb1fdc7c390a790696c820fd8c4f5", "timestamp": "2026-09-20T12:55:23.454031+00:00", "actor": "rail", "event_type": "rail_transition", "payload": {"action": "observe", "outcome": "observed", "rail": "cashfree_preauth", "order_id": "amanat_pa_1789908920", "http_status": 200, "state": {"order_status": "PAID", "order_amount": 62000, "payment_status": "SUCCESS", "payment_amount": 62000, "is_captured": true, "authorization_action": "CAPTURE", "authorization_status": "SUCCESS", "captured_amount": 47000}, "note": "read from GET /orders/{id} and /orders/{id}/payments after the capture; no field in either response reports the uncaptured remainder as released"}, "hash": "f16bca9a8c1af825f42ff38e8cbbbcf04babd9d42cc27e1c64df6cce73c549b3", "signature": "c3090a171e54f1081fd9c6dd4d3c57ef9fc2b8cbf7b3671da2fb493ed74e1427586e9be941eeac5c744f1b5cf939ed452d2905628e0238e0f0b41e7c9cc13d01"}, {"seq": 10, "prev_hash": "f16bca9a8c1af825f42ff38e8cbbbcf04babd9d42cc27e1c64df6cce73c549b3", "timestamp": "2026-09-20T12:55:23.454303+00:00", "actor": "policy", "event_type": "policy_decision", "payload": {"rule": "remainder_release_unverified", "amount": 15000, "capability": "cashfree_preauth.remainder_auto_released", "tier": "unverified", "hold_expiry_days": 7, "note": "the uncaptured remainder is not recorded as released: this run did not observe it. Cashfree documents that an authorisation not captured within seven days is released and is silent on the remainder of a partial capture; see probe_cashfree_release"}, "hash": "9a554b13d6121a0bbb7dd20d929fefda62b305fa39feca37b0ca786de0930751", "signature": "d56c405749121f156268ccc8b6d0ea1cf552acb6bcfda83574cd2b978693718554e31a9982870a1f80f53a07558578d93e778fbb3dbb1035d7ac19e9363a1e0a"}]}</script>
   <script>
   
 // The packet is set once for a static page and re-set per run for the live demo.
 let PACKET = null, GENESIS = null;
 async function setPacket(p) { PACKET = p; GENESIS = p.genesis_hash; await loadKey(); }
 
-// Canonical JSON matching Python json.dumps(sort_keys=True,
-// separators=(',',':'), ensure_ascii=False).
+// Canonical bytes, two generations. A packet declares which one its hashes were
+// taken over (`canonicalization`); a packet that declares nothing is legacy.
+//
+// jcs-int: RFC 8785 restricted to integers. Keys sort by UTF-16 code unit (which
+// is what Array.prototype.sort does); numbers must be safe integers; nothing is
+// stringified. Must match amanat.evidence.canonical byte for byte — the tests
+// execute this very source under Node.
 function canonical(v) {
-  if (v === null || typeof v !== 'object') return JSON.stringify(v);
-  if (Array.isArray(v)) return '[' + v.map(canonical).join(',') + ']';
-  return '{' + Object.keys(v).sort()
-    .map(k => JSON.stringify(k) + ':' + canonical(v[k])).join(',') + '}';
+  if (v === null) return 'null';
+  switch (typeof v) {
+    case 'boolean': return v ? 'true' : 'false';
+    case 'string': return JSON.stringify(v);
+    case 'number':
+      if (!Number.isSafeInteger(v)) throw new Error('non-integer or unsafe number ' + v);
+      return String(v);
+    case 'object':
+      if (Array.isArray(v)) return '[' + v.map(canonical).join(',') + ']';
+      return '{' + Object.keys(v).sort()
+        .map(k => JSON.stringify(k) + ':' + canonical(v[k])).join(',') + '}';
+    default: throw new Error('unsupported value of type ' + typeof v);
+  }
 }
+// amanat-v1 (legacy): Python json.dumps(sort_keys=True, separators=(',', ':'),
+// ensure_ascii=False). Kept so packets exported before jcs-int still verify.
+function canonicalV1(v) {
+  if (v === null || typeof v !== 'object') return JSON.stringify(v);
+  if (Array.isArray(v)) return '[' + v.map(canonicalV1).join(',') + ']';
+  return '{' + Object.keys(v).sort()
+    .map(k => JSON.stringify(k) + ':' + canonicalV1(v[k])).join(',') + '}';
+}
+function canonicalFor(p) { return p && p.canonicalization === 'jcs-int' ? canonical : canonicalV1; }
+function digestInputFor(e, canon) {
+  return canon({ seq: e.seq, prev_hash: e.prev_hash, timestamp: e.timestamp,
+    actor: e.actor, event_type: e.event_type, payload: e.payload });
+}
+function digestInput(e) { return digestInputFor(e, canonicalFor(PACKET)); }
+
 function hexToBytes(h) {
   const a = new Uint8Array(h.length / 2);
   for (let i = 0; i < a.length; i++) a[i] = parseInt(h.substr(i * 2, 2), 16);
@@ -53,12 +83,57 @@ async function loadKey() {
       { name: 'Ed25519' }, false, ['verify']);
   } catch (e) { ed25519 = false; }
 }
-function digestInput(e) {
-  return canonical({ seq: e.seq, prev_hash: e.prev_hash, timestamp: e.timestamp,
-    actor: e.actor, event_type: e.event_type, payload: e.payload });
+
+// What a green result is allowed to mean. A packet embeds the key it was signed
+// with, so on its own it proves only that it is internally consistent and signed
+// by that key — anyone can produce such a packet. It is bound to a party only by
+// something the reader already holds: the signer's key (#key=<hex>) or a
+// checkpoint of the chain (#len=<n>&head=<hash>) taken earlier, which also
+// exposes entries removed from the end.
+function assessTrust(packet, fragment) {
+  const pins = {};
+  String(fragment || '').replace(/^#/, '').split('&').forEach(kv => {
+    const i = kv.indexOf('=');
+    if (i > 0) pins[kv.slice(0, i)] = decodeURIComponent(kv.slice(i + 1));
+  });
+  const out = { ok: true, keyPinned: false, checkpointPinned: false, lines: [] };
+  if (pins.key) {
+    const match = pins.key.toLowerCase() === String(packet.public_key).toLowerCase();
+    out.ok = out.ok && match; out.keyPinned = match;
+    out.lines.push(match ? 'The signing key matches the key you pinned.'
+      : 'The signing key does NOT match the key you pinned — this packet was not signed by that party.');
+  } else {
+    out.lines.push('Signing key not pinned: this shows the record is internally consistent and '
+      + 'signed by the key above, not who holds that key — anyone can produce such a packet. '
+      + 'Pin the key you trust by opening this page with #key=<hex>.');
+  }
+  const n = parseInt(pins.len, 10);
+  if (pins.head || pins.len) {
+    if (!pins.head || !(n > 0)) {
+      out.ok = false;
+      out.lines.push('A checkpoint needs both len and head; it was not applied.');
+    } else if (packet.entries.length < n) {
+      out.ok = false;
+      out.lines.push('Truncated: the packet has ' + packet.entries.length
+        + ' entries but the checkpoint covers ' + n + '.');
+    } else if (packet.entries[n - 1].hash !== pins.head) {
+      out.ok = false;
+      out.lines.push('This packet does not extend the checkpoint you pinned: entry '
+        + (n - 1) + ' differs from the committed head.');
+    } else {
+      out.checkpointPinned = true;
+      out.lines.push('The packet extends the checkpoint you pinned (' + n + ' entries).');
+    }
+  } else {
+    out.lines.push('No checkpoint pinned: entries removed from the end of the record '
+      + 'would not be detected.');
+  }
+  return out;
 }
+
 async function verifyEntry(e, expectedPrev) {
-  const hashOK = (await sha256hex(digestInput(e))) === e.hash;
+  let hashOK = false;
+  try { hashOK = (await sha256hex(digestInput(e))) === e.hash; } catch (_) { hashOK = false; }
   const linkOK = e.prev_hash === expectedPrev;
   let sigOK = true;
   if (ed25519 && pubKey)
@@ -86,12 +161,16 @@ async function verifyAll() {
     if (!r.ok && brokenAt === null) { brokenAt = i; allOK = false; }
     prev = entries[i].hash;
   }
+  const trust = assessTrust(PACKET, typeof location !== 'undefined' ? location.hash : '');
   const b = document.getElementById('banner'), t = document.getElementById('banner-text');
-  b.className = 'banner ' + (allOK ? 'ok' : 'bad');
-  t.textContent = allOK
-    ? (ed25519 ? 'Verified — every entry signed, hashed and linked'
-               : 'Hash-linked — signatures unchecked (this browser lacks Ed25519)')
-    : 'Tampered — entry ' + brokenAt + ' no longer matches its signature';
+  b.className = 'banner ' + (allOK && trust.ok ? 'ok' : 'bad');
+  t.textContent = !allOK ? 'Tampered — entry ' + brokenAt + ' no longer matches its signature'
+    : !trust.ok ? 'Internally consistent — but NOT what you pinned'
+    : !ed25519 ? 'Hash-linked — signatures unchecked (this browser lacks Ed25519)'
+    : trust.keyPinned ? 'Verified against the key you pinned — every entry signed, hashed and linked'
+    : 'Consistent — every entry is hash-linked and signed by the key shown (key not pinned)';
+  const tr = document.getElementById('trust');
+  if (tr) tr.textContent = trust.lines.join(' ');
 }
 function tamper() {
   const idx = PACKET.entries.findIndex(e => e.event_type === 'rail_transition');

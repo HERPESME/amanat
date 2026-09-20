@@ -125,3 +125,11 @@ class TestCeilingSourceSeam:
         )
         assert isinstance(FixedMarginCeiling(), CeilingSource)
         assert isinstance(ExternalCeiling(), CeilingSource)
+
+
+class TestTheBaselineRefusesToPredictBeforeItIsFitted:
+    def test_a_ceiling_from_an_unfitted_baseline_raises_a_real_error(self):
+        import numpy as np
+        from amanat.ceiling.model import MeanBaseline
+        with pytest.raises(RuntimeError, match="fit"):
+            MeanBaseline().ceiling(np.zeros((1, 2)))

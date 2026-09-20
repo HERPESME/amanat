@@ -28,6 +28,18 @@ class Ap2Error(ValueError):
     """An AP2 mandate could not be read, or an envelope could not be emitted."""
 
 
+def _whole(value: object, what: str) -> int:
+    """An amount as integer paise. A whole-number float is the integer it is;
+    a fractional one is refused, because rounding a limit is a decision nobody made."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise Ap2Error(f"{what} must be a number of paise, got {value!r}")
+    if isinstance(value, float):
+        if not value.is_integer():
+            raise Ap2Error(f"{what} must be a whole number of paise, got {value!r}")
+        return int(value)
+    return value
+
+
 def _constraints_by_type(mandate: dict) -> dict[str, dict]:
     out: dict[str, dict] = {}
     for c in mandate.get("constraints", []):
@@ -61,14 +73,14 @@ def from_open_payment_mandate(mandate: dict) -> "Envelope":
         raise Ap2Error(
             f"currency {currency!r} is not supported; this rail settles in INR "
             "(paise), so only INR mandates can be adjudicated here")
-    max_per_txn = int(amount_range["max"])
+    max_per_txn = _whole(amount_range["max"], "payment.amount_range.max")
 
     budget = by.get("payment.budget")
     if budget is not None:
         if budget.get("currency", "INR") != "INR":
             raise Ap2Error("budget currency must be INR")
-        # AP2 types Budget.max as a float; round to whole paise (no float money).
-        max_total = int(round(float(budget["max"])))
+        # AP2 types Budget.max as a float; accept it only if it is a whole number of paise.
+        max_total = _whole(budget["max"], "payment.budget.max")
     else:
         max_total = max_per_txn        # no total stated → the per-txn cap bounds it
 
@@ -147,9 +159,20 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import (
     Ed25519PrivateKey as _Priv, Ed25519PublicKey as _Pub,
 )
 
+from amanat.evidence.canonical import CanonicalError as _CanonicalError, canonicalize as _canonicalize
+
 
 def _mandate_bytes(mandate: dict) -> bytes:
     """Canonical bytes of the mandate minus its own signature field."""
+    return _canonicalize({k: v for k, v in mandate.items() if k != "signature"})
+
+
+def _mandate_bytes_legacy(mandate: dict) -> bytes:
+    """What mandates were signed over before canonicalisation was made strict.
+
+    Verification only: it stringifies unknown types and sorts by code point, which
+    is why signing moved off it, but a mandate a human signed under it is still theirs.
+    """
     body = {k: v for k, v in mandate.items() if k != "signature"}
     return _json.dumps(body, sort_keys=True, separators=(",", ":"),
                        ensure_ascii=False, default=str).encode("utf-8")
@@ -183,7 +206,13 @@ def verify_mandate(mandate: dict) -> bool | None:
         return False
     try:
         pub = _Pub.from_public_bytes(bytes.fromhex(x))
-        pub.verify(bytes.fromhex(sig), _mandate_bytes(mandate))
-        return True
-    except (ValueError, _InvalidSignature):
+        signature = bytes.fromhex(sig)
+    except ValueError:
         return False
+    for message in (_mandate_bytes, _mandate_bytes_legacy):
+        try:
+            pub.verify(signature, message(mandate))
+            return True
+        except (_InvalidSignature, _CanonicalError):
+            continue
+    return False

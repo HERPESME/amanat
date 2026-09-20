@@ -2,21 +2,27 @@
 
     uv run --with httpx --with cryptography python -m amanat.rails.cashfree_settle
 
-This is the bridge between the two halves of the project: the governed core and a
-rail that actually executes the mechanism. It drives the live Cashfree UPI pre-auth
-sandbox — hold ₹620, capture ₹470, the ₹150 returns on its own — but every step
-goes through the *real* PolicyEngine first, and every real API response is recorded
-as a signed, hash-linked entry in an EvidenceChain. One over-budget attempt is
-refused along the way, so the artifact carries a refusal too.
+This drives the Cashfree UPI pre-auth *sandbox* — hold ₹620, capture ₹470 — with every
+step going through the real PolicyEngine first, and every real API response recorded as
+a signed, hash-linked entry in an EvidenceChain. One over-budget attempt is refused along
+the way, so the artifact carries a refusal too.
+
+What the chain says is limited to what was read. The capture's response states
+`captured_amount`; a read of the order and its payments afterwards is recorded verbatim
+in paise. What the API did NOT show is the uncaptured ₹150 being released, and this script
+does not write one: it records, as the orchestrator's own note (not the rail's), that the
+release is unverified and that Cashfree documents a seven-day expiry. The measurement of
+that question is `probe_cashfree_release`.
 
 The output is a packet that verifies standalone in any browser (see
-`amanat.evidence.render`), whose rail transitions are not simulated — they carry
-the live order id, cf_payment_id and HTTP status the sandbox returned. It is
-written to `web/real_rail_packet.json` (served by the demo console) and rendered to
-`docs/sample/cashfree-real-rail-packet.html`.
+`amanat.evidence.render`). Amounts are integer paise throughout: a float in a payload
+cannot be reproduced by a browser's `JSON.parse`, so the current packet format refuses
+one. It is written to `web/real_rail_packet.json` (served by the demo console) and
+rendered to `docs/sample/cashfree-real-rail-packet.html`.
 
 Needs sandbox credentials, so it runs where `.env` has them and produces a static,
-signed artifact. The public demo never calls the rail; it serves this frozen proof.
+signed artifact. The public demo never calls the rail; it serves this frozen proof. The
+authorisation is forced with `POST /simulate`, so the proof is of Cashfree's sandbox API.
 """
 from __future__ import annotations
 
@@ -31,7 +37,7 @@ from amanat.evidence.render import render_artifact, render_html
 from amanat.policy.engine import Action, PolicyEngine, Proposal
 from amanat.policy.envelope import Envelope, LedgerState
 from amanat.rails.base import RailError
-from amanat.rails.cashfree import CashfreePreAuthRail, _rupees
+from amanat.rails.cashfree import CashfreePreAuthRail, _paise, _rupees
 
 ROOT = Path(__file__).resolve().parents[3]
 CUSTOMER = {
@@ -93,27 +99,69 @@ def settle(rail: CashfreePreAuthRail, ceiling: int = 620_00,
     sc, cap = rail.capture(order_id, actual)
     if sc != 200:
         raise RailError(f"capture failed (HTTP {sc}): {cap}")
-    captured_rupees = cap.get("authorization", {}).get("captured_amount")
-    state.debited += actual
+    stated = cap.get("authorization", {}).get("captured_amount")
+    if stated is None:
+        raise RailError("the capture response did not state the captured amount")
+    captured = _paise(stated)                                # read, not assumed
+    state.debited += captured
     chain.append(Actor.RAIL, EventType.RAIL_TRANSITION, {
         "action": "debit", "amount": actual, "outcome": "applied",
         "rail": rail.rail_id, "order_id": order_id, "http_status": 200,
-        "captured_amount_rupees": captured_rupees,
+        "captured_amount": captured,
         "payment_message": cap.get("payment_message"),
-        "note": "partial capture accepted live — Razorpay refuses the same shape "
-                "with HTTP 400"})
+        "note": "partial capture accepted in the sandbox — Razorpay refuses the "
+                "same shape with HTTP 400"})
 
-    # 4. The remainder returns on its own. No revoke, no teardown, no stranding.
-    remainder = ceiling - actual
-    state.released += remainder
+    # 4. Read what the rail says now, and record exactly that. The order and its
+    #    payments are the rail's own statement of state after the capture.
+    o_sc, order_body = rail.fetch_order(order_id)
+    p_sc, payments = rail.fetch_payments(order_id)
     chain.append(Actor.RAIL, EventType.RAIL_TRANSITION, {
-        "action": "release", "amount": remainder, "outcome": "auto_released",
-        "rail": rail.rail_id, "order_id": order_id,
-        "note": "the uncaptured remainder is returned by the rail on its own; an "
-                "explicit VOID afterward is refused (nothing left to void)"})
+        "action": "observe", "outcome": "observed", "rail": rail.rail_id,
+        "order_id": order_id, "http_status": max(o_sc, p_sc),
+        "state": _observed_state(order_body, payments),
+        "note": "read from GET /orders/{id} and /orders/{id}/payments after the capture; "
+                "no field in either response reports the uncaptured remainder as released"})
+
+    # 5. The gap, stated as the orchestrator's own note — not as a rail event. Nothing
+    #    the rail returned shows the remainder going back; the refused VOID is
+    #    Cashfree's documented "once captured, cannot be voided", not evidence of it.
+    remainder = ceiling - actual
+    chain.append(Actor.POLICY, EventType.POLICY_DECISION, {
+        "rule": "remainder_release_unverified", "amount": remainder,
+        "capability": "cashfree_preauth.remainder_auto_released", "tier": "unverified",
+        "hold_expiry_days": 7,
+        "note": "the uncaptured remainder is not recorded as released: this run did not "
+                "observe it. Cashfree documents that an authorisation not captured within "
+                "seven days is released and is silent on the remainder of a partial "
+                "capture; see probe_cashfree_release"})
 
     chain.verify()
     return chain.export_packet()
+
+
+def _observed_state(order: dict, payments: list | dict) -> dict:
+    """The rail's reported state as integers, booleans and strings only.
+
+    Amounts arrive as rupee decimals and are converted to paise exactly; anything
+    that is not a plain scalar is left out rather than reformatted.
+    """
+    first = (payments[0] if isinstance(payments, list) and payments else {}) or {}
+    auth = first.get("authorization") or {}
+
+    def paise(value):
+        return None if value is None else _paise(value)
+
+    return {
+        "order_status": order.get("order_status"),
+        "order_amount": paise(order.get("order_amount")),
+        "payment_status": first.get("payment_status"),
+        "payment_amount": paise(first.get("payment_amount")),
+        "is_captured": first.get("is_captured"),
+        "authorization_action": auth.get("action"),
+        "authorization_status": auth.get("status"),
+        "captured_amount": paise(auth.get("captured_amount")),
+    }
 
 
 def _write(packet: dict) -> None:
@@ -142,8 +190,8 @@ def main() -> int:
     debited = sum(e["payload"]["amount"] for e in packet["entries"]
                   if e["event_type"] == "rail_transition"
                   and e["payload"].get("action") == "debit")
-    print(f"  merchant nets ₹{_rupees(debited):,.0f} — signed, and it verifies "
-          "standalone in a browser\n")
+    print(f"  merchant nets ₹{_rupees(debited):,.0f}; the remainder's release is "
+          "recorded as unverified — signed, and it verifies standalone in a browser\n")
     return 0
 
 

@@ -31,10 +31,16 @@ class Envelope:
     subject: str
     max_total: int                    # paise, across the whole envelope
     max_per_txn: int                  # paise, any single transaction
-    allowed_payees: list[str]
+    allowed_payees: tuple[str, ...]
     expires_at: datetime
     intent_text: str = ""             # the human's own words, kept verbatim
     notes: str = ""
+
+    def __post_init__(self) -> None:
+        # `frozen` forbids assignment, not mutation: a list here could be
+        # appended to in place, widening the grant with no trace. Copy to a
+        # tuple so neither the caller's list nor a later append can.
+        object.__setattr__(self, "allowed_payees", tuple(self.allowed_payees))
 
     def is_expired(self, now: datetime | None = None) -> bool:
         return (now or datetime.now(timezone.utc)) >= self.expires_at
@@ -79,9 +85,9 @@ class Envelope:
 class LedgerState:
     """Where the money currently is for one subject.
 
-    `blocked` is the ceiling standing against the rail. `debited` is what has
-    actually moved. `released` is what went back. The amount-contingent
-    invariant is: debited + released <= blocked.
+    `blocked` is the running total of ceilings placed, `debited` what has
+    actually moved, `released` what went back. The amount-contingent invariant
+    is: debited + released <= blocked. The budget bounds `committed`.
     """
 
     blocked: int = 0
@@ -93,6 +99,15 @@ class LedgerState:
     def available(self) -> int:
         """Headroom left inside the block."""
         return self.blocked - self.debited - self.released
+
+    @property
+    def committed(self) -> int:
+        """Money spent plus money currently held: the exposure the budget bounds.
+
+        Not `blocked`, which is every ceiling ever placed — a ceiling that was
+        released stops being exposure the moment it is returned.
+        """
+        return self.debited + self.available
 
     @property
     def stranded(self) -> int:

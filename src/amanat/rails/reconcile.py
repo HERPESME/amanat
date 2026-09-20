@@ -19,9 +19,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from amanat.evidence.chain import ChainVerificationError, EvidenceChain
-
-_DEBIT_LIKE = {"captured", "debited", "debit"}
-_REFUND_LIKE = {"refunded"}
+from amanat.evidence.transitions import (
+    DEBIT_LIKE, REFUND_LIKE, is_effective, transition_name,
+)
 
 
 @dataclass
@@ -47,10 +47,12 @@ def _net_from_chain(packet: dict) -> int:
         if e["event_type"] != "rail_transition":
             continue
         p = e["payload"]
-        t = str(p.get("transition") or p.get("action") or "").lower()
-        if t in _DEBIT_LIKE:
+        if not is_effective(p):
+            continue                       # an attempt the rail rejected moved nothing
+        t = transition_name(p)
+        if t in DEBIT_LIKE:
             debited += int(p.get("amount", 0))
-        elif t in _REFUND_LIKE:
+        elif t in REFUND_LIKE:
             refunded += int(p.get("amount", 0))
     return debited - refunded
 
@@ -84,7 +86,8 @@ def reconcile(rail, payment_id: str, packet: dict) -> Reconciliation:
     chain_refunded = sum(int(e["payload"].get("amount", 0))
                          for e in packet["entries"]
                          if e["event_type"] == "rail_transition"
-                         and str(e["payload"].get("transition", "")).lower() in _REFUND_LIKE)
+                         and transition_name(e["payload"]) in REFUND_LIKE
+                         and is_effective(e["payload"]))
     which = ("a refund the chain recorded is not reflected on the rail"
              if chain_refunded > refunded else
              "the captured or refunded amounts differ")

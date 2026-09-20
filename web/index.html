@@ -323,15 +323,17 @@ footer a{color:var(--brand)}
       </div>
 
       <div class="card pad realrail">
-        <span class="rr-tag"><span class="g"></span> Live rail · measured</span>
-        <div class="rr-title">Proven on a real rail</div>
-        <p class="rr-p"><b>Block → debit → release</b>, measured end to end on Cashfree's UPI
-          pre-authorization sandbox. Razorpay refuses the identical shape with HTTP 400; this rail
-          accepts it. The receipt is signed over the real API responses.</p>
+        <span class="rr-tag"><span class="g"></span> Live sandbox · measured</span>
+        <div class="rr-title">Measured on Cashfree's sandbox</div>
+        <p class="rr-p"><b>Hold → capture</b>, run against Cashfree's UPI pre-authorization
+          sandbox. Razorpay refuses the identical partial capture with HTTP 400; this sandbox
+          accepts it. Whether the uncaptured ₹150 is returned at capture or at the documented
+          7-day expiry was <b>not observed</b>, and the receipt says so. It is signed over what
+          the API returned.</p>
         <div class="rr-flow">
           <span class="rr-step">hold ₹620</span><span class="rr-arr">→</span>
-          <span class="rr-step">debit ₹470</span><span class="rr-arr">→</span>
-          <span class="rr-step rr-ret">₹150 back</span>
+          <span class="rr-step">capture ₹470</span><span class="rr-arr">→</span>
+          <span class="rr-step rr-ret">₹150: not observed</span>
         </div>
         <button class="run rr-btn" id="showRealRail">Load the signed real-rail receipt</button>
       </div>
@@ -343,9 +345,10 @@ footer a{color:var(--brand)}
 
     <!-- ---------------- main: the results ---------------- -->
     <main class="main" id="result">
-      <div class="rr-note" id="realRailNote" style="display:none">✓ This receipt is the
-        <b>real Cashfree pre-auth run</b> — its rail entries carry the live order id,
-        cf_payment_id and HTTP 200 (open “inspect signed bytes”). Signed over the actual API responses.</div>
+      <div class="rr-note" id="realRailNote" style="display:none">✓ This receipt is a
+        <b>real run against Cashfree's sandbox</b> — its rail entries carry the live order id,
+        cf_payment_id and HTTP 200 (open “inspect signed bytes”). It records what the API
+        returned; the remainder's release is entered as <b>unverified</b>, not as a rail event.</div>
 
       <div class="card pad reply" id="replyCard" style="display:none">
         <div class="who">What the agent said</div>
@@ -420,16 +423,17 @@ footer a{color:var(--brand)}
             </div>
           </div>
           <div class="meta">public key <code id="pk"></code> · <span id="count"></span> · Ed25519 over SHA-256</div>
+          <p class="sub" id="trust" style="margin:.4rem 0 .8rem;font-size:.8rem;line-height:1.5"></p>
           <div class="rail" id="entries"></div>
         </div>
       </div>
 
       <div class="card pad" id="disputeCard" style="display:none">
-        <h2>Dispute it — the part the market has no answer for</h2>
-        <p class="sub" style="margin:0 0 .9rem;line-height:1.5">A cardholder contests the charge. Every
-          agent-payment standard (AP2, Visa TAP, Mastercard Agent Pay) proves the agent was <i>permitted</i>
-          and stops there. This adjudicates the signed record against the AP2 authorization and states what
-          the evidence shows — never who wins.</p>
+        <h2>Dispute it</h2>
+        <p class="sub" style="margin:0 0 .9rem;line-height:1.5">A cardholder contests the charge. AP2, ACP
+          and x402 establish what an agent may spend; post-authorisation dispute evidence is out of
+          their scope or an open request. This adjudicates the signed record against the AP2
+          authorization and states what the evidence shows — never who wins.</p>
         <div class="attacks" style="margin-top:0">
           <span class="lbl">Cardholder claims:</span>
           <button class="chip-btn" data-claim="unauthorized">“I never authorized this”</button>
@@ -476,15 +480,20 @@ function summarize(e){
   switch(e.event_type){
     case 'intent': return '“'+esc(p.text)+'”';
     case 'envelope':
-      if(p.event==='envelope_widened')
-        return '<b>cap raised</b> '+rs(p.from.max_total)+' → <span class="amt">'+rs(p.to.max_total)+'</span> · human-signed'+(p.reason?' — '+esc(p.reason):'');
-      return 'budget '+rs(p.max_total)+' · payee '+esc((p.allowed_payees||[]).join(', '));
+      if(p.event==='envelope_widened'){
+        const kx=(((p.cnf||{}).jwk||{}).x||'').slice(0,12);
+        return '<b>cap raised</b> '+rs(p.from.max_total)+' → <span class="amt">'+rs(p.to.max_total)+'</span> · signed by key '+esc(kx)+'…'+(p.reason?' — '+esc(p.reason):'');
+      }
+      return 'budget '+rs(p.max_total)+' · payee '+esc((p.allowed_payees||[]).join(', '))
+        +((p.grant&&p.grant.signed)?' · grant signed by key '+esc((p.grant.public_key||'').slice(0,12))+'…':' · grant not human-signed');
     case 'proposal':
       if(p.action==='raise_ceiling')
         return 'agent asks to <b>raise the cap</b> '+rs(p.current_max_total)+' → <span class="amt">'+rs(p.requested_max_total)+'</span>'+(p.reason?' — '+esc(p.reason):'');
       return 'agent proposes <b>'+esc(p.action)+'</b> <span class="amt">'+rs(p.amount)+'</span> → '+esc(p.payee)+(p.reason?' — '+esc(p.reason):'');
     case 'policy_decision': return 'allowed <b>'+esc(p.action)+'</b> <span class="amt">'+rs(p.proposed_amount)+'</span>';
     case 'refusal': return '<b>refused</b> — '+esc(p.reason||p.rule||'');
+    case 'rail_intent': return 'about to ask the rail to <b>'+esc(p.action)+'</b> <span class="amt">'+rs(p.amount)+'</span> — written before the call';
+    case 'rail_in_doubt': return '<b>outcome unknown</b> — the '+esc(p.action)+' of '+rs(p.amount)+' did not complete; no further money moves until it is resolved';
     case 'compensation': return '<b>compensation owed</b> — '+rs(p.refund_due||0)+' captured but not yet returned after '+esc(p.attempts)+' refund attempts';
     case 'rail_transition': {
       const verb=esc((p.transition||p.action||'').toString());
@@ -527,7 +536,10 @@ async function renderResult(packet, reply){
   if(reply) el('reply').textContent = reply;
 
   const ents = packet.entries;
-  const railBy = v => ents.filter(e=>e.event_type==='rail_transition' &&
+  // Only a transition that actually moved money counts: a call the rail rejected
+  // is an attempt, and an in-doubt call is not a transition at all.
+  const effective = e => e.payload.outcome==null || e.payload.outcome==='applied';
+  const railBy = v => ents.filter(e=>e.event_type==='rail_transition' && effective(e) &&
     ((e.payload.action||e.payload.transition||'').toString().toLowerCase().includes(v)));
   const sum = arr => arr.reduce((a,e)=>a+num(e.payload.amount),0);
   const blocked = sum(railBy('reserve').concat(railBy('block')));
@@ -653,21 +665,46 @@ async function runAgent(){
 }
 el('runAgent').onclick=runAgent;
 
-/* ---- re-approval: the agent asked, the human raises the cap and signs it ---- */
+/* ---- re-approval: the agent asked; the human raises the cap and signs it, HERE ----
+   The signing key is generated by this browser and is not extractable: it cannot be
+   read back out, let alone sent. The server hands back the exact consent to sign for
+   our public key, verifies the signature we return, and never holds a private key. */
+let HUMAN_KEY = null;
+const toHex = b => [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');
+async function humanKey(){
+  if(HUMAN_KEY) return HUMAN_KEY;
+  const pair = await crypto.subtle.generateKey({name:'Ed25519'}, false, ['sign','verify']);
+  HUMAN_KEY = {priv: pair.privateKey,
+               pubHex: toHex(await crypto.subtle.exportKey('raw', pair.publicKey))};
+  return HUMAN_KEY;
+}
 async function reapprove(){
-  const body={envelope:{budget:paise('budget'),per_txn:paise('per_txn'),
+  const req={envelope:{budget:paise('budget'),per_txn:paise('per_txn'),
     payee:el('payee').value.trim(),hours:6},
     ceiling:paise('ceiling'),actual:paise('actual'),payee:el('charge').value.trim()};
   const btn=el('reapproveBtn'); const label=btn.textContent;
-  btn.disabled=true; btn.textContent='Human is approving & signing…';
+  const post=(url,b)=>fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)});
+  btn.disabled=true; btn.textContent='Signing with your key…';
   el('realRailNote').style.display='none';
   try{
-    const res=await fetch('/api/reapprove',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    let key;
+    try{ key = await humanKey(); }
+    catch(e){ btn.textContent='This browser cannot sign (needs Ed25519 WebCrypto)'; return; }
+    // 1. the exact consent to sign, for our public key
+    const c = await post('/api/reapprove/consent',{...req, public_key:key.pubHex});
+    if(!c.ok){ btn.textContent='Could not prepare the consent'; return; }
+    const consent = (await c.json()).consent;
+    // 2. sign it here — these are the bytes the server will verify
+    const sig = await crypto.subtle.sign({name:'Ed25519'}, key.priv,
+      new TextEncoder().encode(canonical(consent)));
+    consent.signature = toHex(sig);
+    // 3. send it back
+    const res = await post('/api/reapprove',{...req, consent});
     if(!res.ok){ btn.textContent='Could not re-approve'; return; }
     await renderResult((await res.json()).packet, null);
     el('result').scrollIntoView({behavior:'smooth',block:'start'});
   } catch(e){ btn.textContent='Network error — try again'; }
-  finally { btn.disabled=false; btn.textContent=label; }
+  finally { btn.disabled=false; if(btn.textContent==='Signing with your key…') btn.textContent=label; }
 }
 el('reapproveBtn').onclick=reapprove;
 

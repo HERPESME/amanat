@@ -14,6 +14,7 @@ from hypothesis import HealthCheck, given, settings, strategies as st
 
 from amanat.orchestrator.session import AgentSession
 from amanat.policy.envelope import Envelope
+from amanat.rails.base import BlockState
 from amanat.rails.simulator import SimulatedRail
 
 PAYEE = "citycabs"
@@ -53,11 +54,16 @@ def test_money_invariants_hold_after_every_step(sc):
         st_ = s.state
         # the amount-contingent invariant
         assert st_.debited + st_.released <= st_.blocked
-        # the envelope budget is never exceeded
-        assert st_.blocked <= env.max_total
+        # the envelope budget is never exceeded by what is spent plus what is held
+        assert st_.debited + st_.available <= env.max_total
         # you can never over-draw a block
         assert st_.available >= 0
         assert st_.debited >= 0 and st_.released >= 0
+        # the session and the rail agree on what is standing: one block, same headroom
+        standing = [b for b in s.rail._blocks.values()
+                    if b.state is BlockState.BLOCKED and b.available > 0]
+        assert len(standing) <= 1
+        assert st_.available == sum(b.available for b in standing)
     # and the signed record of all of it always verifies
     s.chain.verify()
 
@@ -87,4 +93,4 @@ def test_no_single_reserve_can_exceed_the_budget(amount, budget):
     r = s.reserve(amount, PAYEE, "r")
     if amount > env.max_total:
         assert r.ok is False
-    assert s.state.blocked <= env.max_total
+    assert s.state.debited + s.state.available <= env.max_total

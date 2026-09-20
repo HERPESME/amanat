@@ -14,6 +14,7 @@ input, exactly like a form field. The policy engine and the rail are trusted.
 """
 import pytest
 
+from amanat.evidence.chain import EventType
 from amanat.orchestrator import backends
 from amanat.orchestrator.session import AgentSession
 from amanat.rails.simulator import SimulatedRail
@@ -207,3 +208,63 @@ class TestMalformedCallsAreStillEvidence:
         backends.dispatch(session, "nonsense", {})
         session.chain.verify()
         assert len(session.chain.refusals()) == 5
+
+
+class TestTheAuditPathSurvivesHostileInput:
+    """The chain refuses to canonicalise what two runtimes could disagree on.
+
+    That is only safe if the boundary cleans or refuses hostile input first —
+    otherwise an attacker turns the audit write into a crash, and a crash before
+    the write is an action with no evidence.
+    """
+
+    def _proposals(self, session):
+        return [e for e in session.chain.entries if e.event_type is EventType.PROPOSAL]
+
+    def test_an_amount_beyond_what_the_chain_can_hold_is_refused_and_recorded(self, session):
+        out = attack(session, "reserve_funds", amount_paise=10**18,
+                     payee="citycabs", reason="overflow")
+        assert out.startswith("REFUSED")
+        refusal = session.chain.refusals()[-1]
+        assert refusal.payload["rule"] == "unrepresentable_amount"
+        assert refusal.payload["amount_repr"] == "1000000000000000000"
+        session.chain.verify()
+
+    @pytest.mark.parametrize("bad", [470.0, True, "470", None])
+    def test_a_non_integer_amount_reaching_the_session_is_refused_not_raised(self, session, bad):
+        result = session.reserve(bad, "citycabs", "direct call")
+        assert result.ok is False
+        assert session.rail.customer_balance == 10_000_00
+        session.chain.verify()
+
+    def test_a_lone_surrogate_in_a_reason_is_cleaned_not_fatal(self, session):
+        reason = "ok" + chr(0xD800) + "end"
+        out = attack(session, "reserve_funds", amount_paise=100_00,
+                     payee="citycabs", reason=reason)
+        assert out.startswith("OK")
+        assert self._proposals(session)[-1].payload["reason"] == "ok" + chr(0xFFFD) + "end"
+        session.chain.verify()
+
+    def test_a_lone_surrogate_in_a_payee_is_refused_not_fatal(self, session):
+        out = attack(session, "reserve_funds", amount_paise=100_00,
+                     payee="city" + chr(0xD800) + "cabs", reason="x")
+        assert out.startswith("REFUSED")
+        assert session.rail.customer_balance == 10_000_00
+        session.chain.verify()
+
+    def test_hostile_argument_names_are_recorded_and_the_chain_verifies(self, session):
+        args = {chr(0xD800): 1, "\U0001F600": 2, chr(0xFFEE): 3}
+        assert backends.dispatch(session, "reserve_funds", args).startswith("REFUSED")
+        session.chain.verify()
+        recorded = session.chain.refusals()[-1].payload["arguments"]
+        assert set(recorded) == {chr(0xFFFD), "\U0001F600", chr(0xFFEE)}
+
+    def test_a_hostile_tool_name_is_recorded_and_the_chain_verifies(self, session):
+        assert attack(session, "wire" + chr(0xD800)).startswith("REFUSED")
+        assert session.chain.refusals()[-1].payload["tool"] == "wire" + chr(0xFFFD)
+        session.chain.verify()
+
+    def test_a_huge_reason_is_clipped_in_the_record(self, session):
+        attack(session, "reserve_funds", amount_paise=100_00,
+               payee="citycabs", reason="x" * 1_000_000)
+        assert len(self._proposals(session)[-1].payload["reason"]) <= 500

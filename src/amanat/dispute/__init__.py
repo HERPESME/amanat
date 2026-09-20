@@ -1,7 +1,9 @@
 """Adjudicating a settlement chain against the authorization that permitted it.
 
-Every agent-payment stack in the market proves authorization and stops there;
-the "my agent did it" dispute is downstream of all of them. This turns the
+AP2, ACP and x402 establish what an agent may spend and attest a payment's
+outcome; in the specifications read for this project, post-authorisation
+dispute evidence is out of scope or an open request. The "my agent did it"
+dispute is downstream of all of them. This turns the
 signed evidence chain into a cited finding about what the record shows — an
 evidence finding, never an issuer decision.
 """

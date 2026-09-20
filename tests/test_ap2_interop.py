@@ -40,7 +40,7 @@ class TestIngestingARealMandate:
         env = from_open_payment_mandate(REAL_MANDATE)
         assert env.max_per_txn == 80000       # amount_range.max, in paise
         assert env.max_total == 100000        # budget.max, in paise
-        assert env.allowed_payees == ["citycabs"]
+        assert env.allowed_payees == ("citycabs",)       # a tuple: the grant is frozen
 
     def test_the_expiry_comes_from_the_execution_date_window(self):
         env = from_open_payment_mandate(REAL_MANDATE)
@@ -148,3 +148,49 @@ class TestConsentBinding:
     def test_an_unsigned_mandate_is_reported_as_unbound_not_invalid(self):
         from amanat.interop.ap2 import verify_mandate
         assert verify_mandate(dict(REAL_MANDATE)) is None
+
+
+
+class TestNoFloatTouchesTheGrant:
+    """AP2 types `budget.max` as a float. Money here is integer paise, so a whole
+    float is accepted as the integer it is, and a fractional one is refused —
+    rounding a limit either way is a decision nobody made."""
+
+    def _mandate(self, budget):
+        from datetime import datetime, timedelta, timezone
+        from amanat.interop.ap2 import to_open_payment_mandate
+        from amanat.policy.envelope import Envelope
+        m = to_open_payment_mandate(Envelope(
+            subject="m", max_total=100_000, max_per_txn=80_000, allowed_payees=["citycabs"],
+            expires_at=datetime.now(timezone.utc) + timedelta(hours=1)))
+        m["constraints"][2]["max"] = budget
+        return m
+
+    def test_a_whole_number_float_becomes_the_integer_it_is(self):
+        from amanat.interop.ap2 import from_open_payment_mandate
+        assert from_open_payment_mandate(self._mandate(100_000.0)).max_total == 100_000
+
+    def test_a_fractional_budget_is_refused_not_rounded(self):
+        from amanat.interop.ap2 import Ap2Error, from_open_payment_mandate
+        with pytest.raises(Ap2Error, match="whole"):
+            from_open_payment_mandate(self._mandate(100_000.5))
+
+
+class TestMandateSignaturesSurviveTheCanonicalisationChange:
+    def test_a_mandate_signed_by_the_previous_algorithm_still_verifies(self):
+        """Signed independently of the production code, as it was before."""
+        import json
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+        from datetime import datetime, timedelta, timezone
+        from amanat.interop.ap2 import to_open_payment_mandate, verify_mandate
+        from amanat.policy.envelope import Envelope
+        key = Ed25519PrivateKey.generate()
+        m = to_open_payment_mandate(Envelope(
+            subject="old", max_total=100_000, max_per_txn=80_000, allowed_payees=["citycabs"],
+            expires_at=datetime.now(timezone.utc) + timedelta(hours=1)))
+        m["cnf"] = {"jwk": {"kty": "OKP", "crv": "Ed25519",
+                            "x": key.public_key().public_bytes_raw().hex()}}
+        m["signature"] = key.sign(json.dumps(
+            {k: v for k, v in m.items() if k != "signature"}, sort_keys=True,
+            separators=(",", ":"), ensure_ascii=False, default=str).encode("utf-8")).hex()
+        assert verify_mandate(m) is True

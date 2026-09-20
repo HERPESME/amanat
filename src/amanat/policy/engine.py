@@ -99,11 +99,12 @@ class PolicyEngine:
         if p.action is Action.RESERVE:
             # Budget before per-transaction cap: the budget is the harder
             # boundary, so it should be the reason the caller is given.
-            if state.blocked + p.amount > env.max_total:
+            if state.committed + p.amount > env.max_total:
                 return Verdict(
                     False,
                     f"reserving {p.amount} would exceed the envelope budget "
-                    f"{env.max_total} (already blocked {state.blocked})")
+                    f"{env.max_total} (already committed {state.committed}: "
+                    f"{state.debited} debited + {state.available} held)")
             if p.amount > env.max_per_txn:
                 return Verdict(
                     False,
@@ -133,7 +134,20 @@ class PolicyEngine:
         # circular deciding it — and stops the engine approving a reserve the
         # rail was always going to decline.
         if p.action is Action.RESERVE:
-            breach = rail.exceeds("max_block_amount", state.blocked + p.amount)
+            # One standing block at a time. The session holds a single handle on
+            # the rail, so a second block would be spendable in the ledger yet
+            # unreachable (and never released) on the rail. Where the rail itself
+            # limits blocks per merchant, its own words are the reason.
+            if state.available > 0:
+                detail = (f"a block with {state.available} unspent is already "
+                          "standing; settle or release it before reserving another")
+                if rail.permits("single_active_block_per_merchant"):
+                    cap = rail.explain("single_active_block_per_merchant")
+                    return Verdict(False, f"{rail.display_name} keeps one active block "
+                                          f"per merchant, and {detail}",
+                                   cap.citation, cap.url, cap.quote)
+                return Verdict(False, detail)
+            breach = rail.exceeds("max_block_amount", p.amount)
             if breach is not None:
                 return Verdict(False, breach.reason, breach.citation,
                                breach.url, breach.quote)

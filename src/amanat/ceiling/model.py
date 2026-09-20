@@ -139,5 +139,6 @@ class MeanBaseline:
         return self
 
     def ceiling(self, X: np.ndarray) -> np.ndarray:
-        assert self._m is not None
+        if self._m is None:
+            raise RuntimeError("call fit() first")
         return self._m.predict(X)

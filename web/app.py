@@ -202,9 +202,13 @@ def real_rail() -> JSONResponse:
     return JSONResponse({
         "packet": _REAL_RAIL,
         "measured": {
-            "rail": "Cashfree UPI pre-authorization (sandbox)",
-            "held": 620_00, "debited": 470_00, "returned": 150_00,
-            "http": 200, "date": "2026-08-29",
+            "rail": "Cashfree UPI pre-authorization (sandbox; authorisation forced "
+                    "with POST /simulate)",
+            "held": 620_00, "debited": 470_00,
+            "remainder": 150_00, "remainder_release": "unverified",
+            "http": 200,
+            # the run's own date, read from the signed packet rather than typed here
+            "date": _REAL_RAIL["entries"][0]["timestamp"][:10],
         },
     })
 
@@ -243,34 +247,71 @@ def simulate(body: SimulateIn, request: Request) -> JSONResponse:
     return JSONResponse(run_simulation(body))
 
 
+class ReapproveConsentIn(BaseModel):
+    envelope: EnvelopeIn
+    ceiling: int = Field(ge=1, le=MAX_PAISE)
+    actual: int = Field(ge=1, le=MAX_PAISE)
+    payee: str = Field(default="", max_length=64)
+    # The human's PUBLIC key, generated in their own browser. The server never
+    # receives, generates or stores the private half.
+    public_key: str = Field(pattern="^[0-9a-fA-F]{64}$")
+
+
 class ReapproveIn(BaseModel):
     envelope: EnvelopeIn
     ceiling: int = Field(ge=1, le=MAX_PAISE)
     actual: int = Field(ge=1, le=MAX_PAISE)
     payee: str = Field(default="", max_length=64)
+    consent: dict                      # signed in the browser; verified here, never made here
+
+
+def _reapproval_envelope(env_in: EnvelopeIn) -> Envelope:
+    return Envelope(
+        subject="demo", max_total=env_in.budget, max_per_txn=env_in.per_txn,
+        allowed_payees=[env_in.payee],
+        expires_at=datetime.now(timezone.utc) + timedelta(hours=env_in.hours),
+        intent_text="re-approval demo")
+
+
+def _raise_to(env_in: EnvelopeIn, ceiling: int) -> int:
+    return min(max(ceiling, env_in.budget + 1), MAX_PAISE)
+
+
+@app.post("/api/reapprove/consent")
+def reapprove_consent(body: ReapproveConsentIn, request: Request) -> JSONResponse:
+    """The exact consent a human must sign to raise the cap, for THEIR public key.
+
+    Nothing here is signed and no key is involved: it is the unsigned body, so the
+    browser can sign it with a key that never leaves the browser.
+    """
+    if (limited := _limited(request, "simulate", SIMULATE_LIMIT)) is not None:
+        return limited
+    from amanat.policy.consent import build_widening
+    raise_to = _raise_to(body.envelope, body.ceiling)
+    consent = build_widening(
+        _reapproval_envelope(body.envelope), new_max_total=raise_to,
+        new_max_per_txn=raise_to, reason="rider approved the higher fare",
+        public_key_hex=body.public_key.lower())
+    return JSONResponse({"consent": consent, "raise_to": raise_to})
 
 
 @app.post("/api/reapprove")
 def reapprove(body: ReapproveIn, request: Request) -> JSONResponse:
     """Re-approval: a fare above the cap, then the human raises it and signs.
 
-    The agent's over-cap block is refused, the agent asks, a human key signs a
-    widened envelope, and only then does the block go through and settle. The
-    signed re-consent lands in the same chain, so the receipt shows who raised
-    the cap and by how much — the agent never widened its own grant.
+    The agent's over-cap block is refused, the agent asks, and the human's own
+    device signs a widened envelope (see `/api/reapprove/consent`); this endpoint
+    verifies that signature and applies it. The signed re-consent lands in the same
+    chain, so the receipt shows who raised the cap and by how much — the agent
+    never widened its own grant, and this server never held the human's key.
     """
     if (limited := _limited(request, "simulate", SIMULATE_LIMIT)) is not None:
         return limited
-    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
-    env = Envelope(
-        subject="demo", max_total=body.envelope.budget,
-        max_per_txn=body.envelope.per_txn, allowed_payees=[body.envelope.payee],
-        expires_at=datetime.now(timezone.utc) + timedelta(hours=body.envelope.hours),
-        intent_text="re-approval demo")
-    session = AgentSession(env, SimulatedRail("sbmd", customer_balance=MAX_PAISE))
+    session = AgentSession(_reapproval_envelope(body.envelope),
+                           SimulatedRail("sbmd", customer_balance=MAX_PAISE))
     payee = body.payee or body.envelope.payee
-    raise_to = max(body.ceiling, body.envelope.budget + 1)
+    raise_to = _raise_to(body.envelope, body.ceiling)
 
     steps = []
     def rec(kind, amount, r):
@@ -280,8 +321,7 @@ def reapprove(body: ReapproveIn, request: Request) -> JSONResponse:
     session.propose_raise(raise_to, reason="the metered fare is above the current cap")
     steps.append({"type": "propose_raise", "amount": raise_to, "ok": False,
                   "detail": "agent asks the human to raise the cap"})
-    ok = session.approve_raise(raise_to, Ed25519PrivateKey.generate(),
-                               new_max_per_txn=raise_to, reason="rider approved the higher fare")
+    ok = session.approve_raise_signed(body.consent)
     steps.append({"type": "approve_raise", "amount": raise_to, "ok": ok.ok, "detail": ok.detail})
     rec("reserve", body.ceiling, session.reserve(body.ceiling, payee, "block at the raised cap"))
     rec("debit", body.actual, session.debit(body.actual, "metered fare"))

@@ -74,3 +74,11 @@ class TestExportedPacketIsSelfContained:
         packet["entries"][0]["payload"]["amt"] = 2
         with pytest.raises(ChainVerificationError):
             EvidenceChain.verify_packet(packet)
+
+
+class TestAKeylessChainFailsLoudlyEvenUnderOptimisation:
+    """`assert` is stripped by `python -O`; an invariant that guards evidence must not be."""
+
+    def test_asking_a_chain_with_no_key_for_its_public_key_raises_a_real_error(self):
+        with pytest.raises(RuntimeError, match="no signing key"):
+            EvidenceChain(subject="s").public_key_hex

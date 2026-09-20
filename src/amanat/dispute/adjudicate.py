@@ -1,11 +1,11 @@
 """Adjudicate a signed settlement chain against an AP2 authorization.
 
-The market's agent-payment stacks — AP2, ACP, x402, Visa TAP, Mastercard Agent
-Pay — all establish that an agent was *permitted* to spend, and stop there. The
-contested question comes after: a cardholder says "my agent did it," and today
-there is no post-transaction record to settle it against. This project produces
-exactly that record — a signed chain of what the money did, refusals included —
-so this module reads the chain against the AP2 mandate that authorized it and
+AP2, ACP and x402 establish what an agent may spend and attest a payment's
+outcome; in the specifications read for this project, post-authorisation dispute
+evidence is out of scope or an open request rather than a defined record. The
+contested question comes after: a cardholder says "my agent did it." This project
+produces a record to settle it against — a signed chain of what the money did,
+refusals included — so this module reads the chain against the AP2 mandate that authorized it and
 states, with citations, what the evidence shows.
 
 Two things are checked before any reasoning happens, because a finding is only
@@ -31,18 +31,14 @@ from dataclasses import dataclass, field
 from enum import Enum
 
 from amanat.evidence.chain import ChainVerificationError, EvidenceChain
+from amanat.evidence.transitions import (
+    DEBIT_LIKE, REFUND_LIKE, is_effective, transition_name, unresolved_in_doubt,
+)
 from amanat.interop.ap2 import from_open_payment_mandate, verify_mandate
 
 DISCLAIMER = ("This is an evidence finding, not an issuer decision. It states "
               "what the signed record shows about authorization and settlement; "
               "it makes no claim about whether a dispute would be won.")
-
-# What the money actually did, by transition. Debit-like transitions moved money
-# from the customer; refund-like ones returned it. A release returns funds that
-# were blocked but never debited, so it does not reduce what was charged.
-_DEBIT_LIKE = {"debit", "debited", "captured"}
-_REFUND_LIKE = {"refunded"}
-
 
 class Finding(Enum):
     SUPPORTS_MERCHANT = "supports_merchant"        # authorized and within bounds
@@ -77,11 +73,6 @@ def _rs(paise: int) -> str:
     return f"₹{paise / 100:,.2f}"
 
 
-def _transition(e: dict) -> str:
-    p = e["payload"]
-    return str(p.get("action") or p.get("transition") or "").lower()
-
-
 def adjudicate(packet: dict, mandate: dict, assertion: str, *,
                disputed_amount: int | None = None) -> Adjudication:
     """Walk `packet` against the AP2 `mandate` and state what the evidence shows.
@@ -112,6 +103,19 @@ def adjudicate(packet: dict, mandate: dict, assertion: str, *,
              "can be adjudicated against a grant that cannot be trusted."],
             [], 0, {})
 
+    # A chain that began under a signed mandate records which one. A different
+    # mandate — even one validly signed by someone else — is not the grant it ran under.
+    first = next((e for e in packet["entries"] if e["event_type"] == "envelope"), {})
+    grant = (first.get("payload") or {}).get("grant") or {}
+    if grant.get("signed") and mandate.get("signature") != grant.get("mandate_signature"):
+        return Adjudication(
+            assertion, Finding.MANDATE_UNVERIFIED,
+            "The mandate supplied is not the grant this record ran under.",
+            ["The chain records that it began under a mandate with a specific signature "
+             "(entry #0); the mandate supplied carries a different one. Nothing can be "
+             "adjudicated against a grant the record never ran under."],
+            [], 0, {})
+
     key_hint = ((mandate.get("cnf") or {}).get("jwk", {}).get("x") or "")[:12]
     binding = "verified" if bound else "absent"
     binding_note = (
@@ -135,10 +139,23 @@ def _reason(packet: dict, mandate: dict, assertion: str,
                   "allowed_payees": list(env.allowed_payees)}
 
     entries = packet["entries"]
-    debits = [e for e in entries
-              if e["event_type"] == "rail_transition" and _transition(e) in _DEBIT_LIKE]
-    refunds = [e for e in entries
-               if e["event_type"] == "rail_transition" and _transition(e) in _REFUND_LIKE]
+    transitions = [e for e in entries if e["event_type"] == "rail_transition"]
+    debits = [e for e in transitions if transition_name(e["payload"]) in DEBIT_LIKE
+              and is_effective(e["payload"])]
+    refunds = [e for e in transitions if transition_name(e["payload"]) in REFUND_LIKE
+               and is_effective(e["payload"])]
+    # A debit the rail rejected is an attempt, not a charge: it moved no money.
+    rejected = [e for e in transitions if transition_name(e["payload"]) in DEBIT_LIKE
+                and not is_effective(e["payload"])]
+    rejected_note = [f"The rail rejected a debit of {_rs(e['payload'].get('amount', 0))} "
+                     f"at entry #{e['seq']} — it moved no money." for e in rejected]
+    # A call that ended in doubt may have moved money the record cannot show.
+    in_doubt = unresolved_in_doubt(entries)
+    debits_in_doubt = [e for e in in_doubt if e["payload"].get("action") in DEBIT_LIKE]
+    doubt_note = [f"The rail call at entry #{e['seq']} ({e['payload'].get('action')} of "
+                  f"{_rs(e['payload'].get('amount', 0))}) ended in doubt and has no recorded "
+                  "outcome, so money may have moved that this record cannot show."
+                  for e in in_doubt]
     refusals = [e for e in entries if e["event_type"] == "refusal"]
     auth_seq = next((e["seq"] for e in entries
                      if e["event_type"] in ("envelope", "intent")), None)
@@ -156,6 +173,15 @@ def _reason(packet: dict, mandate: dict, assertion: str,
              "stated rather than papered over."],
             [], net, authorized)
 
+    nothing_charged = net <= 0 or (
+        disputed_amount is not None and
+        not any(e["payload"].get("amount") == disputed_amount for e in debits))
+    if nothing_charged and debits_in_doubt:
+        return Adjudication(
+            assertion, Finding.OUTSIDE_EVIDENCE,
+            "The signed record cannot say whether money was charged.",
+            doubt_note + rejected_note, [e["seq"] for e in debits_in_doubt], net, authorized)
+
     # A specific disputed amount that never became a debit — most often because
     # the policy engine refused it. That is the strongest thing the chain can say.
     if disputed_amount is not None and not any(
@@ -163,6 +189,8 @@ def _reason(packet: dict, mandate: dict, assertion: str,
         blocked = [e for e in refusals
                    if e["payload"].get("proposed_amount") == disputed_amount]
         reasons = [f"No debit of {_rs(disputed_amount)} appears anywhere in the chain."]
+        reasons += [n for n, e in zip(rejected_note, rejected)
+                    if e["payload"].get("amount") == disputed_amount]
         if blocked:
             reasons.append(f"An attempt to move {_rs(disputed_amount)} was refused "
                            f"at entry #{blocked[0]['seq']} "
@@ -176,8 +204,9 @@ def _reason(packet: dict, mandate: dict, assertion: str,
         return Adjudication(
             assertion, Finding.CHARGE_NOT_IN_CHAIN,
             "Nothing was charged in this record.",
-            [f"The chain records {len(refusals)} refusal(s) and no net debit."],
-            [r["seq"] for r in refusals], net, authorized)
+            [f"The chain records {len(refusals)} refusal(s) and no net debit."]
+            + rejected_note,
+            [r["seq"] for r in refusals] + [e["seq"] for e in rejected], net, authorized)
 
     # Something was charged. Was every debit inside the AP2 grant?
     cited = ([auth_seq] if auth_seq is not None else []) + [e["seq"] for e in debits]
@@ -203,6 +232,7 @@ def _reason(packet: dict, mandate: dict, assertion: str,
         if net > env.max_total:
             reasons.append(f"Net charged {_rs(net)} exceeds the authorized total "
                            f"{_rs(env.max_total)}.")
+        reasons += doubt_note
         return Adjudication(
             assertion, Finding.SUPPORTS_CARDHOLDER,
             "A charge fell outside the authorization.",
@@ -223,6 +253,7 @@ def _reason(packet: dict, mandate: dict, assertion: str,
     if refunds:
         reasons.append(f"{_rs(sum(e['payload'].get('amount', 0) for e in refunds))} "
                        f"was returned, leaving a net charge of {_rs(net)}.")
+    reasons += rejected_note + doubt_note
     return Adjudication(
         assertion, Finding.SUPPORTS_MERCHANT,
         f"The {_rs(net)} charged was authorized and within every bound.",

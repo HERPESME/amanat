@@ -73,3 +73,14 @@ class TestTamperedChainIsRefusedNotReconciled:
         r = reconcile(FakeRail(620_00, 620_00, 150_00), "pay_X", packet)
         assert r.reconciled is False
         assert "verify" in r.detail.lower() or "tamper" in r.detail.lower()
+
+
+class TestARejectedTransitionIsNotMoneyMoved:
+    def test_a_capture_the_rail_rejected_does_not_count_toward_the_chains_net(self):
+        from amanat.evidence.chain import Actor, EventType, EvidenceChain
+        c = EvidenceChain.new(subject="pay_X")
+        c.append(Actor.RAIL, EventType.RAIL_TRANSITION,
+                 {"action": "debit", "amount": 620_00, "outcome": "rail_rejected"})
+        r = reconcile(FakeRail(620_00, 0, 0), "pay_X", c.export_packet())
+        assert r.chain_net == 0
+        assert r.reconciled is True

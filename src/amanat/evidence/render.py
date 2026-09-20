@@ -15,9 +15,13 @@ WebCrypto needs a secure context, so the standalone file only verifies fully whe
 served over https; the `--artifact` form is meant to be published and opened over
 https, where it works.
 
-Browser/Python hash parity holds because `chain._canonical` uses
-`ensure_ascii=False`; `test_render` ports the page's `canonical()` to Python and
-proves it reproduces every stored hash.
+Browser/Python hash parity holds because both sides implement the same canonical
+bytes (`amanat.evidence.canonical`, RFC 8785 restricted to integers); the tests
+execute this page's real JavaScript under Node and compare.
+
+A green result proves the packet is internally consistent and signed by the key
+it shows — not who holds that key. Open the page with `#key=<hex>` (and/or
+`#len=<n>&head=<hash>`) to bind it to a key or checkpoint you already hold.
 """
 from __future__ import annotations
 
@@ -37,14 +41,43 @@ _VERIFY_JS = r"""
 let PACKET = null, GENESIS = null;
 async function setPacket(p) { PACKET = p; GENESIS = p.genesis_hash; await loadKey(); }
 
-// Canonical JSON matching Python json.dumps(sort_keys=True,
-// separators=(',',':'), ensure_ascii=False).
+// Canonical bytes, two generations. A packet declares which one its hashes were
+// taken over (`canonicalization`); a packet that declares nothing is legacy.
+//
+// jcs-int: RFC 8785 restricted to integers. Keys sort by UTF-16 code unit (which
+// is what Array.prototype.sort does); numbers must be safe integers; nothing is
+// stringified. Must match amanat.evidence.canonical byte for byte — the tests
+// execute this very source under Node.
 function canonical(v) {
-  if (v === null || typeof v !== 'object') return JSON.stringify(v);
-  if (Array.isArray(v)) return '[' + v.map(canonical).join(',') + ']';
-  return '{' + Object.keys(v).sort()
-    .map(k => JSON.stringify(k) + ':' + canonical(v[k])).join(',') + '}';
+  if (v === null) return 'null';
+  switch (typeof v) {
+    case 'boolean': return v ? 'true' : 'false';
+    case 'string': return JSON.stringify(v);
+    case 'number':
+      if (!Number.isSafeInteger(v)) throw new Error('non-integer or unsafe number ' + v);
+      return String(v);
+    case 'object':
+      if (Array.isArray(v)) return '[' + v.map(canonical).join(',') + ']';
+      return '{' + Object.keys(v).sort()
+        .map(k => JSON.stringify(k) + ':' + canonical(v[k])).join(',') + '}';
+    default: throw new Error('unsupported value of type ' + typeof v);
+  }
 }
+// amanat-v1 (legacy): Python json.dumps(sort_keys=True, separators=(',', ':'),
+// ensure_ascii=False). Kept so packets exported before jcs-int still verify.
+function canonicalV1(v) {
+  if (v === null || typeof v !== 'object') return JSON.stringify(v);
+  if (Array.isArray(v)) return '[' + v.map(canonicalV1).join(',') + ']';
+  return '{' + Object.keys(v).sort()
+    .map(k => JSON.stringify(k) + ':' + canonicalV1(v[k])).join(',') + '}';
+}
+function canonicalFor(p) { return p && p.canonicalization === 'jcs-int' ? canonical : canonicalV1; }
+function digestInputFor(e, canon) {
+  return canon({ seq: e.seq, prev_hash: e.prev_hash, timestamp: e.timestamp,
+    actor: e.actor, event_type: e.event_type, payload: e.payload });
+}
+function digestInput(e) { return digestInputFor(e, canonicalFor(PACKET)); }
+
 function hexToBytes(h) {
   const a = new Uint8Array(h.length / 2);
   for (let i = 0; i < a.length; i++) a[i] = parseInt(h.substr(i * 2, 2), 16);
@@ -61,12 +94,57 @@ async function loadKey() {
       { name: 'Ed25519' }, false, ['verify']);
   } catch (e) { ed25519 = false; }
 }
-function digestInput(e) {
-  return canonical({ seq: e.seq, prev_hash: e.prev_hash, timestamp: e.timestamp,
-    actor: e.actor, event_type: e.event_type, payload: e.payload });
+
+// What a green result is allowed to mean. A packet embeds the key it was signed
+// with, so on its own it proves only that it is internally consistent and signed
+// by that key — anyone can produce such a packet. It is bound to a party only by
+// something the reader already holds: the signer's key (#key=<hex>) or a
+// checkpoint of the chain (#len=<n>&head=<hash>) taken earlier, which also
+// exposes entries removed from the end.
+function assessTrust(packet, fragment) {
+  const pins = {};
+  String(fragment || '').replace(/^#/, '').split('&').forEach(kv => {
+    const i = kv.indexOf('=');
+    if (i > 0) pins[kv.slice(0, i)] = decodeURIComponent(kv.slice(i + 1));
+  });
+  const out = { ok: true, keyPinned: false, checkpointPinned: false, lines: [] };
+  if (pins.key) {
+    const match = pins.key.toLowerCase() === String(packet.public_key).toLowerCase();
+    out.ok = out.ok && match; out.keyPinned = match;
+    out.lines.push(match ? 'The signing key matches the key you pinned.'
+      : 'The signing key does NOT match the key you pinned — this packet was not signed by that party.');
+  } else {
+    out.lines.push('Signing key not pinned: this shows the record is internally consistent and '
+      + 'signed by the key above, not who holds that key — anyone can produce such a packet. '
+      + 'Pin the key you trust by opening this page with #key=<hex>.');
+  }
+  const n = parseInt(pins.len, 10);
+  if (pins.head || pins.len) {
+    if (!pins.head || !(n > 0)) {
+      out.ok = false;
+      out.lines.push('A checkpoint needs both len and head; it was not applied.');
+    } else if (packet.entries.length < n) {
+      out.ok = false;
+      out.lines.push('Truncated: the packet has ' + packet.entries.length
+        + ' entries but the checkpoint covers ' + n + '.');
+    } else if (packet.entries[n - 1].hash !== pins.head) {
+      out.ok = false;
+      out.lines.push('This packet does not extend the checkpoint you pinned: entry '
+        + (n - 1) + ' differs from the committed head.');
+    } else {
+      out.checkpointPinned = true;
+      out.lines.push('The packet extends the checkpoint you pinned (' + n + ' entries).');
+    }
+  } else {
+    out.lines.push('No checkpoint pinned: entries removed from the end of the record '
+      + 'would not be detected.');
+  }
+  return out;
 }
+
 async function verifyEntry(e, expectedPrev) {
-  const hashOK = (await sha256hex(digestInput(e))) === e.hash;
+  let hashOK = false;
+  try { hashOK = (await sha256hex(digestInput(e))) === e.hash; } catch (_) { hashOK = false; }
   const linkOK = e.prev_hash === expectedPrev;
   let sigOK = true;
   if (ed25519 && pubKey)
@@ -94,12 +172,16 @@ async function verifyAll() {
     if (!r.ok && brokenAt === null) { brokenAt = i; allOK = false; }
     prev = entries[i].hash;
   }
+  const trust = assessTrust(PACKET, typeof location !== 'undefined' ? location.hash : '');
   const b = document.getElementById('banner'), t = document.getElementById('banner-text');
-  b.className = 'banner ' + (allOK ? 'ok' : 'bad');
-  t.textContent = allOK
-    ? (ed25519 ? 'Verified — every entry signed, hashed and linked'
-               : 'Hash-linked — signatures unchecked (this browser lacks Ed25519)')
-    : 'Tampered — entry ' + brokenAt + ' no longer matches its signature';
+  b.className = 'banner ' + (allOK && trust.ok ? 'ok' : 'bad');
+  t.textContent = !allOK ? 'Tampered — entry ' + brokenAt + ' no longer matches its signature'
+    : !trust.ok ? 'Internally consistent — but NOT what you pinned'
+    : !ed25519 ? 'Hash-linked — signatures unchecked (this browser lacks Ed25519)'
+    : trust.keyPinned ? 'Verified against the key you pinned — every entry signed, hashed and linked'
+    : 'Consistent — every entry is hash-linked and signed by the key shown (key not pinned)';
+  const tr = document.getElementById('trust');
+  if (tr) tr.textContent = trust.lines.join(' ');
 }
 function tamper() {
   const idx = PACKET.entries.findIndex(e => e.event_type === 'rail_transition');
@@ -140,6 +222,7 @@ _STANDALONE = """<!doctype html>
   <h1>Evidence packet — <code>__SUBJECT__</code></h1>
   <div id="banner" class="banner"><span id="banner-text">Verifying…</span></div>
   <p>public key <code id="pk"></code> · <span id="count"></span></p>
+  <p id="trust" style="color:#9aa3b2;font-size:13px"></p>
   <div><button onclick="verifyAll()">Re-verify</button>
        <button onclick="tamper()">Tamper</button>
        <button onclick="location.reload()">Reset</button></div>
@@ -285,6 +368,7 @@ pre:focus{outline:none;border-color:var(--brand)}
     <span id="count"></span>
     <span>signed with Ed25519 · hash-linked with SHA-256</span>
   </div>
+  <p class="note" id="trust" style="margin:-.75rem 0 1.5rem;border:0;padding:0"></p>
 
   <div class="controls">
     <button onclick="verifyAll()">Re-verify</button>
