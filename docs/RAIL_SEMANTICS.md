@@ -508,6 +508,8 @@ Signup at bridge.setu.co is genuinely self-serve and the token endpoint accepts 
 — probed 21 Aug 2026 — DNS via Google 8.8.8.8 and Cloudflare 1.1.1.1, https://docs.setu.co/payments/umap/quickstart
 
 The two hosts the UMAP docs name for sandbox and production do not exist in public DNS, while accountservice.setu.co and bridge.setu.co resolve normally. So the API surface is gated behind onboarding, private DNS or an allowlist — not reachable from a self-serve signup. Invisible until you hold credentials and try: every earlier signal, including a 200 from the token endpoint, said the rail was reachable. Reproduce with `python -m amanat.rails.probe`.
+That explanation is an inference from DNS alone; nothing here shows why the names do not resolve.
+Re-run on 21 Sep 2026 (the row keeps its 21 Aug date): NXDOMAIN has become NOERROR with no address record, from both resolvers, and a name that cannot exist (`zz-amanat-1.setu.co`) answers exactly the same way, so the zone now returns an empty answer for any name it has no address for. Neither host has an A, AAAA or CNAME record and neither is reachable by HTTPS from here; accountservice.setu.co and bridge.setu.co still resolve. The finding stands as 'no address record', not as NXDOMAIN.
 
 **`block_amount_modifiable_without_revoke`**
 

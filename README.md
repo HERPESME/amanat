@@ -484,13 +484,15 @@ loads nothing from outside. Open the file, or run the console and visit `/regist
 
 Rails that are [Hyperswitch](https://github.com/juspay/hyperswitch) connectors — Stripe, Adyen, Razorpay — carry the
 connector's name (`hyperswitch_connector` in the export), so the registry can be joined to Hyperswitch's own public
-capability matrix, which records per connector and payment-method type the capture methods, mandates, refunds and 3DS
-support it derives from its connector implementations. That matrix carries no quote, date or source for a flag, and does
-not say what becomes of the remainder after a partial capture, how long a hold lives or whether a retry acts once; this
-registry answers those three, with a dated sentence for each. The overlap is three rails. The mapping is checked offline
-against an unmodified copy of their `Connector` enum at a pinned commit. Cashfree, Setu, Visa's card network and the x402
-schemes are not connectors there (Hyperswitch lists Visa and Mastercard Click to Pay, a different product), so those rails
-carry none.
+capability matrix ([`/feature_matrix`](https://api.hyperswitch.io/feature_matrix): 138 connectors on 21 Sep 2026), which
+records per connector and payment-method type the capture methods (Adyen's include multiple capture), mandates,
+refunds and 3DS support. That matrix carries no quote, date or source for a flag, and does not say what becomes of the
+remainder after a partial capture, how long a hold lives or whether a retry acts once; this registry answers those
+three, with a dated sentence for each. The overlap is three rails, and on Razorpay the two do not describe the same
+thing yet: theirs is a sandbox-status UPI collect integration with automatic capture only. The mapping is checked
+offline against an unmodified copy of their `Connector` enum at a pinned commit. Cashfree, Setu, Visa's card network
+and the x402 schemes are not connectors there (Hyperswitch lists Visa and Mastercard Click to Pay, a different
+product), so those rails carry none.
 
 A dated snapshot in prose: [Rail Semantics Report #1](docs/reports/rail-semantics-report-1.md), generated from the
 registry and the evidence streams behind it, so every number and list in it is computed and CI fails if it drifts. It

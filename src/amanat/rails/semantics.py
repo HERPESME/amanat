@@ -1678,7 +1678,16 @@ SETU_UMAP = RailProfile(
                 "from a self-serve signup. Invisible until you hold credentials "
                 "and try: every earlier signal, including a 200 from the token "
                 "endpoint, said the rail was reachable. Reproduce with "
-                "`python -m amanat.rails.probe`."
+                "`python -m amanat.rails.probe`.\n"
+                "That explanation is an inference from DNS alone; nothing here shows why "
+                "the names do not resolve.\n"
+                "Re-run on 21 Sep 2026 (the row keeps its 21 Aug date): NXDOMAIN has become "
+                "NOERROR with no address record, from both resolvers, and a name that "
+                "cannot exist (`zz-amanat-1.setu.co`) answers exactly the same way, so "
+                "the zone now returns an empty answer for any name it has no address for. "
+                "Neither host has an A, AAAA or CNAME record and neither is reachable by "
+                "HTTPS from here; accountservice.setu.co and bridge.setu.co still resolve. "
+                "The finding stands as 'no address record', not as NXDOMAIN."
             ),
         ),
         Capability(

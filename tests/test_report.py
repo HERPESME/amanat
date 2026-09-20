@@ -303,6 +303,9 @@ class TestTheVendorNote:
         for host in ("uatapi.setu.co", "api.setu.co", "accountservice.setu.co", "bridge.setu.co"):
             assert host in note
         assert "21 Aug 2026" in note and "trigger 3" in note
+        assert "Re-run on 21 Sep 2026" in note and "no address record" in note, "the lookup was repeated before sending"
+        assert "NXDOMAIN has become NOERROR" in note
+        assert "Re-run on 21 Sep 2026" in row["notes"] and "a name that cannot exist" in row["notes"]
 
     def test_a_source_that_says_it_is_confidential_is_named_with_the_decision_it_needs(self):
         note = _flat(self.NOTE)

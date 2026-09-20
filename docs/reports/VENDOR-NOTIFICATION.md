@@ -68,9 +68,11 @@ report is published.
 4. **Setu: two documented hosts that did not resolve.** On 21 Aug 2026 the UMAP quickstart named
    `uatapi.setu.co` (sandbox) and `api.setu.co` (production), and neither resolved in public DNS from two
    resolvers, while `accountservice.setu.co` and `bridge.setu.co` did. The documented behaviour could not be
-   reproduced (trigger 3). This is one lookup on one day, so it is re-run before anything is sent, and the
-   likeliest explanation is an allowlist or private DNS rather than an error. It is recorded as an
-   observation made by hand: the answer is not in the evidence store.
+   reproduced (trigger 3). Re-run on 21 Sep 2026 before anything is sent: NXDOMAIN has become NOERROR with no
+   address record, from both resolvers, and a name that cannot exist answers the same way, so the finding
+   stands as "no address record", not as NXDOMAIN; neither host is reachable by HTTPS from here. The likeliest
+   explanation is an allowlist or private DNS rather than an error, and DNS alone does not show it. It is
+   recorded as an observation made by hand: the answer is not in the evidence store.
 
 ## Sources that carry a notice
 
