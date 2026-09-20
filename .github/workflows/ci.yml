@@ -15,6 +15,12 @@ jobs:
         with:
           enable-cache: true
 
+      # The verifier page's JavaScript is executed under Node and compared with
+      # Python byte for byte; the tests fail (not skip) if Node is missing.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
       - name: Containment suite
         # The governance guarantees must hold with no API key and no network.
         # If this ever needs a credential to pass, the guarantees are not real.
