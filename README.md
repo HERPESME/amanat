@@ -473,6 +473,12 @@ matrix — questions down, rails across — where every cell is one rail's answe
 rests on, the date, and whether the source has been re-read since. It works without JavaScript and
 loads nothing from outside. Open the file, or run the console and visit `/registry/`.
 
+A dated snapshot in prose: [Rail Semantics Report #1](docs/reports/rail-semantics-report-1.md), generated from the
+registry and the evidence streams behind it, so every number and list in it is computed and CI fails if it drifts. It
+is a draft for a person to publish. Anything in it that reads as a bug in a vendor's product should reach that vendor
+first — [`docs/reports/VENDOR-NOTIFICATION.md`](docs/reports/VENDOR-NOTIFICATION.md) says how, and lists the three
+items in the current data that would need it. Nothing has been sent.
+
 Every quote is also **re-checked against the page it cites** — `python -m amanat.registry.watch`
 fetches the source and the quote must still appear verbatim (or, where a row marks a gap with `…`,
 each piece in order). Results go to a hash-chained, append-only log,

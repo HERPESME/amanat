@@ -42,8 +42,9 @@ jobs:
         run: |
           uv run --extra dev python -m amanat.registry.export
           uv run --extra dev python -m amanat.registry.page
-          git diff --exit-code -- docs/registry \
-            || { echo "::error::docs/registry is stale — run python -m amanat.registry.export and python -m amanat.registry.page"; exit 1; }
+          uv run --extra dev python -m amanat.registry.report
+          git diff --exit-code -- docs/registry docs/reports \
+            || { echo "::error::docs/registry or docs/reports is stale — run python -m amanat.registry.export, .page and .report"; exit 1; }
 
       - name: No unverified capability is silently permitted
         run: |
