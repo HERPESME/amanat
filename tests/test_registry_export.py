@@ -169,14 +169,14 @@ class TestVerificationInTheExport:
                 "quote_sha256": watch.quote_hash(quote if quote is not None else row.quote)}
 
     def test_a_row_with_no_recorded_check_has_null_verification(self, tmp_path):
-        doc = export.build(watch_path=tmp_path / "none.jsonl")
+        doc = export.build(store_dir=tmp_path)
         assert all(row["verification"] is None for _, row in _rows(doc) + _rows(doc, "limits"))
         assert doc["stores"] == []
 
     def test_the_latest_check_and_its_date_are_exported(self, tmp_path):
         path = tmp_path / "watch.jsonl"
         h = self._run(path, [self._res()], "2026-09-20T12:00:00Z")
-        doc = export.build(watch_path=path)
+        doc = export.build(store_dir=tmp_path)
         v = _first(doc, lambda c: c["name"] == "partial_void")["verification"]
         assert v["result"] == "verified" and v["checked_on"] == "2026-09-20"
         assert v["quote_current"] is True and v["checks"] == 1 and v["changes"] == []
@@ -185,45 +185,45 @@ class TestVerificationInTheExport:
     def test_a_skipped_result_is_not_a_check(self, tmp_path):
         path = tmp_path / "watch.jsonl"
         self._run(path, [self._res(result="skipped")], "2026-09-20T12:00:00Z")
-        doc = export.build(watch_path=path)
+        doc = export.build(store_dir=tmp_path)
         assert _first(doc, lambda c: c["name"] == "partial_void")["verification"] is None
 
     def test_a_change_of_result_is_recorded_with_its_date(self, tmp_path):
         path = tmp_path / "watch.jsonl"
         self._run(path, [self._res()], "2026-09-20T12:00:00Z")
         self._run(path, [self._res(result="not_found")], "2026-09-25T12:00:00Z")
-        v = _first(export.build(watch_path=path), lambda c: c["name"] == "partial_void")["verification"]
+        v = _first(export.build(store_dir=tmp_path), lambda c: c["name"] == "partial_void")["verification"]
         assert v["result"] == "not_found" and v["checks"] == 2
         assert v["changes"] == [{"on": "2026-09-25", "from": "verified", "to": "not_found"}]
 
     def test_a_quote_edited_after_its_check_is_not_current(self, tmp_path):
         path = tmp_path / "watch.jsonl"
         self._run(path, [self._res(quote="the quote as it was before someone edited the row")], "2026-09-20T12:00:00Z")
-        v = _first(export.build(watch_path=path), lambda c: c["name"] == "partial_void")["verification"]
+        v = _first(export.build(store_dir=tmp_path), lambda c: c["name"] == "partial_void")["verification"]
         assert v["quote_current"] is False
 
     def test_limits_carry_verification_too(self, tmp_path):
         path = tmp_path / "watch.jsonl"
         self._run(path, [self._res(name="hold_expiry_days", kind="limit")], "2026-09-20T12:00:00Z")
-        v = _first(export.build(watch_path=path), lambda l: l["name"] == "hold_expiry_days", "limits")["verification"]
+        v = _first(export.build(store_dir=tmp_path), lambda l: l["name"] == "hold_expiry_days", "limits")["verification"]
         assert v["result"] == "verified"
 
     def test_the_head_of_each_store_is_exported_as_a_checkpoint(self, tmp_path):
         path = tmp_path / "watch.jsonl"
         self._run(path, [self._res()], "2026-09-20T12:00:00Z")
         h = self._run(path, [self._res()], "2026-09-21T12:00:00Z")
-        doc = export.build(watch_path=path)
+        doc = export.build(store_dir=tmp_path)
         assert doc["stores"] == [{"stream": "watch", "length": 2, "head": h}]
 
     def test_the_export_validates_with_verification_present(self, tmp_path):
         path = tmp_path / "watch.jsonl"
         self._run(path, [self._res()], "2026-09-20T12:00:00Z")
-        _validate(export.build(watch_path=path))
+        _validate(export.build(store_dir=tmp_path))
 
     def test_as_of_counts_a_recent_check(self, tmp_path):
         path = tmp_path / "watch.jsonl"
         self._run(path, [self._res()], "2030-01-02T12:00:00Z")
-        assert export.build(watch_path=path)["as_of"] == "2030-01-02"
+        assert export.build(store_dir=tmp_path)["as_of"] == "2030-01-02"
 
     def test_a_tampered_store_refuses_to_export(self, tmp_path):
         path = tmp_path / "watch.jsonl"
@@ -234,7 +234,7 @@ class TestVerificationInTheExport:
         path.write_bytes(b"\n".join(lines))
         from amanat.registry.store import StoreError
         with pytest.raises(StoreError):
-            export.build(watch_path=path)
+            export.build(store_dir=tmp_path)
 
     def test_the_schema_refuses_a_malformed_verification(self):
         bad = copy.deepcopy(export.build())
@@ -258,3 +258,84 @@ class TestTheCommittedSourcesAreExported:
         doc = export.build()
         cited = {row["url"] for _, row in _rows(doc) + _rows(doc, "limits")}
         assert all(src["url"] in cited for src in doc["sources"])
+
+
+class TestProbeObservationsInTheExport:
+    """A row that names a probe says what the latest conclusive run found and whether it agrees."""
+
+    ROW = ("cashfree_preauth", "void_whole_hold")          # OBSERVED, supported=True, probe_id set
+
+    @staticmethod
+    def _obs(supported, at="2026-09-20T12:00:00Z", **kw):
+        probe_id = kw.get("probe_id", "cashfree_preauth.void_whole_hold")
+        return {"probe_id": probe_id, "rail_id": "cashfree_preauth", "environment": "sandbox",
+                "findings": [{"capability": kw.get("cap", "void_whole_hold"), "supported": supported,
+                              "basis": "b", "step": "s"}]}
+
+    def _record(self, tmp_path, supported, at):
+        from amanat.probes import runner
+        return runner.record(self._obs(supported), tmp_path / "probes.cashfree_preauth.jsonl", at=at)
+
+    def _row(self, doc):
+        return _first(doc, lambda c: c["name"] == "void_whole_hold")
+
+    def test_a_probed_row_with_no_recorded_run_has_no_observation(self, tmp_path):
+        assert self._row(export.build(store_dir=tmp_path))["observation"] is None
+
+    def test_a_row_without_a_probe_never_has_one(self, tmp_path):
+        self._record(tmp_path, True, "2026-09-20T12:00:00Z")
+        doc = export.build(store_dir=tmp_path)
+        assert _first(doc, lambda c: c["name"] == "self_serve_enablement")["observation"] is None
+
+    def test_the_latest_conclusive_answer_is_exported_with_whether_it_agrees(self, tmp_path):
+        h = self._record(tmp_path, True, "2026-09-20T12:00:00Z")
+        o = self._row(export.build(store_dir=tmp_path))["observation"]
+        assert o["probe_id"] == "cashfree_preauth.void_whole_hold" and o["runs"] == 1
+        assert o["latest"] == {"supported": True, "observed_on": "2026-09-20", "evidence_hash": h,
+                               "environment": "sandbox", "agrees": True}
+        assert o["changes"] == []
+
+    def test_a_run_that_disagrees_with_the_row_is_flagged(self, tmp_path):
+        self._record(tmp_path, False, "2026-09-20T12:00:00Z")
+        assert self._row(export.build(store_dir=tmp_path))["observation"]["latest"]["agrees"] is False
+
+    def test_an_inconclusive_run_is_not_an_observation(self, tmp_path):
+        self._record(tmp_path, None, "2026-09-20T12:00:00Z")
+        assert self._row(export.build(store_dir=tmp_path))["observation"] is None
+
+    def test_a_change_of_answer_is_listed_with_its_day(self, tmp_path):
+        self._record(tmp_path, True, "2026-09-20T12:00:00Z")
+        self._record(tmp_path, True, "2026-09-21T12:00:00Z")
+        self._record(tmp_path, False, "2026-09-22T12:00:00Z")
+        o = self._row(export.build(store_dir=tmp_path))["observation"]
+        assert o["runs"] == 3 and o["changes"] == [{"on": "2026-09-22", "from": True, "to": False}]
+
+    def test_the_export_validates_with_observations_present(self, tmp_path):
+        self._record(tmp_path, True, "2026-09-20T12:00:00Z")
+        _validate(export.build(store_dir=tmp_path))
+
+    def test_as_of_counts_a_recent_observation(self, tmp_path):
+        self._record(tmp_path, True, "2031-03-04T12:00:00Z")
+        assert export.build(store_dir=tmp_path)["as_of"] == "2031-03-04"
+
+    def test_the_probe_stream_is_checkpointed(self, tmp_path):
+        h = self._record(tmp_path, True, "2026-09-20T12:00:00Z")
+        assert {"stream": "probes.cashfree_preauth", "length": 1, "head": h} in export.build(store_dir=tmp_path)["stores"]
+
+    def test_a_tampered_probe_stream_refuses_to_export(self, tmp_path):
+        self._record(tmp_path, True, "2026-09-20T12:00:00Z")
+        self._record(tmp_path, True, "2026-09-21T12:00:00Z")
+        path = tmp_path / "probes.cashfree_preauth.jsonl"
+        lines = path.read_bytes().split(b"\n")
+        lines[0] = lines[0].replace(b'"supported":true', b'"supported":false')
+        path.write_bytes(b"\n".join(lines))
+        from amanat.registry.store import StoreError
+        with pytest.raises(StoreError):
+            export.build(store_dir=tmp_path)
+
+    def test_the_schema_refuses_a_malformed_observation(self):
+        bad = copy.deepcopy(export.build())
+        row = _first(bad, lambda c: c["name"] == "void_whole_hold")
+        row["observation"] = {"probe_id": "x", "runs": 0, "latest": {}, "changes": []}
+        with pytest.raises(jsonschema.ValidationError):
+            _validate(bad)

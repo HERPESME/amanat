@@ -80,7 +80,8 @@
             "evidence_hash": "c99e362c572dcf67f0706db76027b1ee27b992a33321cc49b998d082d6f800d0",
             "checks": 1,
             "changes": []
-          }
+          },
+          "observation": null
         },
         {
           "name": "post_delivery_debit_goods",
@@ -103,7 +104,8 @@
             "evidence_hash": "c99e362c572dcf67f0706db76027b1ee27b992a33321cc49b998d082d6f800d0",
             "checks": 1,
             "changes": []
-          }
+          },
+          "observation": null
         },
         {
           "name": "post_delivery_debit_variable_amount_services",
@@ -126,7 +128,8 @@
             "evidence_hash": "c99e362c572dcf67f0706db76027b1ee27b992a33321cc49b998d082d6f800d0",
             "checks": 1,
             "changes": []
-          }
+          },
+          "observation": null
         },
         {
           "name": "partial_debit",
@@ -149,7 +152,8 @@
             "evidence_hash": "c99e362c572dcf67f0706db76027b1ee27b992a33321cc49b998d082d6f800d0",
             "checks": 1,
             "changes": []
-          }
+          },
+          "observation": null
         },
         {
           "name": "multi_debit",
@@ -172,7 +176,8 @@
             "evidence_hash": "c99e362c572dcf67f0706db76027b1ee27b992a33321cc49b998d082d6f800d0",
             "checks": 1,
             "changes": []
-          }
+          },
+          "observation": null
         },
         {
           "name": "funds_held_in_customer_account",
@@ -195,7 +200,8 @@
             "evidence_hash": "c99e362c572dcf67f0706db76027b1ee27b992a33321cc49b998d082d6f800d0",
             "checks": 1,
             "changes": []
-          }
+          },
+          "observation": null
         },
         {
           "name": "remainder_auto_released",
@@ -218,7 +224,8 @@
             "evidence_hash": "c99e362c572dcf67f0706db76027b1ee27b992a33321cc49b998d082d6f800d0",
             "checks": 1,
             "changes": []
-          }
+          },
+          "observation": null
         },
         {
           "name": "merchant_revocable",
@@ -241,7 +248,8 @@
             "evidence_hash": "c99e362c572dcf67f0706db76027b1ee27b992a33321cc49b998d082d6f800d0",
             "checks": 1,
             "changes": []
-          }
+          },
+          "observation": null
         },
         {
           "name": "customer_revocable",
@@ -264,7 +272,8 @@
             "evidence_hash": "c99e362c572dcf67f0706db76027b1ee27b992a33321cc49b998d082d6f800d0",
             "checks": 1,
             "changes": []
-          }
+          },
+          "observation": null
         },
         {
           "name": "purpose_code_77_for_online_goods",
@@ -287,7 +296,8 @@
             "evidence_hash": "c99e362c572dcf67f0706db76027b1ee27b992a33321cc49b998d082d6f800d0",
             "checks": 1,
             "changes": []
-          }
+          },
+          "observation": null
         },
         {
           "name": "block_validity_90_days",
@@ -310,7 +320,8 @@
             "evidence_hash": "c99e362c572dcf67f0706db76027b1ee27b992a33321cc49b998d082d6f800d0",
             "checks": 1,
             "changes": []
-          }
+          },
+          "observation": null
         },
         {
           "name": "single_active_block_per_merchant",
@@ -333,7 +344,8 @@
             "evidence_hash": "c99e362c572dcf67f0706db76027b1ee27b992a33321cc49b998d082d6f800d0",
             "checks": 1,
             "changes": []
-          }
+          },
+          "observation": null
         },
         {
           "name": "block_amount_modifiable_without_revoke",
@@ -356,7 +368,8 @@
             "evidence_hash": "c99e362c572dcf67f0706db76027b1ee27b992a33321cc49b998d082d6f800d0",
             "checks": 1,
             "changes": []
-          }
+          },
+          "observation": null
         },
         {
           "name": "block_amount_reducible_without_revoke",
@@ -371,7 +384,8 @@
           "url": "",
           "quote": "",
           "notes": "STILL UNVERIFIED AFTER A FULL PSP SURVEY, AND DELIBERATELY SO. This is the assumption round 4 named as the most likely to be false in the whole project. Round 5 could not settle it.\nWhat is now evidenced is that a block's amount is MODIFIABLE without revoking - see `block_amount_modifiable_without_revoke`. What is not evidenced anywhere is the DIRECTION. Not one of the six PSP doc sets read on 21 Aug 2026, and neither NPCI circular, contains a sentence stating whether a modify may lower a block's amount, or only raise it, or whether it must stay above the amount already drawn down.\nThe only constraints published anywhere are non-directional. Setu's OpenAPI bounds the modify `amountLimit` by 'minimum: 100, maximum: 20000000' paise and nothing else. Razorpay's TPAP Pro modify documents exactly one amount failure, 'Amount must be greater than 0'. Neither forbids a decrease. Neither permits one. Silence is not permission, so this stays UNVERIFIED and `permits()` returns False - the policy engine will refuse to plan around a downward revision, which is the correct default. An agent that assumes it can shrink a block and cannot has stranded the user's money for up to 90 days and has no fallback that keeps the mandate alive.\nHOW TO SETTLE IT, and it is now a one-hour test rather than a one-day one, because the endpoint is named: on Setu staging (umap.setu.co), create a ReservePlus mandate for Rs 500, execute Rs 200, then PUT /v1/merchants/mandates/{id}/modify with amountLimit 30000 paise. Three outcomes, all informative: it succeeds (capability becomes SECONDARY [PARTIAL], supported=True); it is rejected with a directional error (supported=False, and the error string is the citation); or it succeeds at the API and the issuer declines, which is the answer that matters most and the one no document would ever have told us.",
-          "verification": null
+          "verification": null,
+          "observation": null
         },
         {
           "name": "block_modify_requires_customer_afa",
@@ -394,7 +408,8 @@
             "evidence_hash": "c99e362c572dcf67f0706db76027b1ee27b992a33321cc49b998d082d6f800d0",
             "checks": 1,
             "changes": []
-          }
+          },
+          "observation": null
         },
         {
           "name": "remainder_release_without_teardown",
@@ -417,7 +432,8 @@
             "evidence_hash": "c99e362c572dcf67f0706db76027b1ee27b992a33321cc49b998d082d6f800d0",
             "checks": 1,
             "changes": []
-          }
+          },
+          "observation": null
         }
       ],
       "limits": [
@@ -442,7 +458,8 @@
             "evidence_hash": "c99e362c572dcf67f0706db76027b1ee27b992a33321cc49b998d082d6f800d0",
             "checks": 1,
             "changes": []
-          }
+          },
+          "observation": null
         },
         {
           "name": "max_block_validity_days",
@@ -465,7 +482,8 @@
             "evidence_hash": "c99e362c572dcf67f0706db76027b1ee27b992a33321cc49b998d082d6f800d0",
             "checks": 1,
             "changes": []
-          }
+          },
+          "observation": null
         },
         {
           "name": "max_active_blocks_per_merchant",
@@ -488,7 +506,8 @@
             "evidence_hash": "c99e362c572dcf67f0706db76027b1ee27b992a33321cc49b998d082d6f800d0",
             "checks": 1,
             "changes": []
-          }
+          },
+          "observation": null
         }
       ]
     },
@@ -509,7 +528,8 @@
           "url": "https://razorpay.com/docs/api/payments/capture/",
           "quote": "Capture amount must be equal to the amount authorized.",
           "notes": "Not a documentation claim. A test-mode payment was driven to 'authorized' (captured=False) through Razorpay Checkout against an order created with payment_capture=0, then a capture of 47000 was attempted against 62000 authorized. The API returned HTTP 400 with this exact sentence — the doc and the live rail agree word for word. Reproduce with `python -m amanat.rails.authorize` then `python -m amanat.rails.probe --capture <pay_id> 47000`. Forecloses amount-contingent settlement on this rail; the negative is the thing worth demonstrating.",
-          "verification": null
+          "verification": null,
+          "observation": null
         },
         {
           "name": "funds_held_in_customer_account",
@@ -532,7 +552,8 @@
             "evidence_hash": "c99e362c572dcf67f0706db76027b1ee27b992a33321cc49b998d082d6f800d0",
             "checks": 1,
             "changes": []
-          }
+          },
+          "observation": null
         },
         {
           "name": "manual_capture",
@@ -555,7 +576,8 @@
             "evidence_hash": "c99e362c572dcf67f0706db76027b1ee27b992a33321cc49b998d082d6f800d0",
             "checks": 1,
             "changes": []
-          }
+          },
+          "observation": null
         }
       ],
       "limits": []
@@ -577,7 +599,8 @@
           "url": "",
           "quote": "",
           "notes": "CONFLICT, UNRESOLVED. PayU documents: “Once the merchant decides to capture the amount (usually after the goods or services are delivered)...” which contradicts the SBMD debit-before-delivery rule. That is a PSP doc, not an NPCI circular. Build to the STRICTER rule and expose this as a config flag so the system is correct under either reading.",
-          "verification": null
+          "verification": null,
+          "observation": null
         },
         {
           "name": "partial_debit",
@@ -600,7 +623,8 @@
             "evidence_hash": "c99e362c572dcf67f0706db76027b1ee27b992a33321cc49b998d082d6f800d0",
             "checks": 1,
             "changes": []
-          }
+          },
+          "observation": null
         }
       ],
       "limits": []
@@ -617,12 +641,24 @@
           "usable_as_fact": true,
           "environment": "sandbox",
           "obtained_on": "2026-08-29",
-          "probe_id": null,
+          "probe_id": "cashfree_preauth.partial_capture",
           "citation": "measured 29 Aug 2026 (sandbox; the authorisation was forced with POST /simulate) — POST /orders/{id}/authorization action CAPTURE ₹470 of a ₹620 hold, HTTP 200",
           "url": "https://www.cashfree.com/docs/api-reference/payments/latest/payments/authorize",
           "quote": "HTTP 200 · authorization {\"action\":\"CAPTURE\",\"status\":\"SUCCESS\",\"captured_amount\":470.0} · payment_message \"PRE_AUTH|Transaction Success\"",
           "notes": "A sandbox confirmation of the mechanism's debit leg, and the exact shape Razorpay refuses. A pre-auth order (order_note preauth_transaction) was driven to a ₹620 hold in the sandbox — UPI collect on testsuccess@gocash, then POST /simulate to SUCCESS, order_status PAID — and a CAPTURE of ₹470 against it returned HTTP 200 with captured_amount 470.0. Reproduce with `python -m amanat.rails.probe_cashfree`.\nThe authorisation was forced by the sandbox's simulator, so this measures Cashfree's sandbox API, not an issuer's hold. This is a PSP pre-auth primitive (authorize-then-capture-once), a different rail SHAPE from NPCI SBMD's pre-funded drawdown pool. OBSERVED sits below PRIMARY on purpose: a rail can change behaviour after a deploy, a circular cannot — so SBMD's PRIMARY evidence and this OBSERVED evidence are complementary, not redundant.",
-          "verification": null
+          "verification": null,
+          "observation": {
+            "probe_id": "cashfree_preauth.partial_capture",
+            "runs": 1,
+            "latest": {
+              "supported": true,
+              "observed_on": "2026-09-20",
+              "evidence_hash": "ab42693ad787f2cafbfe32312ee83233d8fceb1e29e7942e46e6f00733c3826e",
+              "environment": "sandbox",
+              "agrees": true
+            },
+            "changes": []
+          }
         },
         {
           "name": "void_after_partial_capture",
@@ -632,12 +668,24 @@
           "usable_as_fact": true,
           "environment": "sandbox",
           "obtained_on": "2026-08-29",
-          "probe_id": null,
+          "probe_id": "cashfree_preauth.void_after_partial_capture",
           "citation": "measured 29 Aug 2026 (sandbox) — VOID after a partial CAPTURE, HTTP 400",
           "url": "https://www.cashfree.com/docs/api-reference/payments/latest/payments/authorize",
           "quote": "HTTP 400 · \"Capture request already exist for the void\"",
           "notes": "An explicit VOID after a partial CAPTURE is refused. Cashfree documents the rule behind it: \"Once captured, a transaction cannot be voided.\" What the refusal does NOT show is where the uncaptured remainder went — see `remainder_auto_released`.",
-          "verification": null
+          "verification": null,
+          "observation": {
+            "probe_id": "cashfree_preauth.void_after_partial_capture",
+            "runs": 1,
+            "latest": {
+              "supported": false,
+              "observed_on": "2026-09-20",
+              "evidence_hash": "ddccd619d4dc8be2cd21729371d5fceb000f7c69d4160410be1c81ba2330a5d0",
+              "environment": "sandbox",
+              "agrees": true
+            },
+            "changes": []
+          }
         },
         {
           "name": "remainder_auto_released",
@@ -652,7 +700,8 @@
           "url": "https://www.cashfree.com/docs/api-reference/payments/latest/payments/authorize",
           "quote": "",
           "notes": "Believed, not confirmed. The 29 Aug probe inferred the remainder was returned from the refused VOID above and from arithmetic; neither shows it. Cashfree documents that an authorisation not captured within seven days is released back to the customer, and is silent on the uncaptured remainder of a PARTIAL capture. Cashfree support's own enablement note (ticket 8266875) names \"the applicable operation for processing the unused balance/remainder\" as a separate operation the probe did not identify. To be measured: poll the order after a partial capture (and a capture-nothing control) at t+0, 5 min, 1 h, 24 h and 7 d 1 h — `python -m amanat.rails.probe_cashfree_release`. Until then the engine does not plan around an instant return.",
-          "verification": null
+          "verification": null,
+          "observation": null
         },
         {
           "name": "partial_void",
@@ -675,7 +724,8 @@
             "evidence_hash": "c99e362c572dcf67f0706db76027b1ee27b992a33321cc49b998d082d6f800d0",
             "checks": 1,
             "changes": []
-          }
+          },
+          "observation": null
         },
         {
           "name": "multiple_captures",
@@ -685,7 +735,7 @@
           "usable_as_fact": true,
           "environment": null,
           "obtained_on": "2026-09-20",
-          "probe_id": null,
+          "probe_id": "cashfree_preauth.double_capture",
           "citation": "Cashfree, Pre-Authorisation docs, Managing preauthorisation transactions (fetched 20 Sep 2026)",
           "url": "https://www.cashfree.com/docs/payments/features/pre-authorisation",
           "quote": "A transaction can only be captured or voided once.",
@@ -698,6 +748,18 @@
             "evidence_hash": "c99e362c572dcf67f0706db76027b1ee27b992a33321cc49b998d082d6f800d0",
             "checks": 1,
             "changes": []
+          },
+          "observation": {
+            "probe_id": "cashfree_preauth.double_capture",
+            "runs": 1,
+            "latest": {
+              "supported": false,
+              "observed_on": "2026-09-20",
+              "evidence_hash": "933e0844ad8e660446e9a42c10a9820149811844b8300084241998037df37605",
+              "environment": "sandbox",
+              "agrees": true
+            },
+            "changes": []
           }
         },
         {
@@ -708,12 +770,24 @@
           "usable_as_fact": true,
           "environment": "sandbox",
           "obtained_on": "2026-08-29",
-          "probe_id": null,
+          "probe_id": "cashfree_preauth.partial_capture",
           "citation": "measured 29 Aug 2026 — order_status PAID, is_captured false before any capture",
           "url": "https://www.cashfree.com/docs/api-reference/payments/latest/payments/authorize",
-          "quote": "order_status \"PAID\" with payment is_captured false until an explicit CAPTURE",
+          "quote": "payment {\"is_captured\":false,\"payment_status\":\"SUCCESS\"} with order_status PAID, until an explicit CAPTURE",
           "notes": "Consistent with a pre-auth hold rather than Razorpay's 'authorized' trap (where the customer has already been debited): after POST /simulate the order is PAID (authorised) but the payment carries is_captured=false, and only a CAPTURE moved it. The authorisation was forced by the sandbox simulator, so this is the sandbox API's statement, not an issuer's.",
-          "verification": null
+          "verification": null,
+          "observation": {
+            "probe_id": "cashfree_preauth.partial_capture",
+            "runs": 1,
+            "latest": {
+              "supported": true,
+              "observed_on": "2026-09-20",
+              "evidence_hash": "ab42693ad787f2cafbfe32312ee83233d8fceb1e29e7942e46e6f00733c3826e",
+              "environment": "sandbox",
+              "agrees": true
+            },
+            "changes": []
+          }
         },
         {
           "name": "self_serve_enablement",
@@ -728,7 +802,143 @@
           "url": "https://www.cashfree.com/docs/api-reference/payments/latest/payments/authorize",
           "quote": "successfully enabled in the Sandbox/Test environment ... block creation, partial debit against the standing block, and the applicable operation for processing the unused balance/remainder",
           "notes": "Not self-serve: UPI pre-authorization had to be requested from Cashfree support and was enabled per-account. Recorded as a real constraint on reproducibility — a fresh sandbox signup does NOT have this until the ticket lands. Production access was explicitly not granted ('No Production access has been enabled').",
-          "verification": null
+          "verification": null,
+          "observation": null
+        },
+        {
+          "name": "void_whole_hold",
+          "supported": true,
+          "permitted": true,
+          "tier": "observed",
+          "usable_as_fact": true,
+          "environment": "sandbox",
+          "obtained_on": "2026-09-20",
+          "probe_id": "cashfree_preauth.void_whole_hold",
+          "citation": "measured 20 Sep 2026 (sandbox) — POST /orders/{id}/authorization action VOID on a hold nothing was captured from, HTTP 200",
+          "url": "https://www.cashfree.com/docs/api-reference/payments/latest/payments/authorize",
+          "quote": "HTTP 200 · authorization {\"action\":\"VOID\",\"status\":\"SUCCESS\"}",
+          "notes": "A hold can be released whole, before any capture. Cashfree documents the same shape: \"voiding must be for the entire authorised amount\" (`partial_void`).",
+          "verification": null,
+          "observation": {
+            "probe_id": "cashfree_preauth.void_whole_hold",
+            "runs": 1,
+            "latest": {
+              "supported": true,
+              "observed_on": "2026-09-20",
+              "evidence_hash": "cecd0997f940697b0df733e1a835d2d7e4e8e800266f67b5105d8155e8f85dd6",
+              "environment": "sandbox",
+              "agrees": true
+            },
+            "changes": []
+          }
+        },
+        {
+          "name": "over_capture",
+          "supported": false,
+          "permitted": false,
+          "tier": "observed",
+          "usable_as_fact": true,
+          "environment": "sandbox",
+          "obtained_on": "2026-09-20",
+          "probe_id": "cashfree_preauth.over_capture",
+          "citation": "measured 20 Sep 2026 (sandbox) — CAPTURE ₹700 against a ₹620 hold, HTTP 400",
+          "url": "https://www.cashfree.com/docs/api-reference/payments/latest/payments/authorize",
+          "quote": "HTTP 400 · \"Total capture amount can not be grater than transaction amount\"",
+          "notes": "A capture cannot exceed the hold. The message says *total* capture amount, so the bound is on the sum drawn against one authorisation — though `multiple_captures` says it is drawn once.",
+          "verification": null,
+          "observation": {
+            "probe_id": "cashfree_preauth.over_capture",
+            "runs": 1,
+            "latest": {
+              "supported": false,
+              "observed_on": "2026-09-20",
+              "evidence_hash": "d8e09c1f58cc11783c252186cdb95507477e85e8a5224789d465b64a83bf4506",
+              "environment": "sandbox",
+              "agrees": true
+            },
+            "changes": []
+          }
+        },
+        {
+          "name": "capture_after_void",
+          "supported": false,
+          "permitted": false,
+          "tier": "observed",
+          "usable_as_fact": true,
+          "environment": "sandbox",
+          "obtained_on": "2026-09-20",
+          "probe_id": "cashfree_preauth.capture_after_void",
+          "citation": "measured 20 Sep 2026 (sandbox) — CAPTURE after a VOID, HTTP 400",
+          "url": "https://www.cashfree.com/docs/api-reference/payments/latest/payments/authorize",
+          "quote": "HTTP 400 · \"transaction is already voided\"",
+          "notes": "A released hold cannot be drawn on. Cashfree's guide states the same rule: \"Once voided, a transaction cannot be captured.\"",
+          "verification": null,
+          "observation": {
+            "probe_id": "cashfree_preauth.capture_after_void",
+            "runs": 1,
+            "latest": {
+              "supported": false,
+              "observed_on": "2026-09-20",
+              "evidence_hash": "72998d2bca6cc3335e68ea6c2b06689b0c9e3fd884ef52225ff62fafb639f3df",
+              "environment": "sandbox",
+              "agrees": true
+            },
+            "changes": []
+          }
+        },
+        {
+          "name": "idempotent_capture_replay",
+          "supported": true,
+          "permitted": true,
+          "tier": "observed",
+          "usable_as_fact": true,
+          "environment": "sandbox",
+          "obtained_on": "2026-09-20",
+          "probe_id": "cashfree_preauth.idempotent_capture_replay",
+          "citation": "measured 20 Sep 2026 (sandbox) — the same CAPTURE repeated under one x-idempotency-key, then under a different key",
+          "url": "https://www.cashfree.com/docs/api-reference/payments/latest/payments/authorize",
+          "quote": "same key: HTTP 200 · authorization {\"action\":\"CAPTURE\",\"status\":\"SUCCESS\",\"captured_amount\":470}; a different key: HTTP 400 · \"Duplicate capture_id present\"",
+          "notes": "Repeating a capture with the same idempotency key returns the first result instead of being refused as a second capture, and the control (the identical call under another key) is refused — so the key is what the rail honours. That makes a retry after a lost response safe on this endpoint. Measured on CAPTURE only: order creation and VOID were not probed. Sandbox caveat: every capture response, on eight different orders, carries the same action_reference (CAP_12121), so the refusal text is probably a sandbox artefact and should not be read as production's wording.",
+          "verification": null,
+          "observation": {
+            "probe_id": "cashfree_preauth.idempotent_capture_replay",
+            "runs": 1,
+            "latest": {
+              "supported": true,
+              "observed_on": "2026-09-20",
+              "evidence_hash": "11dd03981a35e462d9079ac5b108233d706487fccfe7a7328c4bf54d841aa528",
+              "environment": "sandbox",
+              "agrees": true
+            },
+            "changes": []
+          }
+        },
+        {
+          "name": "concurrent_capture_single_winner",
+          "supported": true,
+          "permitted": true,
+          "tier": "observed",
+          "usable_as_fact": true,
+          "environment": "sandbox",
+          "obtained_on": "2026-09-20",
+          "probe_id": "cashfree_preauth.concurrent_capture",
+          "citation": "measured 20 Sep 2026 (sandbox) — three CAPTUREs (₹300, ₹200, ₹100) fired at the same instant against one ₹620 hold",
+          "url": "https://www.cashfree.com/docs/api-reference/payments/latest/payments/authorize",
+          "quote": "one HTTP 200 · authorization {\"action\":\"CAPTURE\",\"status\":\"SUCCESS\"}; two HTTP 400 · \"Event has already been initiated\"",
+          "notes": "Exactly one of three simultaneous captures succeeded; the others were refused, not applied. Which one wins varies from run to run (capture 3 won the first, capture 1 the recorded one). One sandbox, one hold, three threads: this shows the guard exists here, not that no interleaving can defeat it.",
+          "verification": null,
+          "observation": {
+            "probe_id": "cashfree_preauth.concurrent_capture",
+            "runs": 1,
+            "latest": {
+              "supported": true,
+              "observed_on": "2026-09-20",
+              "evidence_hash": "d0442a0012814763b3acbcaf16188af2e874f5a90fea9d9045aa2acfb118df18",
+              "environment": "sandbox",
+              "agrees": true
+            },
+            "changes": []
+          }
         }
       ],
       "limits": [
@@ -753,7 +963,8 @@
             "evidence_hash": "c99e362c572dcf67f0706db76027b1ee27b992a33321cc49b998d082d6f800d0",
             "checks": 1,
             "changes": []
-          }
+          },
+          "observation": null
         }
       ]
     },
@@ -774,7 +985,8 @@
           "url": "https://docs.setu.co/payments/umap/quickstart",
           "quote": "HTTP 200, access_token issued",
           "notes": "Signup at bridge.setu.co is genuinely self-serve and the token endpoint accepts the resulting credentials.",
-          "verification": null
+          "verification": null,
+          "observation": null
         },
         {
           "name": "api_publicly_reachable",
@@ -789,7 +1001,8 @@
           "url": "https://docs.setu.co/payments/umap/quickstart",
           "quote": "uatapi.setu.co NXDOMAIN; api.setu.co NXDOMAIN",
           "notes": "The two hosts the UMAP docs name for sandbox and production do not exist in public DNS, while accountservice.setu.co and bridge.setu.co resolve normally. So the API surface is gated behind onboarding, private DNS or an allowlist — not reachable from a self-serve signup. Invisible until you hold credentials and try: every earlier signal, including a 200 from the token endpoint, said the rail was reachable. Reproduce with `python -m amanat.rails.probe`.",
-          "verification": null
+          "verification": null,
+          "observation": null
         },
         {
           "name": "block_amount_modifiable_without_revoke",
@@ -812,7 +1025,8 @@
             "evidence_hash": "c99e362c572dcf67f0706db76027b1ee27b992a33321cc49b998d082d6f800d0",
             "checks": 1,
             "changes": []
-          }
+          },
+          "observation": null
         }
       ],
       "limits": []

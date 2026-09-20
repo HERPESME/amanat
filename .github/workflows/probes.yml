@@ -1,0 +1,49 @@
+name: probes
+
+# Re-run the rail probes against the vendor sandboxes and fail if a rail has changed.
+#
+# It needs the sandbox credentials as repository secrets (CASHFREE_CLIENT_ID and
+# CASHFREE_CLIENT_SECRET). Without them the job says so and exits cleanly: adding credentials to
+# a repository is the owner's decision, and the job does nothing until they exist.
+#
+# Each probe places a hold in the sandbox — no real money moves; the harness refuses any host
+# but the sandbox. The appended records are uploaded as an artifact (a person commits them). The
+# drift alarm is then run against the fresh records: if a row's latest conclusive observation
+# disagrees with the row, the job fails, and the owner is told the same way as for a failing test.
+
+on:
+  schedule:
+    - cron: "47 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probes:
+    runs-on: ubuntu-latest
+    env:
+      CASHFREE_CLIENT_ID: ${{ secrets.CASHFREE_CLIENT_ID }}
+      CASHFREE_CLIENT_SECRET: ${{ secrets.CASHFREE_CLIENT_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - name: Run the Cashfree probes
+        run: |
+          if [ -z "$CASHFREE_CLIENT_ID" ] || [ -z "$CASHFREE_CLIENT_SECRET" ]; then
+            echo "::notice::CASHFREE_CLIENT_ID / CASHFREE_CLIENT_SECRET are not set as repository secrets; nothing to run."
+            echo "SKIPPED=1" >> "$GITHUB_ENV"
+            exit 0
+          fi
+          uv run --extra dev python -m amanat.probes run --rail cashfree_preauth
+      - name: Drift alarm — does every probed row still agree with the rail?
+        if: env.SKIPPED != '1'
+        run: uv run --extra dev pytest tests/test_registry_probes.py -q
+      - name: Keep the runs
+        if: always() && env.SKIPPED != '1'
+        uses: actions/upload-artifact@v4
+        with:
+          name: probe-store
+          path: docs/observations/store/

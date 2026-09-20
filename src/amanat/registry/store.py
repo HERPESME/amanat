@@ -49,12 +49,13 @@ def line_hash(line: bytes) -> str:
     return hashlib.sha256(line).hexdigest()
 
 
-def stream_path(stream: str) -> Path:
-    return STORE_DIR / f"{stream}.jsonl"
+def stream_path(stream: str, store_dir: Path | None = None) -> Path:
+    return (store_dir or STORE_DIR) / f"{stream}.jsonl"
 
 
-def streams() -> list[str]:
-    return sorted(p.stem for p in STORE_DIR.glob("*.jsonl")) if STORE_DIR.exists() else []
+def streams(store_dir: Path | None = None) -> list[str]:
+    d = store_dir or STORE_DIR
+    return sorted(p.stem for p in d.glob("*.jsonl")) if d.exists() else []
 
 
 def _no_constants(name: str):

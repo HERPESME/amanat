@@ -286,6 +286,11 @@ LIMITS DIFFER TOO, and Setu's figures do not match OC-228's: 'block funds upto R
 | `multiple_captures` | **no** | `SECONDARY` | 2026-09-20 | Cashfree, Pre-Authorisation docs, Managing preauthorisation transactions (fetched 20 Sep 2026) |
 | `funds_held_in_customer_account` | yes | `OBSERVED` (sandbox) | 2026-08-29 | measured 29 Aug 2026 — order_status PAID, is_captured false before any capture |
 | `self_serve_enablement` | **no** | `OBSERVED` (sandbox) | 2026-08-28 | Cashfree support ticket 8266875, resolved 28 Aug 2026 |
+| `void_whole_hold` | yes | `OBSERVED` (sandbox) | 2026-09-20 | measured 20 Sep 2026 (sandbox) — POST /orders/{id}/authorization action VOID on a hold nothing was captured from, HTTP 200 |
+| `over_capture` | **no** | `OBSERVED` (sandbox) | 2026-09-20 | measured 20 Sep 2026 (sandbox) — CAPTURE ₹700 against a ₹620 hold, HTTP 400 |
+| `capture_after_void` | **no** | `OBSERVED` (sandbox) | 2026-09-20 | measured 20 Sep 2026 (sandbox) — CAPTURE after a VOID, HTTP 400 |
+| `idempotent_capture_replay` | yes | `OBSERVED` (sandbox) | 2026-09-20 | measured 20 Sep 2026 (sandbox) — the same CAPTURE repeated under one x-idempotency-key, then under a different key |
+| `concurrent_capture_single_winner` | yes | `OBSERVED` (sandbox) | 2026-09-20 | measured 20 Sep 2026 (sandbox) — three CAPTUREs (₹300, ₹200, ₹100) fired at the same instant against one ₹620 hold |
 
 **Numeric limits** — enforced, not decorative. Unlike capabilities, an unverified limit is still applied: thin evidence means refuse more, never less.
 
@@ -301,6 +306,8 @@ LIMITS DIFFER TOO, and Setu's figures do not match OC-228's: 'block funds upto R
 
 — measured 29 Aug 2026 (sandbox; the authorisation was forced with POST /simulate) — POST /orders/{id}/authorization action CAPTURE ₹470 of a ₹620 hold, HTTP 200, https://www.cashfree.com/docs/api-reference/payments/latest/payments/authorize
 
+*Probe `cashfree_preauth.partial_capture`: latest conclusive answer supported (2026-09-20, sandbox; 1 conclusive run).*
+
 A sandbox confirmation of the mechanism's debit leg, and the exact shape Razorpay refuses. A pre-auth order (order_note preauth_transaction) was driven to a ₹620 hold in the sandbox — UPI collect on testsuccess@gocash, then POST /simulate to SUCCESS, order_status PAID — and a CAPTURE of ₹470 against it returned HTTP 200 with captured_amount 470.0. Reproduce with `python -m amanat.rails.probe_cashfree`.
 The authorisation was forced by the sandbox's simulator, so this measures Cashfree's sandbox API, not an issuer's hold. This is a PSP pre-auth primitive (authorize-then-capture-once), a different rail SHAPE from NPCI SBMD's pre-funded drawdown pool. OBSERVED sits below PRIMARY on purpose: a rail can change behaviour after a deploy, a circular cannot — so SBMD's PRIMARY evidence and this OBSERVED evidence are complementary, not redundant.
 
@@ -309,6 +316,8 @@ The authorisation was forced by the sandbox's simulator, so this measures Cashfr
 > HTTP 400 · "Capture request already exist for the void"
 
 — measured 29 Aug 2026 (sandbox) — VOID after a partial CAPTURE, HTTP 400, https://www.cashfree.com/docs/api-reference/payments/latest/payments/authorize
+
+*Probe `cashfree_preauth.void_after_partial_capture`: latest conclusive answer not supported (2026-09-20, sandbox; 1 conclusive run).*
 
 An explicit VOID after a partial CAPTURE is refused. Cashfree documents the rule behind it: "Once captured, a transaction cannot be voided." What the refusal does NOT show is where the uncaptured remainder went — see `remainder_auto_released`.
 
@@ -329,13 +338,17 @@ A hold can be released only whole, so 'void just the remainder' is not a verb on
 
 — Cashfree, Pre-Authorisation docs, Managing preauthorisation transactions (fetched 20 Sep 2026), https://www.cashfree.com/docs/payments/features/pre-authorisation
 
+*Probe `cashfree_preauth.double_capture`: latest conclusive answer not supported (2026-09-20, sandbox; 1 conclusive run).*
+
 Single-shot: unlike SBMD, where OC-200 says the bank "shall allow multiple debits against the block", one authorisation takes one capture. A basket with substitutions or a fare with a waiting charge cannot be drawn down in steps.
 
 **`funds_held_in_customer_account`**
 
-> order_status "PAID" with payment is_captured false until an explicit CAPTURE
+> payment {"is_captured":false,"payment_status":"SUCCESS"} with order_status PAID, until an explicit CAPTURE
 
 — measured 29 Aug 2026 — order_status PAID, is_captured false before any capture, https://www.cashfree.com/docs/api-reference/payments/latest/payments/authorize
+
+*Probe `cashfree_preauth.partial_capture`: latest conclusive answer supported (2026-09-20, sandbox; 1 conclusive run).*
 
 Consistent with a pre-auth hold rather than Razorpay's 'authorized' trap (where the customer has already been debited): after POST /simulate the order is PAID (authorised) but the payment carries is_captured=false, and only a CAPTURE moved it. The authorisation was forced by the sandbox simulator, so this is the sandbox API's statement, not an issuer's.
 
@@ -346,6 +359,56 @@ Consistent with a pre-auth hold rather than Razorpay's 'authorized' trap (where 
 — Cashfree support ticket 8266875, resolved 28 Aug 2026, https://www.cashfree.com/docs/api-reference/payments/latest/payments/authorize
 
 Not self-serve: UPI pre-authorization had to be requested from Cashfree support and was enabled per-account. Recorded as a real constraint on reproducibility — a fresh sandbox signup does NOT have this until the ticket lands. Production access was explicitly not granted ('No Production access has been enabled').
+
+**`void_whole_hold`**
+
+> HTTP 200 · authorization {"action":"VOID","status":"SUCCESS"}
+
+— measured 20 Sep 2026 (sandbox) — POST /orders/{id}/authorization action VOID on a hold nothing was captured from, HTTP 200, https://www.cashfree.com/docs/api-reference/payments/latest/payments/authorize
+
+*Probe `cashfree_preauth.void_whole_hold`: latest conclusive answer supported (2026-09-20, sandbox; 1 conclusive run).*
+
+A hold can be released whole, before any capture. Cashfree documents the same shape: "voiding must be for the entire authorised amount" (`partial_void`).
+
+**`over_capture`**
+
+> HTTP 400 · "Total capture amount can not be grater than transaction amount"
+
+— measured 20 Sep 2026 (sandbox) — CAPTURE ₹700 against a ₹620 hold, HTTP 400, https://www.cashfree.com/docs/api-reference/payments/latest/payments/authorize
+
+*Probe `cashfree_preauth.over_capture`: latest conclusive answer not supported (2026-09-20, sandbox; 1 conclusive run).*
+
+A capture cannot exceed the hold. The message says *total* capture amount, so the bound is on the sum drawn against one authorisation — though `multiple_captures` says it is drawn once.
+
+**`capture_after_void`**
+
+> HTTP 400 · "transaction is already voided"
+
+— measured 20 Sep 2026 (sandbox) — CAPTURE after a VOID, HTTP 400, https://www.cashfree.com/docs/api-reference/payments/latest/payments/authorize
+
+*Probe `cashfree_preauth.capture_after_void`: latest conclusive answer not supported (2026-09-20, sandbox; 1 conclusive run).*
+
+A released hold cannot be drawn on. Cashfree's guide states the same rule: "Once voided, a transaction cannot be captured."
+
+**`idempotent_capture_replay`**
+
+> same key: HTTP 200 · authorization {"action":"CAPTURE","status":"SUCCESS","captured_amount":470}; a different key: HTTP 400 · "Duplicate capture_id present"
+
+— measured 20 Sep 2026 (sandbox) — the same CAPTURE repeated under one x-idempotency-key, then under a different key, https://www.cashfree.com/docs/api-reference/payments/latest/payments/authorize
+
+*Probe `cashfree_preauth.idempotent_capture_replay`: latest conclusive answer supported (2026-09-20, sandbox; 1 conclusive run).*
+
+Repeating a capture with the same idempotency key returns the first result instead of being refused as a second capture, and the control (the identical call under another key) is refused — so the key is what the rail honours. That makes a retry after a lost response safe on this endpoint. Measured on CAPTURE only: order creation and VOID were not probed. Sandbox caveat: every capture response, on eight different orders, carries the same action_reference (CAP_12121), so the refusal text is probably a sandbox artefact and should not be read as production's wording.
+
+**`concurrent_capture_single_winner`**
+
+> one HTTP 200 · authorization {"action":"CAPTURE","status":"SUCCESS"}; two HTTP 400 · "Event has already been initiated"
+
+— measured 20 Sep 2026 (sandbox) — three CAPTUREs (₹300, ₹200, ₹100) fired at the same instant against one ₹620 hold, https://www.cashfree.com/docs/api-reference/payments/latest/payments/authorize
+
+*Probe `cashfree_preauth.concurrent_capture`: latest conclusive answer supported (2026-09-20, sandbox; 1 conclusive run).*
+
+Exactly one of three simultaneous captures succeeded; the others were refused, not applied. Which one wins varies from run to run (capture 3 won the first, capture 1 the recorded one). One sandbox, one hold, three threads: this shows the guard exists here, not that no interleaving can defeat it.
 
 
 ## `setu_umap` — Setu UMAP (UPI mandates)

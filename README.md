@@ -425,12 +425,12 @@ Reproduce: <code>python -m amanat.rails.probe_cashfree</code>.</td>
 
 ## The evidence table
 
-31 capabilities across 5 rails. What each claim rests on:
+36 capabilities across 5 rails. What each claim rests on:
 
 | Rail | Capabilities | Evidence |
 |---|---|---|
 | **UPI SBMD** (Reserve Pay) | 16 | 12 `PRIMARY` · 3 `SECONDARY` · 1 `UNVERIFIED` |
-| **Cashfree** UPI pre-auth | 7 | 4 `OBSERVED` (sandbox, 29 Aug 2026) · 2 `SECONDARY` · 1 `UNVERIFIED` — the remainder's release |
+| **Cashfree** UPI pre-auth | 12 | 9 `OBSERVED` (sandbox, 29 Aug and 20 Sep 2026) · 2 `SECONDARY` · 1 `UNVERIFIED` — the remainder's release |
 | **Razorpay** manual capture | 3 | 1 `OBSERVED` · 2 `SECONDARY` |
 | **Setu UMAP** | 3 | 2 `OBSERVED` · 1 `SECONDARY` |
 | **UPI OTM** | 2 | 1 `SECONDARY` · 1 `UNVERIFIED` |
@@ -461,6 +461,35 @@ two Razorpay rows quoted a different sentence from the one their claim rests on,
 that is not on the page (now marked with `…` and checked piece by piece). All were repaired the
 same day. A check that only ever passes proves nothing; this one failed nine times on its
 first run.
+
+### Probes — the semantics are measured, then measured again
+
+`python -m amanat.probes run` places real holds in Cashfree's UPI pre-authorisation **sandbox** and
+asks it a question of each: one fresh hold per question, every exchange recorded (credentials and
+session tokens redacted; no header is ever kept) as one line of a hash-chained log,
+[`docs/observations/store/probes.cashfree_preauth.jsonl`](docs/observations/store/probes.cashfree_preauth.jsonl).
+A row that names its probe is checked against the latest run: if the rail's answer changes, the
+suite fails until a person edits the row and cites the new observation. A 401, a 503 or a timeout is
+never read as a refusal — only an answer to the question is a finding. What the first run
+(20 Sep 2026) recorded:
+
+| Asked of a ₹620 hold | The sandbox's answer |
+|---|---|
+| capture ₹470 | HTTP 200; the payment reads `is_captured: false` until captured |
+| void it, nothing captured | HTTP 200 |
+| capture ₹470, then void | 400 "Capture request already exist for the void" |
+| capture ₹700 | 400 "Total capture amount can not be grater than transaction amount" |
+| void it, then capture | 400 "transaction is already voided" |
+| capture ₹300, then ₹200 | 400 "Duplicate capture_id present" |
+| the same capture twice under one `x-idempotency-key`, then once under another | 200 with the first result; then 400 |
+| three captures fired at the same instant | exactly one 200; two 400 "Event has already been initiated" |
+
+The idempotency row is the one that changes what this project can build: a retry after a lost
+response is safe on this endpoint, in this sandbox. Two limits on all of it. The authorisation is
+forced with `POST /simulate`, so this is Cashfree's sandbox, not an issuer; and every capture
+response, on eight different orders, carries the same `action_reference` (`CAP_12121`), so the
+"Duplicate capture_id" wording is probably a sandbox artefact. And none of it says where the
+uncaptured remainder goes — that leg is measured separately (see the release log above).
 
 ---
 

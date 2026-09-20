@@ -12,6 +12,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from amanat.rails.semantics import RAILS, SourceTier
+from amanat.registry import export
 
 
 def _tier_table() -> str:
@@ -65,7 +66,24 @@ the honest answer ("we have not confirmed this") the cheap one to write.
 """
 
 
+def _observations() -> dict[tuple[str, str], dict]:
+    """The latest probe finding per row, read from the committed evidence store."""
+    doc = export.build()
+    return {(r["rail_id"], c["name"]): c["observation"]
+            for r in doc["rails"] for c in r["capabilities"] if c["observation"]}
+
+
+def _probe_line(obs: dict) -> str:
+    latest = obs["latest"]
+    verdict = "supported" if latest["supported"] else "not supported"
+    runs = f"{obs['runs']} conclusive run{'s' if obs['runs'] != 1 else ''}"
+    agree = "" if latest["agrees"] else " — **disagrees with this row**"
+    return (f"*Probe `{obs['probe_id']}`: latest conclusive answer {verdict} "
+            f"({latest['observed_on']}, {latest['environment']}; {runs}){agree}.*\n")
+
+
 def render() -> str:
+    observed = _observations()
     out = [HEADER.replace("{tiers}", _tier_table())]
     for rail in RAILS.values():
         out.append(f"## `{rail.rail_id}` — {rail.display_name}\n")
@@ -99,6 +117,8 @@ def render() -> str:
                     out.append(f"\n> {cap.quote}\n")
                     if cap.url:
                         out.append(f"— {cap.citation}, {cap.url}\n")
+                if (rail.rail_id, cap.name) in observed:
+                    out.append(_probe_line(observed[(rail.rail_id, cap.name)]))
                 if cap.notes:
                     out.append(f"{cap.notes.strip()}\n")
         out.append("")

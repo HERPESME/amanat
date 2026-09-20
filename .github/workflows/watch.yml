@@ -1,0 +1,33 @@
+name: watch
+
+# Re-check every cited quote against the page it cites. No credentials are needed: it fetches
+# public documentation, one request a second per host, with an honest User-Agent.
+#
+# The run is uploaded as an artifact, not committed: a person reviews it and commits the
+# appended docs/observations/store/watch.jsonl. The job goes red if a quote can no longer be
+# found (`not_found`) or a committed source document has changed (`document_changed`).
+
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - name: Fetch every source and check its quotes
+        run: uv run --extra dev python -m amanat.registry.watch
+      - name: Keep the run
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: watch-store
+          path: docs/observations/store/

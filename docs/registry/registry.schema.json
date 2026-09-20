@@ -101,7 +101,8 @@
         "url",
         "quote",
         "notes",
-        "verification"
+        "verification",
+        "observation"
       ],
       "properties": {
         "tier": {
@@ -149,6 +150,9 @@
         },
         "verification": {
           "$ref": "#/$defs/verification"
+        },
+        "observation": {
+          "$ref": "#/$defs/observation"
         }
       },
       "allOf": [
@@ -477,6 +481,88 @@
                   },
                   "to": {
                     "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "observation": {
+      "description": "What the probe named by `probe_id` most recently found for this row, from the latest conclusive run (a 2xx or a semantic 4xx; an outage or bad credential never counts). `agrees` is false when the rail now answers differently from the row: the row is stale, or was wrong.",
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "probe_id",
+            "runs",
+            "latest",
+            "changes"
+          ],
+          "properties": {
+            "probe_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "runs": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "latest": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "supported",
+                "observed_on",
+                "evidence_hash",
+                "environment",
+                "agrees"
+              ],
+              "properties": {
+                "supported": {
+                  "type": "boolean"
+                },
+                "observed_on": {
+                  "$ref": "#/$defs/date"
+                },
+                "evidence_hash": {
+                  "$ref": "#/$defs/sha256"
+                },
+                "environment": {
+                  "enum": [
+                    "sandbox",
+                    "live"
+                  ]
+                },
+                "agrees": {
+                  "type": "boolean"
+                }
+              }
+            },
+            "changes": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "on",
+                  "from",
+                  "to"
+                ],
+                "properties": {
+                  "on": {
+                    "$ref": "#/$defs/date"
+                  },
+                  "from": {
+                    "type": "boolean"
+                  },
+                  "to": {
+                    "type": "boolean"
                   }
                 }
               }

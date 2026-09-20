@@ -1165,7 +1165,7 @@ CASHFREE_PREAUTH = RailProfile(
     display_name="Cashfree UPI pre-authorization",
     capabilities=[
         Capability(
-            name="partial_debit", supported=True,
+            name="partial_debit", supported=True, probe_id="cashfree_preauth.partial_capture",
             source_tier=SourceTier.OBSERVED, environment=Environment.SANDBOX, obtained_on="2026-08-29",
             citation=("measured 29 Aug 2026 (sandbox; the authorisation was forced "
                       "with POST /simulate) — POST /orders/{id}/authorization "
@@ -1193,6 +1193,7 @@ CASHFREE_PREAUTH = RailProfile(
         ),
         Capability(
             name="void_after_partial_capture", supported=False,
+            probe_id="cashfree_preauth.void_after_partial_capture",
             source_tier=SourceTier.OBSERVED, environment=Environment.SANDBOX, obtained_on="2026-08-29",
             citation=("measured 29 Aug 2026 (sandbox) — VOID after a partial "
                       "CAPTURE, HTTP 400"),
@@ -1234,7 +1235,7 @@ CASHFREE_PREAUTH = RailProfile(
                    "is not a verb on this rail."),
         ),
         Capability(
-            name="multiple_captures", supported=False,
+            name="multiple_captures", supported=False, probe_id="cashfree_preauth.double_capture",
             source_tier=SourceTier.SECONDARY, obtained_on="2026-09-20",
             citation=("Cashfree, Pre-Authorisation docs, Managing preauthorisation "
                       "transactions (fetched 20 Sep 2026)"),
@@ -1247,12 +1248,13 @@ CASHFREE_PREAUTH = RailProfile(
         ),
         Capability(
             name="funds_held_in_customer_account", supported=True,
+            probe_id="cashfree_preauth.partial_capture",
             source_tier=SourceTier.OBSERVED, environment=Environment.SANDBOX, obtained_on="2026-08-29",
             citation=("measured 29 Aug 2026 — order_status PAID, is_captured false "
                       "before any capture"),
             url=CASHFREE_PREAUTH_URL,
-            quote=('order_status "PAID" with payment is_captured false until an '
-                   'explicit CAPTURE'),
+            quote=('payment {"is_captured":false,"payment_status":"SUCCESS"} with order_status '
+                   'PAID, until an explicit CAPTURE'),
             notes=(
                 "Consistent with a pre-auth hold rather than Razorpay's 'authorized' "
                 "trap (where the customer has already been debited): after POST "
@@ -1278,6 +1280,69 @@ CASHFREE_PREAUTH = RailProfile(
                 "have this until the ticket lands. Production access was explicitly "
                 "not granted ('No Production access has been enabled')."
             ),
+        ),
+        # ---- measured 20 Sep 2026 by `python -m amanat.probes` (sandbox; authorisation forced with
+        # POST /simulate). Each row names its probe; the suite fails if the latest conclusive run
+        # disagrees with it. The raw exchanges are in docs/observations/store/.
+        Capability(
+            name="void_whole_hold", supported=True, probe_id="cashfree_preauth.void_whole_hold",
+            source_tier=SourceTier.OBSERVED, environment=Environment.SANDBOX, obtained_on="2026-09-20",
+            citation=("measured 20 Sep 2026 (sandbox) — POST /orders/{id}/authorization action VOID on a "
+                      "hold nothing was captured from, HTTP 200"),
+            url=CASHFREE_PREAUTH_URL,
+            quote='HTTP 200 · authorization {"action":"VOID","status":"SUCCESS"}',
+            notes=("A hold can be released whole, before any capture. Cashfree documents the same shape: "
+                   "\"voiding must be for the entire authorised amount\" (`partial_void`)."),
+        ),
+        Capability(
+            name="over_capture", supported=False, probe_id="cashfree_preauth.over_capture",
+            source_tier=SourceTier.OBSERVED, environment=Environment.SANDBOX, obtained_on="2026-09-20",
+            citation=("measured 20 Sep 2026 (sandbox) — CAPTURE ₹700 against a ₹620 hold, HTTP 400"),
+            url=CASHFREE_PREAUTH_URL,
+            quote='HTTP 400 · "Total capture amount can not be grater than transaction amount"',
+            notes=("A capture cannot exceed the hold. The message says *total* capture amount, so the "
+                   "bound is on the sum drawn against one authorisation — though `multiple_captures` "
+                   "says it is drawn once."),
+        ),
+        Capability(
+            name="capture_after_void", supported=False, probe_id="cashfree_preauth.capture_after_void",
+            source_tier=SourceTier.OBSERVED, environment=Environment.SANDBOX, obtained_on="2026-09-20",
+            citation="measured 20 Sep 2026 (sandbox) — CAPTURE after a VOID, HTTP 400",
+            url=CASHFREE_PREAUTH_URL,
+            quote='HTTP 400 · "transaction is already voided"',
+            notes=("A released hold cannot be drawn on. Cashfree's guide states the same rule: \"Once voided, "
+                   "a transaction cannot be captured.\""),
+        ),
+        Capability(
+            name="idempotent_capture_replay", supported=True,
+            probe_id="cashfree_preauth.idempotent_capture_replay",
+            source_tier=SourceTier.OBSERVED, environment=Environment.SANDBOX, obtained_on="2026-09-20",
+            citation=("measured 20 Sep 2026 (sandbox) — the same CAPTURE repeated under one "
+                      "x-idempotency-key, then under a different key"),
+            url=CASHFREE_PREAUTH_URL,
+            quote=('same key: HTTP 200 · authorization {"action":"CAPTURE","status":"SUCCESS",'
+                   '"captured_amount":470}; a different key: HTTP 400 · "Duplicate capture_id present"'),
+            notes=("Repeating a capture with the same idempotency key returns the first result instead of "
+                   "being refused as a second capture, and the control (the identical call under another "
+                   "key) is refused — so the key is what the rail honours. That makes a retry after a lost "
+                   "response safe on this endpoint. Measured on CAPTURE only: order creation and VOID were "
+                   "not probed. Sandbox caveat: every capture response, on eight different orders, carries "
+                   "the same action_reference (CAP_12121), so the refusal text is probably a sandbox "
+                   "artefact and should not be read as production's wording."),
+        ),
+        Capability(
+            name="concurrent_capture_single_winner", supported=True,
+            probe_id="cashfree_preauth.concurrent_capture",
+            source_tier=SourceTier.OBSERVED, environment=Environment.SANDBOX, obtained_on="2026-09-20",
+            citation=("measured 20 Sep 2026 (sandbox) — three CAPTUREs (₹300, ₹200, ₹100) fired at the "
+                      "same instant against one ₹620 hold"),
+            url=CASHFREE_PREAUTH_URL,
+            quote=('one HTTP 200 · authorization {"action":"CAPTURE","status":"SUCCESS"}; two HTTP 400 · '
+                   '"Event has already been initiated"'),
+            notes=("Exactly one of three simultaneous captures succeeded; the others were refused, not "
+                   "applied. Which one wins varies from run to run (capture 3 won the first, capture 1 "
+                   "the recorded one). One sandbox, one hold, three threads: this shows the guard exists "
+                   "here, not that no interleaving can defeat it."),
         ),
     ],
     limits=[

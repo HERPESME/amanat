@@ -20,6 +20,7 @@ from pathlib import Path
 from amanat.rails.semantics import (
     RAILS, SOURCE_COPIES, Capability, Limit, RailProfile, SourceTier,
 )
+from amanat.probes import runner
 from amanat.registry import store, watch
 
 SCHEMA_VERSION = 2
@@ -53,7 +54,25 @@ def _verification(row: Capability | Limit, key: tuple[str, str, str], history: d
     }
 
 
-def _evidence(row: Capability | Limit, verification: dict | None) -> dict:
+def _observation(rail_id: str, row: Capability | Limit, probes: dict) -> dict | None:
+    """What the row's probe most recently found, and whether that agrees with the row."""
+    if not row.probe_id:
+        return None
+    hist = probes.get(rail_id, {}).get((row.probe_id, row.name), [])
+    if not hist:
+        return None
+    last = hist[-1]
+    return {
+        "probe_id": row.probe_id,
+        "runs": len(hist),
+        "latest": {"supported": last["supported"], "observed_on": last["observed_at"][:10],
+                   "evidence_hash": last["evidence_hash"], "environment": last["environment"],
+                   "agrees": last["supported"] is getattr(row, "supported", None)},
+        "changes": runner.changes(hist),
+    }
+
+
+def _evidence(row: Capability | Limit, verification: dict | None, observation: dict | None) -> dict:
     return {
         "tier": row.source_tier.value,
         "usable_as_fact": row.is_fact,
@@ -65,18 +84,20 @@ def _evidence(row: Capability | Limit, verification: dict | None) -> dict:
         "quote": row.quote,
         "notes": row.notes,
         "verification": verification,
+        "observation": observation,
     }
 
 
-def _capability(rail: RailProfile, cap: Capability, history: dict) -> dict:
+def _capability(rail: RailProfile, cap: Capability, history: dict, probes: dict) -> dict:
     v = _verification(cap, (rail.rail_id, "capability", cap.name), history)
-    return {"name": cap.name, "supported": cap.supported,
-            "permitted": rail.permits(cap.name), **_evidence(cap, v)}
+    return {"name": cap.name, "supported": cap.supported, "permitted": rail.permits(cap.name),
+            **_evidence(cap, v, _observation(rail.rail_id, cap, probes))}
 
 
-def _limit(rail: RailProfile, lim: Limit, history: dict) -> dict:
+def _limit(rail: RailProfile, lim: Limit, history: dict, probes: dict) -> dict:
     v = _verification(lim, (rail.rail_id, "limit", lim.name), history)
-    return {"name": lim.name, "value": lim.value, "unit": lim.unit, **_evidence(lim, v)}
+    return {"name": lim.name, "value": lim.value, "unit": lim.unit,
+            **_evidence(lim, v, _observation(rail.rail_id, lim, probes))}
 
 
 def _sources() -> list[dict]:
@@ -99,26 +120,30 @@ def _stores(paths: list[Path]) -> list[dict]:
     return heads
 
 
-def build(watch_path: Path | None = None) -> dict:
+def build(store_dir: Path | None = None) -> dict:
     """The registry as a JSON-able dict.
 
-    `watch_path` names the quote-check stream to read (tests pass a temporary one). Left as
-    None, the committed streams are used and every stream is checkpointed.
+    `store_dir` names the evidence directory to read (tests pass a temporary one); left as None
+    the committed `docs/observations/store/` is used. Every stream in it is checkpointed.
     """
-    history = watch.history(watch_path) if watch_path or store.stream_path(watch.STREAM).exists() else {}
-    paths = [watch_path] if watch_path else [store.stream_path(name) for name in store.streams()]
+    watch_path = store.stream_path(watch.STREAM, store_dir)
+    history = watch.history(watch_path) if watch_path.exists() else {}
+    probes = {rid: runner.history(p) for rid in RAILS
+              if (p := store.stream_path(runner.stream_for(rid), store_dir)).exists()}
+    paths = [store.stream_path(name, store_dir) for name in store.streams(store_dir)]
     rails = [
         {
             "rail_id": rail.rail_id,
             "display_name": rail.display_name,
-            "capabilities": [_capability(rail, c, history) for c in rail.capabilities.values()],
-            "limits": [_limit(rail, l, history) for l in rail.limits.values()],
+            "capabilities": [_capability(rail, c, history, probes) for c in rail.capabilities.values()],
+            "limits": [_limit(rail, l, history, probes) for l in rail.limits.values()],
         }
         for rail in RAILS.values()
     ]
     rows = [row for r in rails for row in (*r["capabilities"], *r["limits"])]
     dates = [row["obtained_on"] for row in rows if row["obtained_on"]]
     dates += [row["verification"]["checked_on"] for row in rows if row["verification"]]
+    dates += [row["observation"]["latest"]["observed_on"] for row in rows if row["observation"]]
     return {
         "schema_version": SCHEMA_VERSION,
         "as_of": max(dates) if dates else None,
@@ -130,8 +155,8 @@ def build(watch_path: Path | None = None) -> dict:
     }
 
 
-def render(watch_path: Path | None = None) -> str:
-    return json.dumps(build(watch_path), indent=2, ensure_ascii=False) + "\n"
+def render(store_dir: Path | None = None) -> str:
+    return json.dumps(build(store_dir), indent=2, ensure_ascii=False) + "\n"
 
 
 def main() -> None:
