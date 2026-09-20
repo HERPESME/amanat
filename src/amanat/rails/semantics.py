@@ -22,7 +22,9 @@ and `amanat.rails.probe` is what does the comparing.
 """
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
+from datetime import date
 from enum import Enum
 
 
@@ -52,6 +54,64 @@ class SourceTier(Enum):
     def is_fact(self) -> bool:
         return self in (SourceTier.PRIMARY, SourceTier.OBSERVED, SourceTier.SECONDARY)
 
+    @property
+    def meaning(self) -> str:
+        return _TIER_MEANING[self]
+
+
+_TIER_MEANING = {
+    SourceTier.PRIMARY: "NPCI circular, RBI directive, network operating regulation",
+    SourceTier.OBSERVED: "measured against the rail's API; the quote is the response it returned "
+                         "(see `environment`)",
+    SourceTier.SECONDARY: "PSP integration docs — for that PSP's own behaviour",
+    SourceTier.MARKETING: "Blog posts, product pages, comparison tables",
+    SourceTier.UNVERIFIED: "Believed, not confirmed",
+}
+
+
+class Environment(Enum):
+    """What an OBSERVED row was observed on.
+
+    A vendor's sandbox that forces an authorisation is not an issuer, and its answer can
+    differ from production; a public service or DNS lookup is real infrastructure, though
+    this project moved no money against it. An observation says which it was.
+    """
+
+    SANDBOX = "sandbox"   # a vendor's test environment or simulator
+    LIVE = "live"         # production or public infrastructure; no funds moved by this project
+
+
+_ISO_DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
+
+
+def _check_evidence(kind: str, name: str, tier: SourceTier, quote: str,
+                    environment: Environment | None, obtained_on: str) -> None:
+    """The evidence discipline every row shares, capabilities and limits alike."""
+    if tier is not SourceTier.UNVERIFIED and not quote.strip():
+        raise CapabilityError(
+            f"{kind} {name!r} claims tier {tier.value!r} "
+            f"but carries no verbatim quote; downgrade it to UNVERIFIED"
+        )
+    if tier is SourceTier.OBSERVED and environment is None:
+        raise CapabilityError(
+            f"{kind} {name!r} is OBSERVED but does not say what it was observed on: "
+            f"sandbox or live"
+        )
+    if tier is not SourceTier.OBSERVED and environment is not None:
+        raise CapabilityError(
+            f"{kind} {name!r} names an environment but is not OBSERVED; an environment "
+            f"describes a measurement"
+        )
+    if obtained_on:
+        try:
+            valid = _ISO_DATE.fullmatch(obtained_on) and date.fromisoformat(obtained_on)
+        except ValueError:
+            valid = False
+        if not valid:
+            raise CapabilityError(
+                f"{kind} {name!r}: obtained_on {obtained_on!r} is not an ISO date (YYYY-MM-DD)"
+            )
+
 
 @dataclass
 class Capability:
@@ -69,13 +129,13 @@ class Capability:
     url: str = ""
     quote: str = ""
     notes: str = ""
+    environment: Environment | None = None   # required for OBSERVED, forbidden otherwise
+    obtained_on: str = ""                    # ISO date the evidence was read or measured
+    probe_id: str = ""                       # the probe that keeps checking this row, if any
 
     def __post_init__(self) -> None:
-        if self.source_tier is not SourceTier.UNVERIFIED and not self.quote.strip():
-            raise CapabilityError(
-                f"capability {self.name!r} claims tier {self.source_tier.value!r} "
-                f"but carries no verbatim quote; downgrade it to UNVERIFIED"
-            )
+        _check_evidence("capability", self.name, self.source_tier, self.quote,
+                        self.environment, self.obtained_on)
 
     @property
     def is_fact(self) -> bool:
@@ -116,19 +176,19 @@ class Limit:
 
     name: str
     value: int
-    unit: str                      # "paise", "days", "count"
+    unit: str                      # "paise", "days", "hours", "count"
     source_tier: SourceTier
     citation: str = ""
     url: str = ""
     quote: str = ""
     notes: str = ""
+    environment: Environment | None = None
+    obtained_on: str = ""
+    probe_id: str = ""
 
     def __post_init__(self) -> None:
-        if self.source_tier is not SourceTier.UNVERIFIED and not self.quote.strip():
-            raise CapabilityError(
-                f"limit {self.name!r} claims tier {self.source_tier.value!r} "
-                f"but carries no verbatim quote; downgrade it to UNVERIFIED"
-            )
+        _check_evidence("limit", self.name, self.source_tier, self.quote,
+                        self.environment, self.obtained_on)
 
     @property
     def is_fact(self) -> bool:
@@ -228,6 +288,10 @@ OC200_URL = (
     "https://www.npci.org.in/uploads/UPI_OC_No_200_FY_24_25_Enablement_of_UPI_"
     "Mandate_feature_of_Single_Block_Multiple_Debits_f2f9bc9230.pdf"
 )
+
+# The day the two circulars were read off the scanned PDFs (see the block below). The
+# circulars' own dates are in the citations above; this is when *this project* obtained the text.
+NPCI_READ_ON = "2026-08-21"
 
 # OC-228, opening paragraph.
 _OC228_DRAWDOWN = (
@@ -464,7 +528,7 @@ _SETU_SBMD_CUMULATIVE = (
 SBMD_LIMITS = [
     Limit(
         name="max_block_amount", value=10_000_00, unit="paise",
-        source_tier=SourceTier.PRIMARY, citation=OC228, url=OC228_URL,
+        source_tier=SourceTier.PRIMARY, obtained_on=NPCI_READ_ON, citation=OC228, url=OC228_URL,
         quote=_OC228_BLOCK_CEILING,
         notes=(
             "Scoped to purpose code 77 (online goods and service delivery). "
@@ -477,7 +541,7 @@ SBMD_LIMITS = [
     ),
     Limit(
         name="max_block_validity_days", value=90, unit="days",
-        source_tier=SourceTier.PRIMARY, citation=OC228, url=OC228_URL,
+        source_tier=SourceTier.PRIMARY, obtained_on=NPCI_READ_ON, citation=OC228, url=OC228_URL,
         quote=_OC228_BLOCK_CEILING,
         notes=(
             "Same sentence as the Rs 10,000 ceiling. Never cite the 90 days "
@@ -487,7 +551,7 @@ SBMD_LIMITS = [
     ),
     Limit(
         name="max_active_blocks_per_merchant", value=1, unit="count",
-        source_tier=SourceTier.PRIMARY, citation=OC228, url=OC228_URL,
+        source_tier=SourceTier.PRIMARY, obtained_on=NPCI_READ_ON, citation=OC228, url=OC228_URL,
         quote=("One mobile number (assumed as one customer) is allowed to create "
                "only one block at a time for the particular merchant."),
         notes="Scoped per merchant. Blocks with different merchants may coexist.",
@@ -501,7 +565,7 @@ SBMD = RailProfile(
     capabilities=[
         Capability(
             name="payment_guarantee", supported=False,
-            source_tier=SourceTier.PRIMARY,
+            source_tier=SourceTier.PRIMARY, obtained_on=NPCI_READ_ON,
             citation=f"{OC228}, Acquiring entities obligation 2",
             url=OC228_URL,
             quote=_OC228_NO_GUARANTEE,
@@ -516,7 +580,7 @@ SBMD = RailProfile(
         ),
         Capability(
             name="post_delivery_debit_goods", supported=False,
-            source_tier=SourceTier.PRIMARY,
+            source_tier=SourceTier.PRIMARY, obtained_on=NPCI_READ_ON,
             citation=f"{OC228}, Acquiring entities obligation 4",
             url=OC228_URL,
             quote=_OC228_DEBIT_BEFORE_DELIVERY,
@@ -535,7 +599,7 @@ SBMD = RailProfile(
         ),
         Capability(
             name="post_delivery_debit_variable_amount_services", supported=True,
-            source_tier=SourceTier.PRIMARY,
+            source_tier=SourceTier.PRIMARY, obtained_on=NPCI_READ_ON,
             citation=f"{OC228}, Acquiring entities obligation 4",
             url=OC228_URL,
             quote=_OC228_DEBIT_BEFORE_DELIVERY,
@@ -553,7 +617,7 @@ SBMD = RailProfile(
         # constrains WHEN debit happens, never that debit == block.
         Capability(
             name="partial_debit", supported=True,
-            source_tier=SourceTier.PRIMARY,
+            source_tier=SourceTier.PRIMARY, obtained_on=NPCI_READ_ON,
             citation=f"{OC228}, Acquiring entities obligations 5(d) and 5(e)",
             url=OC228_URL,
             quote=_OC228_UNUTILISED,
@@ -578,7 +642,7 @@ SBMD = RailProfile(
         ),
         Capability(
             name="multi_debit", supported=True,
-            source_tier=SourceTier.PRIMARY,
+            source_tier=SourceTier.PRIMARY, obtained_on=NPCI_READ_ON,
             citation=f"{OC200}, issuer obligation 1",
             url=OC200_URL,
             quote=_OC200_MULTIPLE_DEBITS,
@@ -597,7 +661,7 @@ SBMD = RailProfile(
         ),
         Capability(
             name="funds_held_in_customer_account", supported=True,
-            source_tier=SourceTier.PRIMARY,
+            source_tier=SourceTier.PRIMARY, obtained_on=NPCI_READ_ON,
             citation=f"{OC200}, issuer obligation 1",
             url=OC200_URL,
             quote=_OC200_MULTIPLE_DEBITS,
@@ -611,7 +675,7 @@ SBMD = RailProfile(
         ),
         Capability(
             name="remainder_auto_released", supported=False,
-            source_tier=SourceTier.PRIMARY,
+            source_tier=SourceTier.PRIMARY, obtained_on=NPCI_READ_ON,
             citation=f"{OC200}, issuer obligation 1",
             url=OC200_URL,
             quote=_OC200_MULTIPLE_DEBITS,
@@ -664,7 +728,7 @@ SBMD = RailProfile(
         ),
         Capability(
             name="merchant_revocable", supported=True,
-            source_tier=SourceTier.PRIMARY,
+            source_tier=SourceTier.PRIMARY, obtained_on=NPCI_READ_ON,
             citation=f"{OC228}, Acquiring entities obligation 5(c)",
             url=OC228_URL,
             quote=_OC228_MERCHANT_REVOKE,
@@ -688,7 +752,7 @@ SBMD = RailProfile(
         ),
         Capability(
             name="customer_revocable", supported=True,
-            source_tier=SourceTier.PRIMARY,
+            source_tier=SourceTier.PRIMARY, obtained_on=NPCI_READ_ON,
             citation=f"{OC228}, UPI Apps obligation 1",
             url=OC228_URL,
             quote=_OC228_APP_REVOKE,
@@ -711,7 +775,7 @@ SBMD = RailProfile(
         ),
         Capability(
             name="purpose_code_77_for_online_goods", supported=True,
-            source_tier=SourceTier.PRIMARY,
+            source_tier=SourceTier.PRIMARY, obtained_on=NPCI_READ_ON,
             citation=f"{OC200}, clause (c) and purpose-code table at clause (a)",
             url=OC200_URL,
             quote=_OC200_PURPOSE_CODE_LIMITS,
@@ -733,7 +797,7 @@ SBMD = RailProfile(
         ),
         Capability(
             name="block_validity_90_days", supported=True,
-            source_tier=SourceTier.PRIMARY,
+            source_tier=SourceTier.PRIMARY, obtained_on=NPCI_READ_ON,
             citation=f"{OC228}, Acquiring entities obligation 5(b)",
             url=OC228_URL,
             quote=_OC228_BLOCK_CEILING,
@@ -763,7 +827,7 @@ SBMD = RailProfile(
         # ------------------------------------------------------------------
         Capability(
             name="single_active_block_per_merchant", supported=True,
-            source_tier=SourceTier.PRIMARY,
+            source_tier=SourceTier.PRIMARY, obtained_on=NPCI_READ_ON,
             citation=f"{OC228}, Issuer Banks obligation 4",
             url=OC228_URL,
             quote=_OC228_ONE_BLOCK,
@@ -962,7 +1026,7 @@ RAZORPAY_AUTH_CAPTURE = RailProfile(
     capabilities=[
         Capability(
             name="partial_debit", supported=False,
-            source_tier=SourceTier.OBSERVED,
+            source_tier=SourceTier.OBSERVED, environment=Environment.SANDBOX, obtained_on="2026-08-22",
             citation=("measured 22 Aug 2026 — POST /payments/{id}/capture, "
                       "HTTP 400 (docs agree: razorpay.com/docs/api/payments/capture/)"),
             url="https://razorpay.com/docs/api/payments/capture/",
@@ -1019,7 +1083,7 @@ UPI_OTM = RailProfile(
         ),
         Capability(
             name="partial_debit", supported=True,
-            source_tier=SourceTier.SECONDARY,
+            source_tier=SourceTier.SECONDARY, obtained_on="2026-08-21",
             citation=SETU_RESERVE,
             url=SETU_RESERVE_URL,
             quote=_SETU_OTM_AUTO_UNBLOCK,
@@ -1072,7 +1136,7 @@ CASHFREE_PREAUTH = RailProfile(
     capabilities=[
         Capability(
             name="partial_debit", supported=True,
-            source_tier=SourceTier.OBSERVED,
+            source_tier=SourceTier.OBSERVED, environment=Environment.SANDBOX, obtained_on="2026-08-29",
             citation=("measured 29 Aug 2026 (sandbox; the authorisation was forced "
                       "with POST /simulate) — POST /orders/{id}/authorization "
                       "action CAPTURE ₹470 of a ₹620 hold, HTTP 200"),
@@ -1099,7 +1163,7 @@ CASHFREE_PREAUTH = RailProfile(
         ),
         Capability(
             name="void_after_partial_capture", supported=False,
-            source_tier=SourceTier.OBSERVED,
+            source_tier=SourceTier.OBSERVED, environment=Environment.SANDBOX, obtained_on="2026-08-29",
             citation=("measured 29 Aug 2026 (sandbox) — VOID after a partial "
                       "CAPTURE, HTTP 400"),
             url=CASHFREE_PREAUTH_URL,
@@ -1132,7 +1196,7 @@ CASHFREE_PREAUTH = RailProfile(
         ),
         Capability(
             name="partial_void", supported=False,
-            source_tier=SourceTier.SECONDARY,
+            source_tier=SourceTier.SECONDARY, obtained_on="2026-09-20",
             citation=("Cashfree, Pre-Authorisation docs, FAQ (fetched 20 Sep 2026)"),
             url=CASHFREE_PREAUTH_URL,
             quote="No, voiding must be for the entire authorised amount.",
@@ -1141,7 +1205,7 @@ CASHFREE_PREAUTH = RailProfile(
         ),
         Capability(
             name="multiple_captures", supported=False,
-            source_tier=SourceTier.SECONDARY,
+            source_tier=SourceTier.SECONDARY, obtained_on="2026-09-20",
             citation=("Cashfree, Pre-Authorisation docs, Managing preauthorisation "
                       "transactions (fetched 20 Sep 2026)"),
             url=CASHFREE_PREAUTH_URL,
@@ -1153,7 +1217,7 @@ CASHFREE_PREAUTH = RailProfile(
         ),
         Capability(
             name="funds_held_in_customer_account", supported=True,
-            source_tier=SourceTier.OBSERVED,
+            source_tier=SourceTier.OBSERVED, environment=Environment.SANDBOX, obtained_on="2026-08-29",
             citation=("measured 29 Aug 2026 — order_status PAID, is_captured false "
                       "before any capture"),
             url=CASHFREE_PREAUTH_URL,
@@ -1170,7 +1234,7 @@ CASHFREE_PREAUTH = RailProfile(
         ),
         Capability(
             name="self_serve_enablement", supported=False,
-            source_tier=SourceTier.OBSERVED,
+            source_tier=SourceTier.OBSERVED, environment=Environment.SANDBOX, obtained_on="2026-08-28",
             citation="Cashfree support ticket 8266875, resolved 28 Aug 2026",
             url=CASHFREE_PREAUTH_URL,
             quote=("successfully enabled in the Sandbox/Test environment ... "
@@ -1189,7 +1253,7 @@ CASHFREE_PREAUTH = RailProfile(
     limits=[
         Limit(
             name="hold_expiry_days", value=7, unit="days",
-            source_tier=SourceTier.SECONDARY,
+            source_tier=SourceTier.SECONDARY, obtained_on="2026-09-20",
             citation=("Cashfree, Pre-Authorisation docs, FAQ (fetched 20 Sep 2026)"),
             url=CASHFREE_PREAUTH_URL,
             quote=("If not captured within 7 days, the authorisation expires, and the "
@@ -1207,7 +1271,7 @@ SETU_UMAP = RailProfile(
     capabilities=[
         Capability(
             name="credentials_self_serve", supported=True,
-            source_tier=SourceTier.OBSERVED,
+            source_tier=SourceTier.OBSERVED, environment=Environment.LIVE, obtained_on="2026-08-21",
             citation="probed 21 Aug 2026 — accountservice.setu.co/v1/users/login",
             url="https://docs.setu.co/payments/umap/quickstart",
             quote="HTTP 200, access_token issued",
@@ -1216,7 +1280,7 @@ SETU_UMAP = RailProfile(
         ),
         Capability(
             name="api_publicly_reachable", supported=False,
-            source_tier=SourceTier.OBSERVED,
+            source_tier=SourceTier.OBSERVED, environment=Environment.LIVE, obtained_on="2026-08-21",
             citation="probed 21 Aug 2026 — DNS via Google 8.8.8.8 and Cloudflare 1.1.1.1",
             url="https://docs.setu.co/payments/umap/quickstart",
             quote="uatapi.setu.co NXDOMAIN; api.setu.co NXDOMAIN",

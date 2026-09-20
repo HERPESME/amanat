@@ -1,7 +1,7 @@
 """Rail capability encoding: every assertion cited or explicitly UNVERIFIED."""
 import pytest
 from amanat.rails.semantics import (
-    Capability, SourceTier, RailProfile, RAILS, CapabilityError, Limit,
+    Capability, SourceTier, RailProfile, RAILS, CapabilityError, Limit, Environment,
 )
 
 
@@ -456,3 +456,81 @@ class TestTheCashfreeReleaseLegIsNotAssumed:
         limit = RAILS["cashfree_preauth"].limit("hold_expiry_days")
         assert limit.value == 7 and limit.unit == "days"
         assert "7 days" in limit.quote
+
+
+class TestEvidenceProvenance:
+    """A row says where its evidence came from, and on what.
+
+    OBSERVED once meant "measured somewhere". A vendor sandbox that forces an
+    authorisation is not an issuer, and a public DNS lookup is not a payment, so an
+    observation names its environment; and the date it was obtained is a field, not a
+    phrase buried in a citation.
+    """
+
+    def _observed(self, **kw):
+        base = dict(name="x", supported=True, source_tier=SourceTier.OBSERVED,
+                    citation="probed", quote="HTTP 200")
+        base.update(kw)
+        return Capability(**base)
+
+    def test_an_observed_row_must_say_what_it_was_observed_on(self):
+        with pytest.raises(CapabilityError, match="sandbox or live"):
+            self._observed()
+
+    def test_an_observed_row_with_an_environment_is_accepted(self):
+        assert self._observed(environment=Environment.SANDBOX).environment is Environment.SANDBOX
+
+    def test_only_observed_rows_carry_an_environment(self):
+        with pytest.raises(CapabilityError, match="OBSERVED"):
+            Capability(name="x", supported=True, source_tier=SourceTier.SECONDARY,
+                       citation="docs", quote="q", environment=Environment.SANDBOX)
+
+    def test_a_limit_follows_the_same_rule(self):
+        with pytest.raises(CapabilityError, match="sandbox or live"):
+            Limit(name="x", value=1, unit="days", source_tier=SourceTier.OBSERVED,
+                  citation="probed", quote="q")
+        with pytest.raises(CapabilityError, match="OBSERVED"):
+            Limit(name="x", value=1, unit="days", source_tier=SourceTier.PRIMARY,
+                  citation="c", quote="q", environment=Environment.LIVE)
+
+    @pytest.mark.parametrize("bad", ["21 Aug 2026", "2026-8-21", "2026-02-30", "yesterday"])
+    def test_the_date_obtained_must_be_a_real_iso_date(self, bad):
+        with pytest.raises(CapabilityError, match="ISO date"):
+            self._observed(environment=Environment.SANDBOX, obtained_on=bad)
+
+    def test_a_real_iso_date_is_kept(self):
+        cap = self._observed(environment=Environment.SANDBOX, obtained_on="2026-08-29")
+        assert cap.obtained_on == "2026-08-29"
+
+    def test_every_observed_row_in_the_registry_names_its_environment(self):
+        for rail in RAILS.values():
+            for row in (*rail.capabilities.values(), *rail.limits.values()):
+                if row.source_tier is SourceTier.OBSERVED:
+                    assert isinstance(row.environment, Environment), (rail.rail_id, row.name)
+                else:
+                    assert row.environment is None, (rail.rail_id, row.name)
+
+    def test_what_each_existing_observation_was_made_on(self):
+        """Vendor sandboxes are sandbox; Setu's account service and public DNS are live
+        infrastructure (no payment was made either way)."""
+        rz = RAILS["razorpay_auth_capture"].capabilities["partial_debit"]
+        assert rz.environment is Environment.SANDBOX
+        for name in ("partial_debit", "void_after_partial_capture",
+                     "funds_held_in_customer_account", "self_serve_enablement"):
+            assert RAILS["cashfree_preauth"].capabilities[name].environment is Environment.SANDBOX
+        for name in ("credentials_self_serve", "api_publicly_reachable"):
+            assert RAILS["setu_umap"].capabilities[name].environment is Environment.LIVE
+
+    def test_a_measurement_date_in_the_citation_matches_the_structured_date(self):
+        """The prose and the field must not drift apart."""
+        import re
+        months = {m: i for i, m in enumerate(
+            "Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split(), 1)}
+        pat = re.compile(r"\b(\d{1,2}) (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) (20\d\d)\b")
+        for rail in RAILS.values():
+            for row in (*rail.capabilities.values(), *rail.limits.values()):
+                if row.source_tier is not SourceTier.OBSERVED:
+                    continue
+                found = {f"{y}-{months[m]:02d}-{int(d):02d}" for d, m, y in pat.findall(row.citation)}
+                assert len(found) == 1, (rail.rail_id, row.name, "citation must carry one date", found)
+                assert row.obtained_on in found, (rail.rail_id, row.name, row.obtained_on, found)

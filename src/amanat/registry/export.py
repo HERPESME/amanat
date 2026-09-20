@@ -1,0 +1,95 @@
+"""Export the rail-semantics registry as versioned JSON, and publish its schema.
+
+    python -m amanat.registry.export
+
+`rails/semantics.py` is the truth the policy engine reads. This is the same table in a form
+other tools can consume, generated the way `docs/RAIL_SEMANTICS.md` is: never edited by hand,
+and a CI step fails if it has drifted from the table. The export is deterministic — it reads
+no clock and no set — so a diff means the registry changed, not that it was regenerated.
+
+`docs/registry/registry.schema.json` states the contract, including the project's rules
+(cited or UNVERIFIED; an observation names its environment; permitted means supported AND
+usable as fact). Validating against it is how a consumer inherits them.
+"""
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+from amanat.rails.semantics import RAILS, Capability, Limit, RailProfile, SourceTier
+
+SCHEMA_VERSION = 2
+
+ROOT = Path(__file__).resolve().parents[3]
+OUT_DIR = ROOT / "docs" / "registry"
+REGISTRY_PATH = OUT_DIR / "registry.json"
+SCHEMA_PATH = OUT_DIR / "registry.schema.json"
+_PACKAGED_SCHEMA = Path(__file__).with_name("registry.schema.json")
+
+
+def schema() -> dict:
+    return json.loads(_PACKAGED_SCHEMA.read_text(encoding="utf-8"))
+
+
+def _evidence(row: Capability | Limit) -> dict:
+    return {
+        "tier": row.source_tier.value,
+        "usable_as_fact": row.is_fact,
+        "environment": row.environment.value if row.environment else None,
+        "obtained_on": row.obtained_on or None,
+        "probe_id": row.probe_id or None,
+        "citation": row.citation,
+        "url": row.url,
+        "quote": row.quote,
+        "notes": row.notes,
+    }
+
+
+def _capability(rail: RailProfile, cap: Capability) -> dict:
+    return {"name": cap.name, "supported": cap.supported,
+            "permitted": rail.permits(cap.name), **_evidence(cap)}
+
+
+def _limit(lim: Limit) -> dict:
+    return {"name": lim.name, "value": lim.value, "unit": lim.unit, **_evidence(lim)}
+
+
+def build() -> dict:
+    """The registry as a JSON-able dict."""
+    rails = [
+        {
+            "rail_id": rail.rail_id,
+            "display_name": rail.display_name,
+            "capabilities": [_capability(rail, c) for c in rail.capabilities.values()],
+            "limits": [_limit(l) for l in rail.limits.values()],
+        }
+        for rail in RAILS.values()
+    ]
+    dates = [row["obtained_on"] for r in rails
+             for row in (*r["capabilities"], *r["limits"]) if row["obtained_on"]]
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "as_of": max(dates) if dates else None,
+        "tiers": [{"tier": t.value, "usable_as_fact": t.is_fact, "meaning": t.meaning}
+                  for t in SourceTier],
+        "rails": rails,
+    }
+
+
+def render() -> str:
+    return json.dumps(build(), indent=2, ensure_ascii=False) + "\n"
+
+
+def main() -> None:
+    OUT_DIR.mkdir(parents=True, exist_ok=True)
+    REGISTRY_PATH.write_text(render(), encoding="utf-8")
+    SCHEMA_PATH.write_text(json.dumps(schema(), indent=2, ensure_ascii=False) + "\n",
+                           encoding="utf-8")
+    doc = build()
+    rows = sum(len(r["capabilities"]) for r in doc["rails"])
+    print(f"wrote {REGISTRY_PATH.relative_to(ROOT)} ({len(doc['rails'])} rails, {rows} capabilities, "
+          f"as of {doc['as_of']}) and {SCHEMA_PATH.relative_to(ROOT)}")
+
+
+if __name__ == "__main__":
+    main()

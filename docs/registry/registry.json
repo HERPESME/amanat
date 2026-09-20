@@ -1,0 +1,560 @@
+{
+  "schema_version": 2,
+  "as_of": "2026-09-20",
+  "tiers": [
+    {
+      "tier": "primary",
+      "usable_as_fact": true,
+      "meaning": "NPCI circular, RBI directive, network operating regulation"
+    },
+    {
+      "tier": "observed",
+      "usable_as_fact": true,
+      "meaning": "measured against the rail's API; the quote is the response it returned (see `environment`)"
+    },
+    {
+      "tier": "secondary",
+      "usable_as_fact": true,
+      "meaning": "PSP integration docs — for that PSP's own behaviour"
+    },
+    {
+      "tier": "marketing",
+      "usable_as_fact": false,
+      "meaning": "Blog posts, product pages, comparison tables"
+    },
+    {
+      "tier": "unverified",
+      "usable_as_fact": false,
+      "meaning": "Believed, not confirmed"
+    }
+  ],
+  "rails": [
+    {
+      "rail_id": "sbmd",
+      "display_name": "UPI Reserve Pay (NPCI Single Block Multiple Debit)",
+      "capabilities": [
+        {
+          "name": "payment_guarantee",
+          "supported": false,
+          "permitted": false,
+          "tier": "primary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-08-21",
+          "probe_id": null,
+          "citation": "NPCI/UPI/OC-228/2025-26, 8 October 2025, Acquiring entities obligation 2",
+          "url": "https://www.npci.org.in/uploads/UPI_OC_No_228_FY_2025_26_Enhancement_in_UPI_Single_Block_Multiple_Debits_UPI_Reserve_Pay_a9095c181d.pdf",
+          "quote": "The block created shall not be treated as the guarantee of payment, only the successful debit response received by the merchant (for the debit initiated by the customer action on merchant's platform) shall be considered for payment.",
+          "notes": "A block is not a guarantee. Do not model it as one. Read the parenthesis too: the debit is one 'initiated by the customer action on merchant's platform', which is the same trigger named in the opening paragraph and in acquiring obligation 4. There is no merchant-discretionary draw on this rail, so an agent debit is standing in for a customer act."
+        },
+        {
+          "name": "post_delivery_debit_goods",
+          "supported": false,
+          "permitted": false,
+          "tier": "primary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-08-21",
+          "probe_id": null,
+          "citation": "NPCI/UPI/OC-228/2025-26, 8 October 2025, Acquiring entities obligation 4",
+          "url": "https://www.npci.org.in/uploads/UPI_OC_No_228_FY_2025_26_Enhancement_in_UPI_Single_Block_Multiple_Debits_UPI_Reserve_Pay_a9095c181d.pdf",
+          "quote": "The purchase action by the customer must result into instant debit request without any delay, and the delivery of goods and service should only be after the confirmation of successful debit to the Acquiring bank for categories such as quick commerce, food delivery, etc. For use cases wherein amount is not fixed and is determined based on the services consumed (e.g.: cab aggregators, EVs, etc.), merchant may debit post successful delivery of services.",
+          "notes": "For fixed-price goods, debit must precede delivery. This forecloses delivery-contingent settlement for goods.\nQUOTE CORRECTED 21 Aug 2026. The version carried until then elided 'to the Acquiring bank for categories such as quick commerce, food delivery, etc.'. That phrase matters: the rule is written with named example categories rather than as a flat all-goods prohibition. 'such as' is exemplifying, not exhaustive, so the stricter reading (it binds all fixed-price goods) is the one to build to - but say out loud that the circular states it by example."
+        },
+        {
+          "name": "post_delivery_debit_variable_amount_services",
+          "supported": true,
+          "permitted": true,
+          "tier": "primary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-08-21",
+          "probe_id": null,
+          "citation": "NPCI/UPI/OC-228/2025-26, 8 October 2025, Acquiring entities obligation 4",
+          "url": "https://www.npci.org.in/uploads/UPI_OC_No_228_FY_2025_26_Enhancement_in_UPI_Single_Block_Multiple_Debits_UPI_Reserve_Pay_a9095c181d.pdf",
+          "quote": "The purchase action by the customer must result into instant debit request without any delay, and the delivery of goods and service should only be after the confirmation of successful debit to the Acquiring bank for categories such as quick commerce, food delivery, etc. For use cases wherein amount is not fixed and is determined based on the services consumed (e.g.: cab aggregators, EVs, etc.), merchant may debit post successful delivery of services.",
+          "notes": "The carve-out is scoped by AMOUNT UNCERTAINTY, not delivery contingency. Cabs and EV charging qualify; a fixed-price kurta does not. Grocery is a trap: amount resolves at picking, before dispatch, so debit can and must precede delivery. Note also that the carve-out changes only WHEN the debit happens - it says nothing about the amount relative to the block, which is governed by 5(d) for every use case alike."
+        },
+        {
+          "name": "partial_debit",
+          "supported": true,
+          "permitted": true,
+          "tier": "primary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-08-21",
+          "probe_id": null,
+          "citation": "NPCI/UPI/OC-228/2025-26, 8 October 2025, Acquiring entities obligations 5(d) and 5(e)",
+          "url": "https://www.npci.org.in/uploads/UPI_OC_No_228_FY_2025_26_Enhancement_in_UPI_Single_Block_Multiple_Debits_UPI_Reserve_Pay_a9095c181d.pdf",
+          "quote": "The current block limits (unutilised) are always checked before initiating a debit. Display of original block value, remaining balance, expiry date and transaction history (including creation, debits, modification).",
+          "notes": "VERIFIED 21 Aug 2026 against the circular PDF. This is the load-bearing capability for amount-contingent settlement, and the reason this system stopped refusing its own core mechanism.\nHonest reading: neither OC-228 nor OC-200 contains an explicit sentence permitting a debit smaller than the block, and neither forbids one. It is decided by necessary implication from four independent clauses that are incoherent under a debit-equals-block rule. Two are in the quote above. The other two, verbatim - OC-228 issuer obligation 3: \"Only utilized amount debited after actual purchase to be considered for bill generation as applicable for credit accounts on UPI.\" and OC-228 opening paragraph: \"UPI Reserve Pay feature facilitates the customer to block the funds in the account for multiple debits which can be initiated by the customer on the merchant's platform, till the reserved funds gets exhausted or the block has been revoked or expired.\"\nFraming correction: SBMD is not authorize-then-partial-capture. It is a pre-funded drawdown pool, so a debit smaller than the block is the ordinary case rather than an exception. The explicit amount rule sits in Annexure A, the 'Product Document on Mandate with Single Block and Multiple Debit' that OC-200 references but NPCI does not publish."
+        },
+        {
+          "name": "multi_debit",
+          "supported": true,
+          "permitted": true,
+          "tier": "primary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-08-21",
+          "probe_id": null,
+          "citation": "NPCI/UPI/OC.No.200/2024-25, 31 July 2024, issuer obligation 1",
+          "url": "https://www.npci.org.in/uploads/UPI_OC_No_200_FY_24_25_Enablement_of_UPI_Mandate_feature_of_Single_Block_Multiple_Debits_f2f9bc9230.pdf",
+          "quote": "The issuer banks shall support the functionality of Single Block Multiple Debit services wherein the bank shall have the mechanism to create blocking of funds in the customer's account and shall allow multiple debits against the block. The fund shall be blocked in the account till the time mandate is expired, revoked or the mandate amount is exhausted.",
+          "notes": "'shall allow multiple debits against the block' is explicit. There is NO cap on the number of debits in either circular. The block is bounded by value, time and concurrency instead: Rs 10,000 and 90 days (OC-228), one block at a time per mobile number per merchant (OC-228 issuer obligation 4), P2M only (OC-200 clause g).\nThe '3 retries in 24 hours' figure is not a debit budget. OC-228 acquiring obligation 3 grants it only where the debit TIMED OUT with the issuer/payer PSP, with 'no retries for any other declines'."
+        },
+        {
+          "name": "funds_held_in_customer_account",
+          "supported": true,
+          "permitted": true,
+          "tier": "primary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-08-21",
+          "probe_id": null,
+          "citation": "NPCI/UPI/OC.No.200/2024-25, 31 July 2024, issuer obligation 1",
+          "url": "https://www.npci.org.in/uploads/UPI_OC_No_200_FY_24_25_Enablement_of_UPI_Mandate_feature_of_Single_Block_Multiple_Debits_f2f9bc9230.pdf",
+          "quote": "The issuer banks shall support the functionality of Single Block Multiple Debit services wherein the bank shall have the mechanism to create blocking of funds in the customer's account and shall allow multiple debits against the block. The fund shall be blocked in the account till the time mandate is expired, revoked or the mandate amount is exhausted.",
+          "notes": "'create blocking of funds in the customer's account' - the money never leaves the payer. OC-228 issuer obligation 1 adds 'The reserve amount details is shown to the customer in the statement and other channels as applicable in due course.' Contrast Razorpay's 'authorized', which has already debited."
+        },
+        {
+          "name": "remainder_auto_released",
+          "supported": false,
+          "permitted": false,
+          "tier": "primary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-08-21",
+          "probe_id": null,
+          "citation": "NPCI/UPI/OC.No.200/2024-25, 31 July 2024, issuer obligation 1",
+          "url": "https://www.npci.org.in/uploads/UPI_OC_No_200_FY_24_25_Enablement_of_UPI_Mandate_feature_of_Single_Block_Multiple_Debits_f2f9bc9230.pdf",
+          "quote": "The issuer banks shall support the functionality of Single Block Multiple Debit services wherein the bank shall have the mechanism to create blocking of funds in the customer's account and shall allow multiple debits against the block. The fund shall be blocked in the account till the time mandate is expired, revoked or the mandate amount is exhausted.",
+          "notes": "THE THIRD LEG OF THIS PROJECT'S MECHANISM IS NOT AUTOMATIC, and this is the most consequential thing found on 21 Aug 2026.\n'The fund shall be blocked in the account till the time mandate is expired, revoked or the mandate amount is exhausted.' The rail KEEPS the unused remainder blocked. Neither circular imposes any duty to release it after a partial debit, and neither states any timeline for doing so. Release happens only because somebody calls revoke or update - see `merchant_revocable` and `customer_revocable`.\nConsequence for the ceiling model: debit Rs 470 against a Rs 620 block and walk away, and Rs 150 stays stranded until the customer-chosen end date, up to 90 days. Stranding duration is 'until someone revokes, else end-of-block', not 'until settlement'. Price it that way.\nCORROBORATED 21 Aug 2026 by three independent PSP docs, which matters because the primary finding was a negative one and a negative read of a scan invites doubt. Razorpay: 'Ensure customers are informed that their funds remain blocked until you explicitly release them or the token expires', and the way to know what is left is to 'subtract the amount_debited from the amount_blocked'. Setu's ReservePlus execute API constrains the debit amount so that 'the cumulative amount debited for the given mandate post current debit is within the amount that is blocked'. Cashfree: 'The remaining reserved balance reduces automatically after each debit.' All three describe a pool that draws down and stays blocked, not one that returns change.\nTHE ONE CONFLICTING SOURCE, and it should be disclosed rather than dropped. PayU's Reserve Pay page asserts the opposite in its examples - 'After finalizing the recharge (e.g., Rs.499), the balance Rs.51 is released' - but the same page's feature list gives the mechanism away: 'Currently, the releasing of funds is done by remiters but PayU has built a functionality (internal) to revoke the transactions based on end date to minimise the funds on hold.' A scheduled revoke is not an automatic release. Build to the stricter reading.\nTHE CONTRAST WORTH BUILDING ON. This is a MULTI-debit finding. On the SINGLE-debit sibling - UPI OTM, Setu's 'Reserve' - the rail does hand the remainder back by itself; see `upi_otm.partial_debit`. If the agent commits to exactly one debit per block, leg three is free and there is nothing to revoke. The stranding problem is the price of keeping the pool open for a second debit, and that is a design choice this project makes, not a constraint the rail imposes."
+        },
+        {
+          "name": "merchant_revocable",
+          "supported": true,
+          "permitted": true,
+          "tier": "primary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-08-21",
+          "probe_id": null,
+          "citation": "NPCI/UPI/OC-228/2025-26, 8 October 2025, Acquiring entities obligation 5(c)",
+          "url": "https://www.npci.org.in/uploads/UPI_OC_No_228_FY_2025_26_Enhancement_in_UPI_Single_Block_Multiple_Debits_UPI_Reserve_Pay_a9095c181d.pdf",
+          "quote": "Easy access on merchant's platform to update and revoke along with the responsibility of issuer to validate every debit.",
+          "notes": "This is how the unused difference actually gets released: an explicit update or revoke from the merchant platform. Both are first-class lifecycle events - OC-228 issuer obligation 2 requires notifications for 'block creation, modification, debit, revoke and expiry'.\nCORRECTION, 21 Aug 2026. This note used to end '...so a block can be revised downward as well as torn down.' That was an inference from the word 'update', not a finding, and it is the kind of leap this module exists to prevent. A modify operation does exist and does preserve the block - see `block_amount_modifiable_without_revoke` - but nothing in either circular or in any PSP doc says it may revise an amount DOWNWARD, and only one of six merchant-side PSPs exposes it at all. See `block_amount_reducible_without_revoke`, which is UNVERIFIED for exactly that reason."
+        },
+        {
+          "name": "customer_revocable",
+          "supported": true,
+          "permitted": true,
+          "tier": "primary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-08-21",
+          "probe_id": null,
+          "citation": "NPCI/UPI/OC-228/2025-26, 8 October 2025, UPI Apps obligation 1",
+          "url": "https://www.npci.org.in/uploads/UPI_OC_No_228_FY_2025_26_Enhancement_in_UPI_Single_Block_Multiple_Debits_UPI_Reserve_Pay_a9095c181d.pdf",
+          "quote": "Easy access to revoke the block.",
+          "notes": "Unconditional for Reserve Pay: OC-228 makes it a flat obligation on authorised UPI Apps, and OC-228 identifies its transactions by purpose code 77. For the merchant this is a liability rather than a feature - revocation is one tap and neither circular grants the merchant a lock period or any protection for a debit in flight.\nCORRECTION: this project previously recorded 'code 76 is merchant-revoke-only; code 77 is customer-revocable'. That distinction appears in NEITHER circular and should be treated as unsourced. What OC-200 clause (e) actually says, for all SBMD, is 'Customer shall also be provided with an option of revoking the mandate based on the merchant use case' - i.e. conditional on the use case. OC-228 then removes the conditionality for Reserve Pay."
+        },
+        {
+          "name": "purpose_code_77_for_online_goods",
+          "supported": true,
+          "permitted": true,
+          "tier": "primary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-08-21",
+          "probe_id": null,
+          "citation": "NPCI/UPI/OC.No.200/2024-25, 31 July 2024, clause (c) and purpose-code table at clause (a)",
+          "url": "https://www.npci.org.in/uploads/UPI_OC_No_200_FY_24_25_Enablement_of_UPI_Mandate_feature_of_Single_Block_Multiple_Debits_f2f9bc9230.pdf",
+          "quote": "The per transaction limit for such mandate creations shall be Rs 5 Lakh for the purpose code 76, while for purpose code 77 existing UPI limits shall be applicable.",
+          "notes": "OC-200's table: 76 = 'Securities brokers and dealers (Secondary Market)', 77 = 'Online goods and service delivery', 78 and 79 'To be reserved for future use'. E-commerce is 77, and OC-228 names only 77.\nAnswer to 'is there a 76-vs-77 rule for partial debit, debit count, or the remainder?' - NO. The only differential rule in the primary text is a per-transaction LIMIT: Rs 5 lakh for 76, existing UPI limits for 77. Everything about drawdown, remaining balance and revocation is stated once, for SBMD as a whole.\nOne asymmetry worth carrying: OC-228's Rs 10,000 / 90-day block ceiling is stated in a circular scoped to purpose code 77, so it is not evidenced as binding on a 76 block."
+        },
+        {
+          "name": "block_validity_90_days",
+          "supported": true,
+          "permitted": true,
+          "tier": "primary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-08-21",
+          "probe_id": null,
+          "citation": "NPCI/UPI/OC-228/2025-26, 8 October 2025, Acquiring entities obligation 5(b)",
+          "url": "https://www.npci.org.in/uploads/UPI_OC_No_228_FY_2025_26_Enhancement_in_UPI_Single_Block_Multiple_Debits_UPI_Reserve_Pay_a9095c181d.pdf",
+          "quote": "Allow user to enter the amount and select the end date as per their choice up to maximum of Rs.10,000 of block limit and up to 90 days.",
+          "notes": "90 days is a MAXIMUM with a customer-chosen end date, not a default. OC-228 issuer obligation 5 states the same limits: 'The block created to be maximum of Rs.10,000 of block limit and up to 90 days.'\nNever quote the 90 days without the Rs 10,000 in the same sentence. For a ceiling-selection thesis the Rs 10,000 is the harder constraint: any predicted ceiling above it cannot be blocked at all on purpose code 77.\nThe '90d vs cards 7d vs mandate 60d' comparison still originates in PayU MARKETING copy and mislabels OTM as 'standard mandate'. Real card figures: Visa India 2-4 days, Mastercard 4 days final / 30 days preauth. Do not cite it."
+        },
+        {
+          "name": "single_active_block_per_merchant",
+          "supported": true,
+          "permitted": true,
+          "tier": "primary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-08-21",
+          "probe_id": null,
+          "citation": "NPCI/UPI/OC-228/2025-26, 8 October 2025, Issuer Banks obligation 4",
+          "url": "https://www.npci.org.in/uploads/UPI_OC_No_228_FY_2025_26_Enhancement_in_UPI_Single_Block_Multiple_Debits_UPI_Reserve_Pay_a9095c181d.pdf",
+          "quote": "One mobile number (assumed as one customer) is allowed to create only one block at a time for the particular merchant.",
+          "notes": "The concurrency bound, and the reason a revoke is expensive rather than free. Verified 21 Aug 2026 by re-rendering page 1 of the OC-228 scan at 200 dpi and reading item 4 directly.\nConsequence, and it is the whole cost of leg three: a customer has at most ONE live block with a given merchant. Revoking to hand back Rs 150 does not just end that block, it clears the only slot - the next purchase needs a fresh block, which needs a fresh UPI PIN from the customer. So the agent's choice on a standing-wallet merchant is: strand the user's money until the end date, or spend the user's standing authorisation to return it. There is no third option that any merchant-side PSP exposes today except Setu. Price both branches; do not model release as free.\nScope note: the clause binds one MOBILE NUMBER to one block PER MERCHANT. It says nothing about how many blocks a customer may hold across different merchants, and OC-228 UPI Apps obligation 2 requires a 'consolidated view of all active blocks', plural, which confirms the cross-merchant case is expected. A multi-merchant agent is not blocked by this."
+        },
+        {
+          "name": "block_amount_modifiable_without_revoke",
+          "supported": true,
+          "permitted": true,
+          "tier": "secondary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": null,
+          "probe_id": null,
+          "citation": "Setu UPI (UMAP), Mandate operations - Update (corroborated by Setu UPI (UMAP), ReservePlus (Single block multi-debit mandate))",
+          "url": "https://docs.setu.co/payments/umap/mandates/generic/update",
+          "quote": "There are only two updates possible on a UPI mandate: Changing the mandate end date; Changing the mandate amount. endDate cannot be updated for a single block multi debit mandate",
+          "notes": "[PARTIAL] - a PSP doc describing a RAIL rule, per the rail-semantics skill. It is fact for Setu and a lead, not a fact, for the rail.\nWHAT WAS ESTABLISHED. A modify operation exists that is distinct from revoke. Setu's OpenAPI (/api-specs/payments/umap.json) carries 'PUT /api/v1/merchants/mandates/{id}/modify - Modify a mandate by id' alongside a separate 'PUT /api/v1/merchants/mandates/{id}/revoke - Revoke a mandate by id'. The ReservePlus page - Setu's name for the single block multi-debit product - lists 'Updating a single block multi debit mandate' first among the operations available 'once it is LIVE'. The mandate SURVIVES: the update flow emits 'mandate.updated' and the docs warn that the updated state is 'a pseudo status. Do not update mandate status based on this.'\nThe quote above is what narrows it to the amount. Only two fields are updatable at all, and one of them - endDate - is explicitly excluded for SBMD. By elimination, on an SBMD mandate a modify can change the amount and nothing else.\nPRIMARY CORROBORATION that a modify exists at scheme level, though never that it may decrease. OC-228 names modification four times as a first-class lifecycle event: acquiring 5(c) 'Easy access on merchant's platform to update and revoke along with the responsibility of issuer to validate every debit.' - update and revoke as two things; issuer 2 requires notifications for 'block creation, modification, debit, revoke and expiry'; acquiring 5(e) and UPI Apps 2 both require transaction history 'including creation, debits, modification'.\nSECOND INDEPENDENT SOURCE, payer-PSP side. Razorpay's TPAP Pro API exposes PATCH /v1/upi/tpap/mandates/:umn whose `action` parameter takes the two values 'update' and 'revoke' side by side, and documents `amount` as: 'The amount of the mandate. This parameter is required when the mandated amount needs to be updated, and the request_type is set to update. Either the validity_end or the amount must be provided.'\nADOPTION REALITY, and this is the finding that matters. Six merchant-side PSPs were surveyed by enumerating published API surface. Exactly ONE - Setu - exposes modify. Razorpay's 'Manage Mandates and Tokens' page has two lifecycle calls, cancel and delete, and no modify; its Reserve Pay webhooks are token.confirmed and token.cancellation_initiated, with no token.updated. Cashfree's manage action enum is CANCEL | PAUSE | ACTIVATE | CHANGE_PLAN and SBMD supports CANCEL only. PayU and Juspay expose no modify. BoxPay publishes no API surface for ReservePay at all. So the gap is IMPLEMENTATION, not regulation - which is a much more interesting sentence to say out loud than 'the rail does not allow it'."
+        },
+        {
+          "name": "block_amount_reducible_without_revoke",
+          "supported": true,
+          "permitted": false,
+          "tier": "unverified",
+          "usable_as_fact": false,
+          "environment": null,
+          "obtained_on": null,
+          "probe_id": null,
+          "citation": "",
+          "url": "",
+          "quote": "",
+          "notes": "STILL UNVERIFIED AFTER A FULL PSP SURVEY, AND DELIBERATELY SO. This is the assumption round 4 named as the most likely to be false in the whole project. Round 5 could not settle it.\nWhat is now evidenced is that a block's amount is MODIFIABLE without revoking - see `block_amount_modifiable_without_revoke`. What is not evidenced anywhere is the DIRECTION. Not one of the six PSP doc sets read on 21 Aug 2026, and neither NPCI circular, contains a sentence stating whether a modify may lower a block's amount, or only raise it, or whether it must stay above the amount already drawn down.\nThe only constraints published anywhere are non-directional. Setu's OpenAPI bounds the modify `amountLimit` by 'minimum: 100, maximum: 20000000' paise and nothing else. Razorpay's TPAP Pro modify documents exactly one amount failure, 'Amount must be greater than 0'. Neither forbids a decrease. Neither permits one. Silence is not permission, so this stays UNVERIFIED and `permits()` returns False - the policy engine will refuse to plan around a downward revision, which is the correct default. An agent that assumes it can shrink a block and cannot has stranded the user's money for up to 90 days and has no fallback that keeps the mandate alive.\nHOW TO SETTLE IT, and it is now a one-hour test rather than a one-day one, because the endpoint is named: on Setu staging (umap.setu.co), create a ReservePlus mandate for Rs 500, execute Rs 200, then PUT /v1/merchants/mandates/{id}/modify with amountLimit 30000 paise. Three outcomes, all informative: it succeeds (capability becomes SECONDARY [PARTIAL], supported=True); it is rejected with a directional error (supported=False, and the error string is the citation); or it succeeds at the API and the issuer declines, which is the answer that matters most and the one no document would ever have told us."
+        },
+        {
+          "name": "block_modify_requires_customer_afa",
+          "supported": true,
+          "permitted": true,
+          "tier": "secondary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": null,
+          "probe_id": null,
+          "citation": "Setu UPI (UMAP), Mandate operations - Update",
+          "url": "https://docs.setu.co/payments/umap/mandates/generic/update",
+          "quote": "Post this, once the customer clicks on the intent link / scans the qr code and enters the mPIN, the merchant will receive webhooks for following events: mandate_operation.update.initiated",
+          "notes": "[PARTIAL] - PSP doc describing a rail rule.\nTHE ASYMMETRY THAT DECIDES WHAT LEG THREE COSTS, and it runs the wrong way for an autonomous agent.\nThe DESTRUCTIVE operation is unattended. Razorpay's cancel is a server-to-server 'PUT /customers/:cid/tokens/:tid/cancel' authenticated with the merchant key; Cashfree's is 'POST /pg/subscriptions/:id/manage' with action CANCEL. No customer, no PIN, no app.\nThe NON-DESTRUCTIVE operation is not. Setu's modify requires the customer to open a UPI app and enter their mPIN - by intent link or QR for an intent mandate, by responding to a collect notification for a collect mandate, and 'An intent based mandate can only be updated via an intent link / qr and a collect based mandate can only be updated via collect flow'. Razorpay's payer-side TPAP modify carries the same cost in its request body: 'upi_credentials: {} // Upi credentials received from WebCL' - WebCL is the UPI Common Library, i.e. the PIN pad.\nSo an unattended agent has exactly one lever that returns money, and it is the one that destroys the mandate. Reducing the block instead costs a customer interaction - which is the same AFA the fresh block after a revoke would have cost. The saving from modifying rather than revoking is therefore NOT 'one AFA'; it is 'one AFA now instead of one AFA at the next purchase', plus the option value of the block surviving in between. That is a real saving but a much smaller one than the project's cost function currently assumes, and it should be modelled as deferral, not avoidance."
+        },
+        {
+          "name": "remainder_release_without_teardown",
+          "supported": false,
+          "permitted": false,
+          "tier": "secondary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": null,
+          "probe_id": null,
+          "citation": "Razorpay UPI Reserve Pay (SBMD), Manage Mandates and Tokens; Cashfree UPI Reserve Pay, Implementation Guide step 6 (Manage mandate); Juspay One Time Mandate, Release the Blocked Funds",
+          "url": "https://razorpay.com/docs/payments/payment-gateway/s2s-integration/recurring-payments/upi-reserve-pay/manage/",
+          "quote": "The blocked amount under a UPI Reserve Pay token can be released in two ways: Use the Cancel Token API below to release the blocked funds. When this API is called, all remaining funds under the token are unblocked and credited to the customer's bank account instantly. If you do not cancel the token and the token balance is not fully utilised before expiry, Razorpay automatically triggers a reversal of the remaining funds 10 minutes before the token expires.",
+          "notes": "[PARTIAL] - three PSP docs describing a rail behaviour.\nDIRECT ANSWER TO 'is there a release-remainder or close-block-early call?' - yes, every PSP has one, and on all three that document it, IT IS THE REVOKE. There is no partial release.\nRazorpay, above: the two ways to release are the Cancel Token API and expiry. 'All remaining funds under the token' - never some of them.\nCashfree heads its step 6 'Release unused blocked funds back to the customer using the manage subscription API' and then warns: 'Only the CANCEL action is supported for SBMD subscriptions. Other management actions like PAUSE are not available.'\nJuspay, on a page literally titled 'Release the Blocked Funds': 'Once the funds are blocked during the mandate registration, the funds are released only after invoking Revoke Mandate API by the merchant. Upon revoking the mandate, the status changes from ACTIVE to REVOKED.'\nPayU is the honest one. Its Reserve Pay page says under 'Amount Unblocking': 'Currently, the releasing of funds is done by remiters but PayU has built a functionality (internal) to revoke the transactions based on end date to minimise the funds on hold.' A PSP whose answer to stranded funds is a scheduled revoke has told you there is no decrease operation.\nONE PIECE OF GOOD NEWS the circulars do not give you. Razorpay bounds worst-case stranding below the 90-day ceiling: 'Razorpay automatically triggers a reversal of the remaining funds 10 minutes before the token expires.' That is a PSP behaviour, not a rail duty - `remainder_auto_released` stays False - but it means the ceiling model's worst case on Razorpay is 'until the token's chosen end date', not 'indefinitely'."
+        }
+      ],
+      "limits": [
+        {
+          "name": "max_block_amount",
+          "value": 1000000,
+          "unit": "paise",
+          "tier": "primary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-08-21",
+          "probe_id": null,
+          "citation": "NPCI/UPI/OC-228/2025-26, 8 October 2025",
+          "url": "https://www.npci.org.in/uploads/UPI_OC_No_228_FY_2025_26_Enhancement_in_UPI_Single_Block_Multiple_Debits_UPI_Reserve_Pay_a9095c181d.pdf",
+          "quote": "Allow user to enter the amount and select the end date as per their choice up to maximum of Rs.10,000 of block limit and up to 90 days.",
+          "notes": "Scoped to purpose code 77 (online goods and service delivery). OC-200(c) gives Rs 5 lakh per transaction for code 76 (securities), so this ceiling is not universal across SBMD. For a ceiling-selection thesis this is the BINDING constraint: a predicted ceiling above it cannot be blocked at all, whatever the model says."
+        },
+        {
+          "name": "max_block_validity_days",
+          "value": 90,
+          "unit": "days",
+          "tier": "primary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-08-21",
+          "probe_id": null,
+          "citation": "NPCI/UPI/OC-228/2025-26, 8 October 2025",
+          "url": "https://www.npci.org.in/uploads/UPI_OC_No_228_FY_2025_26_Enhancement_in_UPI_Single_Block_Multiple_Debits_UPI_Reserve_Pay_a9095c181d.pdf",
+          "quote": "Allow user to enter the amount and select the end date as per their choice up to maximum of Rs.10,000 of block limit and up to 90 days.",
+          "notes": "Same sentence as the Rs 10,000 ceiling. Never cite the 90 days without the amount cap — quoting the window alone reads as a much more permissive rail than the one that exists."
+        },
+        {
+          "name": "max_active_blocks_per_merchant",
+          "value": 1,
+          "unit": "count",
+          "tier": "primary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-08-21",
+          "probe_id": null,
+          "citation": "NPCI/UPI/OC-228/2025-26, 8 October 2025",
+          "url": "https://www.npci.org.in/uploads/UPI_OC_No_228_FY_2025_26_Enhancement_in_UPI_Single_Block_Multiple_Debits_UPI_Reserve_Pay_a9095c181d.pdf",
+          "quote": "One mobile number (assumed as one customer) is allowed to create only one block at a time for the particular merchant.",
+          "notes": "Scoped per merchant. Blocks with different merchants may coexist."
+        }
+      ]
+    },
+    {
+      "rail_id": "razorpay_auth_capture",
+      "display_name": "Razorpay manual capture (payment_capture=0)",
+      "capabilities": [
+        {
+          "name": "partial_debit",
+          "supported": false,
+          "permitted": false,
+          "tier": "observed",
+          "usable_as_fact": true,
+          "environment": "sandbox",
+          "obtained_on": "2026-08-22",
+          "probe_id": null,
+          "citation": "measured 22 Aug 2026 — POST /payments/{id}/capture, HTTP 400 (docs agree: razorpay.com/docs/api/payments/capture/)",
+          "url": "https://razorpay.com/docs/api/payments/capture/",
+          "quote": "Capture amount must be equal to the amount authorized.",
+          "notes": "Not a documentation claim. A test-mode payment was driven to 'authorized' (captured=False) through Razorpay Checkout against an order created with payment_capture=0, then a capture of 47000 was attempted against 62000 authorized. The API returned HTTP 400 with this exact sentence — the doc and the live rail agree word for word. Reproduce with `python -m amanat.rails.authorize` then `python -m amanat.rails.probe --capture <pay_id> 47000`. Forecloses amount-contingent settlement on this rail; the negative is the thing worth demonstrating."
+        },
+        {
+          "name": "funds_held_in_customer_account",
+          "supported": false,
+          "permitted": false,
+          "tier": "secondary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": null,
+          "probe_id": null,
+          "citation": "Razorpay payment lifecycle docs",
+          "url": "https://razorpay.com/docs/payments/payments/",
+          "quote": "Capture amount must be equal to the amount authorized.",
+          "notes": "THE TRAP: Razorpay's 'authorized' state has ALREADY DEBITED the customer. It is not a hold. Volunteer this in the pitch."
+        },
+        {
+          "name": "manual_capture",
+          "supported": true,
+          "permitted": true,
+          "tier": "secondary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": null,
+          "probe_id": null,
+          "citation": "Razorpay orders API (payment_capture flag)",
+          "url": "https://razorpay.com/docs/api/orders/",
+          "quote": "Capture amount must be equal to the amount authorized.",
+          "notes": "Authorize-now / capture-later exists, but capture must be for the full amount."
+        }
+      ],
+      "limits": []
+    },
+    {
+      "rail_id": "upi_otm",
+      "display_name": "UPI One Time Mandate",
+      "capabilities": [
+        {
+          "name": "post_delivery_debit_goods",
+          "supported": true,
+          "permitted": false,
+          "tier": "unverified",
+          "usable_as_fact": false,
+          "environment": null,
+          "obtained_on": null,
+          "probe_id": null,
+          "citation": "",
+          "url": "",
+          "quote": "",
+          "notes": "CONFLICT, UNRESOLVED. PayU documents: “Once the merchant decides to capture the amount (usually after the goods or services are delivered)...” which contradicts the SBMD debit-before-delivery rule. That is a PSP doc, not an NPCI circular. Build to the STRICTER rule and expose this as a config flag so the system is correct under either reading."
+        },
+        {
+          "name": "partial_debit",
+          "supported": true,
+          "permitted": true,
+          "tier": "secondary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-08-21",
+          "probe_id": null,
+          "citation": "Setu UPI (UMAP), Reserve (One Time Mandates)",
+          "url": "https://docs.setu.co/payments/umap/mandates/reserve",
+          "quote": "Reserve allows a merchant to block funds upto Rs.1 lakh for all MCCs except 6211 and debit either the full amount or a partial amount from the customer. If a partial debit is done, remaining funds are unblocked in the customer bank A/C without any additional need for refund/reversal.",
+          "notes": "[PARTIAL] - PSP doc describing a rail rule.\nCONFIRMED 21 Aug 2026, and it is the most useful thing round 5 found. On a ONE-SHOT block the rail returns the difference by itself: 'If a partial debit is done, remaining funds are unblocked in the customer bank A/C without any additional need for refund/reversal.' No revoke, no modify, no customer AFA, no stranded funds. That is precisely the third leg of amount-contingent settlement, and OTM gives it away free.\nTHE PRICE. Setu's Reserve doc fixes sequenceNumber at 1 - one debit and the mandate is spent. BoxPay says the same for OTM: 'The debit may be full or partial, but can be captured only once. If no capture is made, the funds are automatically released back to the customer's account at expiry.' So OTM buys automatic release by giving up the standing pool.\nTHE STRAIGHT TRADE this project should state on camera: SBMD keeps the mandate and strands the change; OTM returns the change and spends the mandate. Neither gives both. Any claim that a rail does both is a claim to check.\nLIMITS DIFFER TOO, and Setu's figures do not match OC-228's: 'block funds upto Rs.1 lakh for all MCCs except 6211' with 'MCC 6211 - Capital Markets & Securities Brokers merchants can block upto Rs.5 lakhs'. OC-228 caps a Reserve Pay block at Rs 10,000 / 90 days. Do not carry a Rs 1 lakh OTM ceiling into an SBMD argument."
+        }
+      ],
+      "limits": []
+    },
+    {
+      "rail_id": "cashfree_preauth",
+      "display_name": "Cashfree UPI pre-authorization",
+      "capabilities": [
+        {
+          "name": "partial_debit",
+          "supported": true,
+          "permitted": true,
+          "tier": "observed",
+          "usable_as_fact": true,
+          "environment": "sandbox",
+          "obtained_on": "2026-08-29",
+          "probe_id": null,
+          "citation": "measured 29 Aug 2026 (sandbox; the authorisation was forced with POST /simulate) — POST /orders/{id}/authorization action CAPTURE ₹470 of a ₹620 hold, HTTP 200",
+          "url": "https://www.cashfree.com/docs/api-reference/payments/latest/payments/authorize",
+          "quote": "HTTP 200 · authorization {\"action\":\"CAPTURE\",\"status\":\"SUCCESS\",\"captured_amount\":470.0} · payment_message \"PRE_AUTH|Transaction Success\"",
+          "notes": "A sandbox confirmation of the mechanism's debit leg, and the exact shape Razorpay refuses. A pre-auth order (order_note preauth_transaction) was driven to a ₹620 hold in the sandbox — UPI collect on testsuccess@gocash, then POST /simulate to SUCCESS, order_status PAID — and a CAPTURE of ₹470 against it returned HTTP 200 with captured_amount 470.0. Reproduce with `python -m amanat.rails.probe_cashfree`.\nThe authorisation was forced by the sandbox's simulator, so this measures Cashfree's sandbox API, not an issuer's hold. This is a PSP pre-auth primitive (authorize-then-capture-once), a different rail SHAPE from NPCI SBMD's pre-funded drawdown pool. OBSERVED sits below PRIMARY on purpose: a rail can change behaviour after a deploy, a circular cannot — so SBMD's PRIMARY evidence and this OBSERVED evidence are complementary, not redundant."
+        },
+        {
+          "name": "void_after_partial_capture",
+          "supported": false,
+          "permitted": false,
+          "tier": "observed",
+          "usable_as_fact": true,
+          "environment": "sandbox",
+          "obtained_on": "2026-08-29",
+          "probe_id": null,
+          "citation": "measured 29 Aug 2026 (sandbox) — VOID after a partial CAPTURE, HTTP 400",
+          "url": "https://www.cashfree.com/docs/api-reference/payments/latest/payments/authorize",
+          "quote": "HTTP 400 · \"Capture request already exist for the void\"",
+          "notes": "An explicit VOID after a partial CAPTURE is refused. Cashfree documents the rule behind it: \"Once captured, a transaction cannot be voided.\" What the refusal does NOT show is where the uncaptured remainder went — see `remainder_auto_released`."
+        },
+        {
+          "name": "remainder_auto_released",
+          "supported": true,
+          "permitted": false,
+          "tier": "unverified",
+          "usable_as_fact": false,
+          "environment": null,
+          "obtained_on": null,
+          "probe_id": null,
+          "citation": "not established",
+          "url": "https://www.cashfree.com/docs/api-reference/payments/latest/payments/authorize",
+          "quote": "",
+          "notes": "Believed, not confirmed. The 29 Aug probe inferred the remainder was returned from the refused VOID above and from arithmetic; neither shows it. Cashfree documents that an authorisation not captured within seven days is released back to the customer, and is silent on the uncaptured remainder of a PARTIAL capture. Cashfree support's own enablement note (ticket 8266875) names \"the applicable operation for processing the unused balance/remainder\" as a separate operation the probe did not identify. To be measured: poll the order after a partial capture (and a capture-nothing control) at t+0, 5 min, 1 h, 24 h and 7 d 1 h — `python -m amanat.rails.probe_cashfree_release`. Until then the engine does not plan around an instant return."
+        },
+        {
+          "name": "partial_void",
+          "supported": false,
+          "permitted": false,
+          "tier": "secondary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "Cashfree, Pre-Authorisation docs, FAQ (fetched 20 Sep 2026)",
+          "url": "https://www.cashfree.com/docs/api-reference/payments/latest/payments/authorize",
+          "quote": "No, voiding must be for the entire authorised amount.",
+          "notes": "A hold can be released only whole, so 'void just the remainder' is not a verb on this rail."
+        },
+        {
+          "name": "multiple_captures",
+          "supported": false,
+          "permitted": false,
+          "tier": "secondary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "Cashfree, Pre-Authorisation docs, Managing preauthorisation transactions (fetched 20 Sep 2026)",
+          "url": "https://www.cashfree.com/docs/api-reference/payments/latest/payments/authorize",
+          "quote": "A transaction can only be captured or voided once.",
+          "notes": "Single-shot: unlike SBMD, where OC-200 says the bank \"shall allow multiple debits against the block\", one authorisation takes one capture. A basket with substitutions or a fare with a waiting charge cannot be drawn down in steps."
+        },
+        {
+          "name": "funds_held_in_customer_account",
+          "supported": true,
+          "permitted": true,
+          "tier": "observed",
+          "usable_as_fact": true,
+          "environment": "sandbox",
+          "obtained_on": "2026-08-29",
+          "probe_id": null,
+          "citation": "measured 29 Aug 2026 — order_status PAID, is_captured false before any capture",
+          "url": "https://www.cashfree.com/docs/api-reference/payments/latest/payments/authorize",
+          "quote": "order_status \"PAID\" with payment is_captured false until an explicit CAPTURE",
+          "notes": "Consistent with a pre-auth hold rather than Razorpay's 'authorized' trap (where the customer has already been debited): after POST /simulate the order is PAID (authorised) but the payment carries is_captured=false, and only a CAPTURE moved it. The authorisation was forced by the sandbox simulator, so this is the sandbox API's statement, not an issuer's."
+        },
+        {
+          "name": "self_serve_enablement",
+          "supported": false,
+          "permitted": false,
+          "tier": "observed",
+          "usable_as_fact": true,
+          "environment": "sandbox",
+          "obtained_on": "2026-08-28",
+          "probe_id": null,
+          "citation": "Cashfree support ticket 8266875, resolved 28 Aug 2026",
+          "url": "https://www.cashfree.com/docs/api-reference/payments/latest/payments/authorize",
+          "quote": "successfully enabled in the Sandbox/Test environment ... block creation, partial debit against the standing block, and the applicable operation for processing the unused balance/remainder",
+          "notes": "Not self-serve: UPI pre-authorization had to be requested from Cashfree support and was enabled per-account. Recorded as a real constraint on reproducibility — a fresh sandbox signup does NOT have this until the ticket lands. Production access was explicitly not granted ('No Production access has been enabled')."
+        }
+      ],
+      "limits": [
+        {
+          "name": "hold_expiry_days",
+          "value": 7,
+          "unit": "days",
+          "tier": "secondary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "Cashfree, Pre-Authorisation docs, FAQ (fetched 20 Sep 2026)",
+          "url": "https://www.cashfree.com/docs/api-reference/payments/latest/payments/authorize",
+          "quote": "If not captured within 7 days, the authorisation expires, and the funds are released back to the customer.",
+          "notes": "The documented deadline for capture or void. A hold that outlives an agent session is released by this expiry, not by the agent."
+        }
+      ]
+    },
+    {
+      "rail_id": "setu_umap",
+      "display_name": "Setu UMAP (UPI mandates)",
+      "capabilities": [
+        {
+          "name": "credentials_self_serve",
+          "supported": true,
+          "permitted": true,
+          "tier": "observed",
+          "usable_as_fact": true,
+          "environment": "live",
+          "obtained_on": "2026-08-21",
+          "probe_id": null,
+          "citation": "probed 21 Aug 2026 — accountservice.setu.co/v1/users/login",
+          "url": "https://docs.setu.co/payments/umap/quickstart",
+          "quote": "HTTP 200, access_token issued",
+          "notes": "Signup at bridge.setu.co is genuinely self-serve and the token endpoint accepts the resulting credentials."
+        },
+        {
+          "name": "api_publicly_reachable",
+          "supported": false,
+          "permitted": false,
+          "tier": "observed",
+          "usable_as_fact": true,
+          "environment": "live",
+          "obtained_on": "2026-08-21",
+          "probe_id": null,
+          "citation": "probed 21 Aug 2026 — DNS via Google 8.8.8.8 and Cloudflare 1.1.1.1",
+          "url": "https://docs.setu.co/payments/umap/quickstart",
+          "quote": "uatapi.setu.co NXDOMAIN; api.setu.co NXDOMAIN",
+          "notes": "The two hosts the UMAP docs name for sandbox and production do not exist in public DNS, while accountservice.setu.co and bridge.setu.co resolve normally. So the API surface is gated behind onboarding, private DNS or an allowlist — not reachable from a self-serve signup. Invisible until you hold credentials and try: every earlier signal, including a 200 from the token endpoint, said the rail was reachable. Reproduce with `python -m amanat.rails.probe`."
+        },
+        {
+          "name": "block_amount_modifiable_without_revoke",
+          "supported": true,
+          "permitted": true,
+          "tier": "secondary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": null,
+          "probe_id": null,
+          "citation": "Setu, Mandate operations > Update",
+          "url": "https://docs.setu.co/payments/umap/mandates/generic/update",
+          "quote": "There are only two updates possible on a UPI mandate — Changing the mandate end date — Changing the mandate amount",
+          "notes": "[PARTIAL] The only surveyed PSP exposing a modify that preserves the mandate. Direction (whether it may LOWER the amount) is documented nowhere and remains unverified."
+        }
+      ],
+      "limits": []
+    }
+  ]
+}

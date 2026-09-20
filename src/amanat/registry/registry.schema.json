@@ -1,0 +1,124 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/HERPESME/amanat/main/docs/registry/registry.schema.json",
+  "title": "Amanat rail-semantics registry",
+  "description": "What each payment rail is evidenced to permit. The discipline of the project is part of the schema: every row that is not UNVERIFIED carries a verbatim quote; an OBSERVED row names what it was observed on; and a row is `permitted` only if it is supported AND rests on evidence usable as fact. A consumer that validates against this schema inherits those rules.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "as_of", "tiers", "rails"],
+  "properties": {
+    "schema_version": {"const": 2},
+    "as_of": {
+      "description": "The latest date any row's evidence was read or measured. Deterministic: the export never reads a clock.",
+      "oneOf": [{"$ref": "#/$defs/date"}, {"type": "null"}]
+    },
+    "tiers": {"type": "array", "items": {"$ref": "#/$defs/tier"}},
+    "rails": {"type": "array", "items": {"$ref": "#/$defs/rail"}}
+  },
+  "$defs": {
+    "date": {"type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$"},
+    "tierName": {"enum": ["primary", "observed", "secondary", "marketing", "unverified"]},
+    "tier": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tier", "usable_as_fact", "meaning"],
+      "properties": {
+        "tier": {"$ref": "#/$defs/tierName"},
+        "usable_as_fact": {"type": "boolean"},
+        "meaning": {"type": "string"}
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "required": ["tier", "usable_as_fact", "environment", "obtained_on", "probe_id",
+                   "citation", "url", "quote", "notes"],
+      "properties": {
+        "tier": {"$ref": "#/$defs/tierName"},
+        "usable_as_fact": {"type": "boolean"},
+        "environment": {
+          "description": "What an OBSERVED row was observed on. A sandbox that forces an authorisation is not an issuer.",
+          "enum": ["sandbox", "live", null]
+        },
+        "obtained_on": {
+          "description": "ISO date the evidence was read or measured; null where the repository does not record it.",
+          "oneOf": [{"$ref": "#/$defs/date"}, {"type": "null"}]
+        },
+        "probe_id": {"type": ["string", "null"]},
+        "citation": {"type": "string"},
+        "url": {"type": "string"},
+        "quote": {"type": "string"},
+        "notes": {"type": "string"}
+      },
+      "allOf": [
+        {
+          "description": "Only PRIMARY, OBSERVED and SECONDARY evidence is usable as fact.",
+          "if": {"properties": {"tier": {"enum": ["primary", "observed", "secondary"]}}, "required": ["tier"]},
+          "then": {"properties": {"usable_as_fact": {"const": true}}},
+          "else": {"properties": {"usable_as_fact": {"const": false}}}
+        },
+        {
+          "description": "Cited or unverified: there is no third state.",
+          "if": {"properties": {"tier": {"const": "unverified"}}, "required": ["tier"]},
+          "else": {"properties": {"quote": {"minLength": 1}}}
+        },
+        {
+          "description": "An observation says what it was observed on; nothing else may.",
+          "if": {"properties": {"tier": {"const": "observed"}}, "required": ["tier"]},
+          "then": {"properties": {"environment": {"enum": ["sandbox", "live"]}}},
+          "else": {"properties": {"environment": {"const": null}}}
+        }
+      ]
+    },
+    "capability": {
+      "allOf": [
+        {"$ref": "#/$defs/evidence"},
+        {
+          "type": "object",
+          "required": ["name", "supported", "permitted"],
+          "properties": {
+            "name": {"type": "string", "minLength": 1},
+            "supported": {"type": "boolean"},
+            "permitted": {
+              "description": "What the policy engine will do: true only if supported AND usable as fact. Absence of evidence is not permission."
+            }
+          },
+          "allOf": [
+            {
+              "if": {"properties": {"supported": {"const": true}, "usable_as_fact": {"const": true}},
+                     "required": ["supported", "usable_as_fact"]},
+              "then": {"properties": {"permitted": {"const": true}}},
+              "else": {"properties": {"permitted": {"const": false}}}
+            }
+          ]
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "limit": {
+      "allOf": [
+        {"$ref": "#/$defs/evidence"},
+        {
+          "type": "object",
+          "required": ["name", "value", "unit"],
+          "properties": {
+            "name": {"type": "string", "minLength": 1},
+            "value": {"type": "integer", "minimum": 0},
+            "unit": {"enum": ["paise", "days", "hours", "count"]}
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "rail": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rail_id", "display_name", "capabilities", "limits"],
+      "properties": {
+        "rail_id": {"type": "string", "pattern": "^[a-z0-9_]+$"},
+        "display_name": {"type": "string", "minLength": 1},
+        "capabilities": {"type": "array", "items": {"$ref": "#/$defs/capability"}},
+        "limits": {"type": "array", "items": {"$ref": "#/$defs/limit"}}
+      }
+    }
+  }
+}

@@ -37,6 +37,13 @@ jobs:
           git diff --exit-code -- docs/RAIL_SEMANTICS.md \
             || { echo "::error::docs/RAIL_SEMANTICS.md is stale — run python -m amanat.rails.docgen"; exit 1; }
 
+      - name: Registry export has not drifted from the capability table
+        # docs/registry/registry.json is generated from the same table the engine reads.
+        run: |
+          uv run --extra dev python -m amanat.registry.export
+          git diff --exit-code -- docs/registry \
+            || { echo "::error::docs/registry is stale — run python -m amanat.registry.export"; exit 1; }
+
       - name: No unverified capability is silently permitted
         run: |
           uv run --extra dev python - <<'PY'

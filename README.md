@@ -214,7 +214,8 @@ is a **refusal record** — never a payment. That property is proven without a m
 by 23 adversarial tests.
 
 📐 Full C4 diagrams: [`docs/architecture/`](docs/architecture/) ·
-📋 Generated rail semantics: [`docs/RAIL_SEMANTICS.md`](docs/RAIL_SEMANTICS.md)
+📋 Generated rail semantics: [`docs/RAIL_SEMANTICS.md`](docs/RAIL_SEMANTICS.md) ·
+🗂️ The same table as versioned JSON with a schema: [`docs/registry/`](docs/registry/)
 
 ---
 
@@ -439,6 +440,13 @@ Three capabilities remain deliberately `UNVERIFIED` (`sbmd.block_amount_reducibl
 to plan around them. Both NPCI circulars are committed in [`docs/sources/`](docs/sources/);
 they are image-only scans, every quote read from pages rendered at 220 dpi.
 
+The table is also published as JSON — [`docs/registry/registry.json`](docs/registry/registry.json) —
+with a [JSON Schema](docs/registry/registry.schema.json) that carries the rules above: a row is
+`permitted` only if it is supported **and** rests on evidence usable as fact, every row that is not
+`UNVERIFIED` carries a verbatim quote, and an `OBSERVED` row names what it was observed on
+(`sandbox` or `live`) and the date it was obtained. A consumer that validates against the schema
+inherits those rules.
+
 ---
 
 ## Project structure
@@ -508,8 +516,8 @@ required a live model, the agent would not be bounded.
 | `test_compare.py` | the two rails share no transition verbs |
 | `test_render.py` | the page's hashing reproduces Python's, and what its banner may claim |
 
-CI additionally regenerates `RAIL_SEMANTICS.md` and **fails on any diff**, so the prose
-cannot claim more than the runtime honours.
+CI additionally regenerates `RAIL_SEMANTICS.md` and the JSON registry and **fails on any diff**,
+so neither the prose nor the export can claim more than the runtime honours.
 
 ---
 
