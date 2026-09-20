@@ -361,3 +361,51 @@ class TestRateLimiting:
         c = self._fresh_client()
         for _ in range(200):
             assert c.get("/api/health").status_code == 200
+
+
+class TestTheRegistryIsServedByTheConsole:
+    """The comparison page and its data, from the same origin as the demo. Public data only:
+    the directory served holds exactly the page, the registry and its schema."""
+
+    def test_the_page_is_served_at_the_directory_url(self):
+        r = client.get("/registry/")
+        assert r.status_code == 200 and r.headers["content-type"].startswith("text/html")
+        assert "<title>Payment-rail semantics</title>" in r.text and "The matrix" in r.text
+
+    def test_the_bare_path_redirects_so_the_pages_relative_links_resolve(self):
+        r = client.get("/registry", follow_redirects=False)
+        assert r.status_code in (301, 307, 308) and r.headers["location"].endswith("/registry/")
+
+    def test_the_data_and_its_schema_are_served_beside_it(self):
+        data = client.get("/registry/registry.json")
+        assert data.status_code == 200 and data.json()["schema_version"] == 2
+        schema = client.get("/registry/registry.schema.json")
+        assert schema.status_code == 200 and schema.json()["title"].startswith("Amanat rail-semantics")
+
+    def test_what_is_served_is_what_is_committed(self):
+        from pathlib import Path
+        root = Path(__file__).resolve().parents[1] / "docs" / "registry"
+        assert client.get("/registry/").text == (root / "index.html").read_text(encoding="utf-8")
+        assert client.get("/registry/registry.json").text == (root / "registry.json").read_text(encoding="utf-8")
+
+    @pytest.mark.parametrize("path", ["/registry/../../.env", "/registry/..%2f..%2fpyproject.toml",
+                                      "/registry/%2e%2e/%2e%2e/README.md", "/registry//etc/passwd"])
+    def test_nothing_outside_the_directory_can_be_read(self, path):
+        r = client.get(path)
+        assert r.status_code in (400, 404), (path, r.status_code)
+
+    def test_the_mount_serves_the_registry_directory_and_not_its_neighbours(self):
+        for path in ("/registry/RAIL_SEMANTICS.md", "/registry/observations/store/watch.jsonl",
+                     "/registry/sources/", "/registry/../RAIL_SEMANTICS.md"):
+            assert client.get(path).status_code == 404, path
+
+    def test_only_the_three_public_files_are_in_the_served_directory(self):
+        from pathlib import Path
+        served = {p.name for p in (Path(__file__).resolve().parents[1] / "docs" / "registry").iterdir()}
+        assert served == {"index.html", "registry.json", "registry.schema.json"}
+
+    def test_the_container_image_carries_what_the_route_serves(self):
+        from pathlib import Path
+        docker = (Path(__file__).resolve().parents[1] / "Dockerfile").read_text(encoding="utf-8")
+        web_stage = docker[docker.index("AS web"):]
+        assert "COPY docs/registry/" in web_stage

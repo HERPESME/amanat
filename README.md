@@ -468,6 +468,11 @@ with a [JSON Schema](docs/registry/registry.schema.json) that carries the rules 
 (`sandbox` or `live`) and the date it was obtained. A consumer that validates against the schema
 inherits those rules.
 
+The same data as a page you can read: [`docs/registry/index.html`](docs/registry/index.html), a comparison
+matrix — questions down, rails across — where every cell is one rail's answer with the sentence it
+rests on, the date, and whether the source has been re-read since. It works without JavaScript and
+loads nothing from outside. Open the file, or run the console and visit `/registry/`.
+
 Every quote is also **re-checked against the page it cites** — `python -m amanat.registry.watch`
 fetches the source and the quote must still appear verbatim (or, where a row marks a gap with `…`,
 each piece in order). Results go to a hash-chained, append-only log,

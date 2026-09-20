@@ -46,6 +46,8 @@ CMD ["python", "-m", "amanat.ceiling.frontier"]
 FROM base AS web
 RUN pip install --no-cache-dir -e ".[web]"
 COPY web/ ./web/
+# The rail-semantics registry served at /registry/: the page, its data and its schema.
+COPY docs/registry/ ./docs/registry/
 ENV PYTHONPATH=/app/src:/app
 EXPOSE 8080
 CMD ["sh", "-c", "uvicorn web.app:app --host 0.0.0.0 --port ${PORT:-8080}"]

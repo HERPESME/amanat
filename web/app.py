@@ -21,6 +21,7 @@ from collections import defaultdict, deque
 
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from amanat.orchestrator.session import AgentSession
@@ -388,3 +389,12 @@ def _load_page() -> str:
 
 
 _PAGE = _load_page()
+
+
+# The rail-semantics registry: a comparison page, the registry it is generated from, and its
+# schema. Public data only. The directory holds exactly those three files and nothing else, and
+# is served read-only from the same origin as the demo. Mounted with a trailing slash so the page's
+# relative links to registry.json resolve.
+_REGISTRY_DIR = Path(__file__).resolve().parents[1] / "docs" / "registry"
+if _REGISTRY_DIR.is_dir():
+    app.mount("/registry", StaticFiles(directory=_REGISTRY_DIR, html=True), name="registry")
