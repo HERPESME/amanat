@@ -229,6 +229,15 @@ class TestVerificationInTheExport:
         v = _first(export.build(store_dir=tmp_path), lambda c: c["name"] == "partial_void")["verification"]
         assert v["quote_current"] is False
 
+    def test_a_row_demoted_to_unverified_shows_no_verification_from_its_old_checks(self, tmp_path):
+        """The store keeps the checks; the export must not say a quote was re-read for a row that
+        no longer has one. `merchant_revocable` was PRIMARY, then unverified after review."""
+        path = tmp_path / "watch.jsonl"
+        self._run(path, [self._res(name="merchant_revocable", rail="sbmd", result="verified")],
+                  "2026-09-20T12:00:00Z")
+        row = _first(export.build(store_dir=tmp_path), lambda c: c["name"] == "merchant_revocable")
+        assert row["tier"] == "unverified" and row["verification"] is None
+
     def test_limits_carry_verification_too(self, tmp_path):
         path = tmp_path / "watch.jsonl"
         self._run(path, [self._res(name="hold_expiry_days", kind="limit")], "2026-09-20T12:00:00Z")
@@ -394,3 +403,15 @@ class TestTheVocabularyIsPartOfTheExport:
         bad["concepts"][0]["definition"] = "short"
         with pytest.raises(jsonschema.ValidationError):
             _validate(bad)
+
+
+class TestNothingPrivateIsPublished:
+    """A vendor's private identifier is not this project's to publish."""
+
+    def test_a_support_ticket_number_appears_in_no_published_file(self):
+        files = [ROOT / "README.md", ROOT / "CLAUDE.md"]
+        files += sorted((ROOT / "docs").glob("*.md")) + sorted((ROOT / "docs" / "reports").glob("*.md"))
+        files += sorted((ROOT / "docs" / "registry").glob("*")) + sorted((ROOT / "src").rglob("*.py"))
+        offenders = [str(f.relative_to(ROOT)) for f in files
+                     if f.is_file() and "8266875" in f.read_text(encoding="utf-8", errors="ignore")]
+        assert offenders == []

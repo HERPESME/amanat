@@ -37,7 +37,14 @@ def schema() -> dict:
 
 
 def _verification(row: Capability | Limit, key: tuple[str, str, str], history: dict) -> dict | None:
-    """When this row's quote was last re-checked against its source, and how that has gone."""
+    """When this row's quote was last re-checked against its source, and how that has gone.
+
+    An UNVERIFIED row has no quote to re-read. The store keeps the checks it had while it was cited
+    (that is what an append-only record is for), but the export must not say a quote was re-read
+    for a row that no longer carries one.
+    """
+    if row.source_tier is SourceTier.UNVERIFIED:
+        return None
     checks = [c for c in history.get(key, []) if c["result"] != watch.SKIPPED]
     if not checks:
         return None

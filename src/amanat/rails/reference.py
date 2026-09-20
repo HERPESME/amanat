@@ -399,17 +399,20 @@ STRIPE_CARD_MANUAL_CAPTURE = RailProfile(
             ),
         ),
         Capability(
-            name='payment_guarantee', supported=True,
-            source_tier=SourceTier.SECONDARY, obtained_on="2026-09-20",
-            citation='Stripe Docs: Place a hold on a payment method, introduction', url=_STRIPE_PLACE_A_HOLD_ON_A_PAYMENT_METHOD,
-            quote=(
-                'Authorising a payment guarantees the amount by holding it on the customer’s payment '
-                'method.'
-            ),
+            name='payment_guarantee', supported=None,
+            source_tier=SourceTier.UNVERIFIED, obtained_on="2026-09-21",
+            citation='not established', url=_STRIPE_PLACE_A_HOLD_ON_A_PAYMENT_METHOD,
             notes=(
-                "Stripe's own wording, so secondary evidence about Stripe and not network rules. The "
-                'guarantee lasts only until the authorisation expires; after that the funds are '
-                'released.'
+                'Not established. Stripe\'s sentence, “Authorising a payment guarantees the amount by '
+                'holding it on the customer’s payment method.” (the page\'s spelling varies with the '
+                'reader\'s locale), is about reserving the amount, not about the merchant being paid. '
+                'The same page limits the hold in time (`hold_expiry_days`), and nothing read says a '
+                'merchant is paid once an authorisation succeeds; disputes and the card networks\' own '
+                'rules on late presentment were not read. This row was SECONDARY and `supported=True` '
+                'until a payments review on 21 Sep 2026 pointed out that, beside UPI Reserve Pay\'s '
+                'explicit disclaimer (`sbmd.payment_guarantee`), it told a reader the opposite of the '
+                'truth: NPCI wrote its disclaimer down, and Stripe used the word "guarantees" in prose. '
+                'The difference between the two cells is disclosure, not economics.'
             ),
         ),
         Capability(
@@ -434,7 +437,10 @@ STRIPE_CARD_MANUAL_CAPTURE = RailProfile(
             quote='A partial capture automatically releases the remaining amount.',
             notes=(
                 'Default after a single partial capture. With multicapture (final_capture=false) the '
-                'remainder stays authorised until a final capture, an explicit release or expiry.'
+                'remainder stays authorised until a final capture, an explicit release or expiry. The '
+                'sentence says Stripe releases the remaining amount; it does not say when the '
+                "cardholder's issuer frees the cardholder-side hold, a separate step the page does not "
+                'describe.'
             ),
         ),
         Capability(

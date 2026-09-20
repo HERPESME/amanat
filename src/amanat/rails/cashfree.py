@@ -2,7 +2,7 @@
 
 Razorpay returns HTTP 400 on a partial capture ("Capture amount must be equal to
 the amount authorized" — OBSERVED, 22 Aug 2026). Cashfree's pre-authorization
-(enabled in the sandbox by support ticket 8266875, 28 Aug 2026) accepts one. The
+(enabled in the sandbox by a support request, 28 Aug 2026) accepts one. The
 lifecycle, against `sandbox.cashfree.com/pg`, measured 29 Aug 2026:
 
   * hold    → POST /orders                     order_note "preauth_transaction"

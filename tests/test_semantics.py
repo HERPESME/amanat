@@ -1,7 +1,7 @@
 """Rail capability encoding: every assertion cited or explicitly UNVERIFIED."""
 import pytest
 from amanat.rails.semantics import (
-    Capability, SourceTier, RailProfile, RAILS, CapabilityError, Limit, Environment,
+    Capability, SourceTier, RailProfile, RAILS, CapabilityError, Limit, Environment, CONCEPTS,
 )
 
 
@@ -122,7 +122,7 @@ class TestKnownRails:
         """
         rail = RAILS["sbmd"]
         assert rail.permits("remainder_auto_released") is False
-        assert rail.permits("merchant_revocable") is True
+        assert rail.permits("merchant_revocable") is False, "5(c) does not say who may revoke"
         assert rail.permits("customer_revocable") is True
         assert "till the time mandate is expired, revoked" in \
             rail.explain("remainder_auto_released").quote
@@ -524,7 +524,7 @@ class TestEvidenceProvenance:
         rz = RAILS["razorpay_auth_capture"].capabilities["partial_debit"]
         assert rz.environment is Environment.SANDBOX
         for name in ("partial_debit", "void_after_partial_capture",
-                     "funds_held_in_customer_account", "self_serve_enablement"):
+                     "funds_held_in_customer_account"):
             assert RAILS["cashfree_preauth"].capabilities[name].environment is Environment.SANDBOX
         for name in ("credentials_self_serve", "api_publicly_reachable"):
             assert RAILS["setu_umap"].capabilities[name].environment is Environment.LIVE
@@ -657,3 +657,75 @@ class TestUnverifiedIsUnknown:
         d = rail.explain("risky")
         assert rail.permits("risky") is False
         assert d.allowed is False and "not usable as fact" in d.reason
+
+
+class TestWhatThePaymentsReviewFound:
+    """Rows and definitions that a reviewer read in context and found to say more than the source.
+
+    Each of these was admitted by a quote check: the words were on the page. What the check cannot
+    see is whether the words mean what the row says, which is why a person reads the source too.
+    """
+
+    def test_a_merchant_initiated_revoke_is_not_established_by_the_circular(self):
+        """OC-228 5(c) sits in a list of what the *user* is given on the merchant's platform."""
+        rail = RAILS["sbmd"]
+        cap = rail.capabilities["merchant_revocable"]
+        assert cap.source_tier is SourceTier.UNVERIFIED and cap.supported is None
+        assert rail.permits("merchant_revocable") is False
+        assert "5(c)" in cap.notes and "user" in cap.notes and "does not say who" in cap.notes
+        assert rail.permits("customer_revocable") is True, "the customer's own revoke is PRIMARY and unaffected"
+
+    def test_a_stripe_hold_is_not_recorded_as_a_guarantee_that_the_merchant_is_paid(self):
+        """Stripe's sentence is about reserving the amount; NPCI's is an explicit disclaimer."""
+        cap = RAILS["stripe_card_manual_capture"].capabilities["payment_guarantee"]
+        assert cap.source_tier is SourceTier.UNVERIFIED and cap.supported is None
+        assert "Not established" in cap.notes and "reserving the amount" in cap.notes
+        assert "not about the merchant being paid" in cap.notes
+        assert RAILS["sbmd"].capabilities["payment_guarantee"].supported is False
+
+    def test_the_stripe_remainder_row_says_what_its_sentence_does_not(self):
+        note = RAILS["stripe_card_manual_capture"].capabilities["remainder_auto_released"].notes
+        assert "does not say when" in note and "issuer" in note
+
+    def test_the_shared_definition_of_partial_debit_does_not_say_the_merchant_captures(self):
+        """On UPI Reserve Pay the debit is the customer's action on the merchant's platform."""
+        text = CONCEPTS["partial_debit"]
+        assert "merchant may capture" not in text
+        assert "differs by rail" in text and "customer" in text and "x402" in text
+
+    def test_expiry_release_is_a_refund_where_the_payer_was_already_debited(self):
+        assert "refund" in CONCEPTS["expiry_auto_release"]
+
+    def test_the_block_cap_is_not_described_as_scoped_to_a_purpose_code(self):
+        """OC-228 mentions purpose code 77 once, as a reconciliation identifier."""
+        notes = RAILS["sbmd"].limit("max_block_amount").notes
+        assert "Scoped to purpose code 77" not in notes
+        assert "no purpose-code qualifier" in notes and "treat Rs 10,000 as binding" in notes
+        row = RAILS["sbmd"].capabilities["purpose_code_77_for_online_goods"].notes
+        assert "reconciliation identifier" in row and "carries no purpose-code qualifier" in row
+        assert "It is not" in row, "the old claim survives only as a quoted correction"
+
+    def test_a_reserve_pay_block_on_a_credit_source_is_not_a_frozen_deposit(self):
+        note = RAILS["sbmd"].capabilities["funds_held_in_customer_account"].notes
+        assert "pre-sanctioned" in note and "credit" in note and "nothing is debited before the draw" in note
+
+    def test_the_block_validity_note_cites_only_figures_the_registry_carries(self):
+        note = RAILS["sbmd"].capabilities["block_validity_90_days"].notes
+        assert "Visa India 2-4 days" not in note
+        assert "visa_card_auth.hold_expiry_days" in note
+
+    def test_a_support_reply_is_a_vendors_statement_not_a_measurement_and_is_private(self):
+        cap = RAILS["cashfree_preauth"].capabilities["self_serve_enablement"]
+        assert cap.source_tier is SourceTier.SECONDARY and cap.environment is None
+        assert cap.url == "", "a private message is not a page a reader can open"
+        assert "private correspondence" in cap.citation and "28 Aug 2026" in cap.citation
+        assert cap.supported is False and cap.quote.strip()
+
+    def test_the_razorpay_timeout_is_an_upper_bound_not_the_life_of_a_hold(self):
+        note = RAILS["razorpay_auth_capture"].limit("hold_expiry_days").notes
+        assert "upper bound" in note and "12 minutes" in note
+
+    def test_the_cashfree_debit_row_names_the_products_it_compares(self):
+        note = RAILS["cashfree_preauth"].capabilities["partial_debit"].notes
+        assert "the exact shape Razorpay refuses" not in note
+        assert "UPI pre-authorisation" in note and "Capture API" in note

@@ -35,7 +35,6 @@ def _records(rail_id):
 # shrink — as each is re-measured by a probe, it leaves this list.
 LEGACY_OBSERVATIONS = {
     ("razorpay_auth_capture", "partial_debit"),      # needs a browser Checkout to reach `authorized`
-    ("cashfree_preauth", "self_serve_enablement"),   # a support-ticket reply, not an API call
     ("setu_umap", "credentials_self_serve"),         # a login call; no harness yet
     ("setu_umap", "api_publicly_reachable"),         # DNS; no harness yet
 }

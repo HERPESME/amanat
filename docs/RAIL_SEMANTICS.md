@@ -42,7 +42,7 @@ the same as `**no**`, "the source says the rail does not permit it".
 | `multi_debit` | yes | `PRIMARY` | 2026-08-21 | NPCI/UPI/OC.No.200/2024-25, 31 July 2024, issuer obligation 1 |
 | `funds_held_in_customer_account` | yes | `PRIMARY` | 2026-08-21 | NPCI/UPI/OC.No.200/2024-25, 31 July 2024, issuer obligation 1 |
 | `remainder_auto_released` | **no** | `PRIMARY` | 2026-08-21 | NPCI/UPI/OC.No.200/2024-25, 31 July 2024, issuer obligation 1 |
-| `merchant_revocable` | yes | `PRIMARY` | 2026-08-21 | NPCI/UPI/OC-228/2025-26, 8 October 2025, Acquiring entities obligation 5(c) |
+| `merchant_revocable` | ? | `UNVERIFIED` | 2026-08-21 | not established |
 | `customer_revocable` | yes | `PRIMARY` | 2026-08-21 | NPCI/UPI/OC-228/2025-26, 8 October 2025, UPI Apps obligation 1 |
 | `purpose_code_77_for_online_goods` | yes | `PRIMARY` | 2026-08-21 | NPCI/UPI/OC.No.200/2024-25, 31 July 2024, clause (c) and purpose-code table at clause (a) |
 | `block_validity_90_days` | yes | `PRIMARY` | 2026-08-21 | NPCI/UPI/OC-228/2025-26, 8 October 2025, Acquiring entities obligation 5(b) |
@@ -60,7 +60,7 @@ the same as `**no**`, "the source says the rail does not permit it".
 | `max_block_validity_days` | 90 days | `PRIMARY` | 2026-08-21 | NPCI/UPI/OC-228/2025-26, 8 October 2025 |
 | `max_active_blocks_per_merchant` | 1 count | `PRIMARY` | 2026-08-21 | NPCI/UPI/OC-228/2025-26, 8 October 2025 |
 
-**`max_block_amount`** — Scoped to purpose code 77 (online goods and service delivery). OC-200(c) gives Rs 5 lakh per transaction for code 76 (securities), so this ceiling is not universal across SBMD. For a ceiling-selection thesis this is the BINDING constraint: a predicted ceiling above it cannot be blocked at all, whatever the model says.
+**`max_block_amount`** — OC-228 states this cap twice (issuer obligation 5 and acquiring obligation 5(b)) with no purpose-code qualifier, in a circular that renames SBMD as a whole ('UPI Single Block and Multiple Debits (henceforth to be referred as UPI Reserve Pay)') and says all prior NPCI guidelines for it continue to apply. OC-200(c) separately gives Rs 5 lakh per transaction for purpose code 76 (securities). Which governs a code-76 block is not stated in anything read. Per this registry's own rule for limits, thin evidence refuses more, never less: treat Rs 10,000 as binding until NPCI says otherwise. For a ceiling-selection thesis this is the BINDING constraint: a predicted ceiling above it cannot be blocked at all, whatever the model says.
 
 **`max_block_validity_days`** — Same sentence as the Rs 10,000 ceiling. Never cite the 90 days without the amount cap — quoting the window alone reads as a much more permissive rail than the one that exists.
 
@@ -117,6 +117,7 @@ The '3 retries in 24 hours' figure is not a debit budget. OC-228 acquiring oblig
 — NPCI/UPI/OC.No.200/2024-25, 31 July 2024, issuer obligation 1, https://www.npci.org.in/uploads/UPI_OC_No_200_FY_24_25_Enablement_of_UPI_Mandate_feature_of_Single_Block_Multiple_Debits_f2f9bc9230.pdf
 
 'create blocking of funds in the customer's account' - the money never leaves the payer. OC-228 issuer obligation 1 adds 'The reserve amount details is shown to the customer in the statement and other channels as applicable in due course.' Contrast Razorpay's 'authorized', which has already debited.
+The quote is about accounts held at the issuing bank. OC-228 extends Reserve Pay to 'all UPI-permitted source of funds (including SA, CA, OD, RuPay Credit Card, pre-sanctioned Credit lines, etc.)', and its issuer obligation 3 is the credit carve-out: 'Only utilized amount debited after actual purchase to be considered for bill generation as applicable for credit accounts on UPI.' On a credit source there is no deposit balance to freeze, and NPCI does not say how the block is held. Read this row as 'nothing is debited before the draw', not as 'a deposit balance is frozen'.
 
 **`remainder_auto_released`**
 
@@ -125,20 +126,16 @@ The '3 retries in 24 hours' figure is not a debit budget. OC-228 acquiring oblig
 — NPCI/UPI/OC.No.200/2024-25, 31 July 2024, issuer obligation 1, https://www.npci.org.in/uploads/UPI_OC_No_200_FY_24_25_Enablement_of_UPI_Mandate_feature_of_Single_Block_Multiple_Debits_f2f9bc9230.pdf
 
 THE THIRD LEG OF THIS PROJECT'S MECHANISM IS NOT AUTOMATIC, and this is the most consequential thing found on 21 Aug 2026.
-'The fund shall be blocked in the account till the time mandate is expired, revoked or the mandate amount is exhausted.' The rail KEEPS the unused remainder blocked. Neither circular imposes any duty to release it after a partial debit, and neither states any timeline for doing so. Release happens only because somebody calls revoke or update - see `merchant_revocable` and `customer_revocable`.
+'The fund shall be blocked in the account till the time mandate is expired, revoked or the mandate amount is exhausted.' The rail KEEPS the unused remainder blocked. Neither circular imposes any duty to release it after a partial debit, and neither states any timeline for doing so. Release happens only because somebody calls revoke or update - see `customer_revocable` (PRIMARY) and `merchant_revocable` (not established: OC-228 5(c) does not say who may revoke).
 Consequence for the ceiling model: debit Rs 470 against a Rs 620 block and walk away, and Rs 150 stays stranded until the customer-chosen end date, up to 90 days. Stranding duration is 'until someone revokes, else end-of-block', not 'until settlement'. Price it that way.
 CORROBORATED 21 Aug 2026 by three independent PSP docs, which matters because the primary finding was a negative one and a negative read of a scan invites doubt. Razorpay: 'Ensure customers are informed that their funds remain blocked until you explicitly release them or the token expires', and the way to know what is left is to 'subtract the amount_debited from the amount_blocked'. Setu's ReservePlus execute API constrains the debit amount so that 'the cumulative amount debited for the given mandate post current debit is within the amount that is blocked'. Cashfree: 'The remaining reserved balance reduces automatically after each debit.' All three describe a pool that draws down and stays blocked, not one that returns change.
 THE ONE CONFLICTING SOURCE, and it should be disclosed rather than dropped. PayU's Reserve Pay page asserts the opposite in its examples - 'After finalizing the recharge (e.g., Rs.499), the balance Rs.51 is released' - but the same page's feature list gives the mechanism away: 'Currently, the releasing of funds is done by remiters but PayU has built a functionality (internal) to revoke the transactions based on end date to minimise the funds on hold.' A scheduled revoke is not an automatic release. Build to the stricter reading.
 THE CONTRAST WORTH BUILDING ON. This is a MULTI-debit finding. On the SINGLE-debit sibling - UPI OTM, Setu's 'Reserve' - the rail does hand the remainder back by itself; see `upi_otm.partial_debit`. If the agent commits to exactly one debit per block, leg three is free and there is nothing to revoke. The stranding problem is the price of keeping the pool open for a second debit, and that is a design choice this project makes, not a constraint the rail imposes.
 
 **`merchant_revocable`**
-
-> Easy access on merchant's platform to update and revoke along with the responsibility of issuer to validate every debit.
-
-— NPCI/UPI/OC-228/2025-26, 8 October 2025, Acquiring entities obligation 5(c), https://www.npci.org.in/uploads/UPI_OC_No_228_FY_2025_26_Enhancement_in_UPI_Single_Block_Multiple_Debits_UPI_Reserve_Pay_a9095c181d.pdf
-
-This is how the unused difference actually gets released: an explicit update or revoke from the merchant platform. Both are first-class lifecycle events - OC-228 issuer obligation 2 requires notifications for 'block creation, modification, debit, revoke and expiry'.
-CORRECTION, 21 Aug 2026. This note used to end '...so a block can be revised downward as well as torn down.' That was an inference from the word 'update', not a finding, and it is the kind of leap this module exists to prevent. A modify operation does exist and does preserve the block - see `block_amount_modifiable_without_revoke` - but nothing in either circular or in any PSP doc says it may revise an amount DOWNWARD, and only one of six merchant-side PSPs exposes it at all. See `block_amount_reducible_without_revoke`, which is UNVERIFIED for exactly that reason.
+NOT ESTABLISHED. This row was PRIMARY until a payments review, 21 Sep 2026, read the sentence in its context. OC-228 acquiring obligation 5(c) says: 'Easy access on merchant's platform to update and revoke along with the responsibility of issuer to validate every debit.' It sits in a list of what merchants and acquirers 'shall ensure', between 5(b) 'Allow user to enter the amount and select the end date as per their choice' and 5(e) 'Display of original block value, remaining balance, expiry date and transaction history'. Every neighbouring item is something the USER is given on the merchant's platform, and UPI Apps obligation 1 gives the customer 'Easy access to revoke the block' in the same terms. Read that way, 5(c) is the customer's access to update and revoke from the merchant's platform, not a grant of a merchant-initiated, unattended revoke. The circular does not say who may initiate. OC-200(e) says the customer shall 'also' be provided with an option of revoking, which hints that another party may revoke; a hint is not a statement.
+What is missing is a source saying a merchant may revoke without the customer. PSP APIs are the likely evidence (the review names Razorpay's cancel-token API and Cashfree's subscription-manage CANCEL; neither has been quoted into this registry) and would be SECONDARY. Until then the engine does not plan around a merchant-initiated revoke on SBMD. Nothing else changes: `customer_revocable` is PRIMARY and unaffected.
+CORRECTION, 21 Aug 2026, kept because it still applies. This note used to end '...so a block can be revised downward as well as torn down.' That was an inference from the word 'update', not a finding. A modify operation does exist and does preserve the block - see `block_amount_modifiable_without_revoke` - but nothing in either circular or in any PSP doc says it may revise an amount DOWNWARD. See `block_amount_reducible_without_revoke`, which is UNVERIFIED for exactly that reason.
 
 **`customer_revocable`**
 
@@ -157,7 +154,7 @@ CORRECTION: this project previously recorded 'code 76 is merchant-revoke-only; c
 
 OC-200's table: 76 = 'Securities brokers and dealers (Secondary Market)', 77 = 'Online goods and service delivery', 78 and 79 'To be reserved for future use'. E-commerce is 77, and OC-228 names only 77.
 Answer to 'is there a 76-vs-77 rule for partial debit, debit count, or the remainder?' - NO. The only differential rule in the primary text is a per-transaction LIMIT: Rs 5 lakh for 76, existing UPI limits for 77. Everything about drawdown, remaining balance and revocation is stated once, for SBMD as a whole.
-One asymmetry worth carrying: OC-228's Rs 10,000 / 90-day block ceiling is stated in a circular scoped to purpose code 77, so it is not evidenced as binding on a 76 block.
+CORRECTION after review, 21 Sep 2026. This note used to say OC-228's block ceiling is 'stated in a circular scoped to purpose code 77'. It is not: OC-228 mentions code 77 once, as the reconciliation identifier (general guideline 3), and its Rs 10,000 / 90-day ceiling carries no purpose-code qualifier. Whether that later flat cap displaces OC-200(c)'s Rs 5 lakh for code 76 is not stated in either circular; treat Rs 10,000 as binding on every SBMD block until NPCI says otherwise.
 
 **`block_validity_90_days`**
 
@@ -167,7 +164,7 @@ One asymmetry worth carrying: OC-228's Rs 10,000 / 90-day block ceiling is state
 
 90 days is a MAXIMUM with a customer-chosen end date, not a default. OC-228 issuer obligation 5 states the same limits: 'The block created to be maximum of Rs.10,000 of block limit and up to 90 days.'
 Never quote the 90 days without the Rs 10,000 in the same sentence. For a ceiling-selection thesis the Rs 10,000 is the harder constraint: any predicted ceiling above it cannot be blocked at all on purpose code 77.
-The '90d vs cards 7d vs mandate 60d' comparison still originates in PayU MARKETING copy and mislabels OTM as 'standard mandate'. Real card figures: Visa India 2-4 days, Mastercard 4 days final / 30 days preauth. Do not cite it.
+The '90d vs cards 7d vs mandate 60d' comparison still originates in PayU MARKETING copy and mislabels OTM as 'standard mandate'. Do not cite it. For the card comparison use this registry's own rows: `visa_card_auth.hold_expiry_days_*` (5 to 30 days by channel and merchant category, from Visa's own guide) and `stripe_card_manual_capture.hold_expiry_days`. Country-specific approval-response validity periods are in the Visa Rules, which have not been read.
 
 **`single_active_block_per_merchant`**
 
@@ -243,7 +240,7 @@ ONE PIECE OF GOOD NEWS the circulars do not give you. Razorpay bounds worst-case
 | `hold_expiry_days` | 3 days | `SECONDARY` | 2026-09-20 | Razorpay Docs, Payment Capture Settings, Options table, Manual capture timeout |
 | `auto_refund_speed_working_days_max` | 7 days | `SECONDARY` | 2026-09-20 | Razorpay Docs, Payment Capture Settings, Options table, Auto-refund speed |
 
-**`hold_expiry_days`** — Default and maximum manual-capture timeout is 3 days (minimum 12 minutes); an authorised payment not captured in time is refunded automatically. By default payments auto-capture, and the page names late authorization and a merchant choice as the cases where a payment stays authorized.
+**`hold_expiry_days`** — Default and maximum manual-capture timeout is 3 days (minimum 12 minutes); an authorised payment not captured in time is refunded automatically. The timeout is a merchant's own setting, so 3 days is an upper bound on a hold's life, not its life. By default payments auto-capture, and the page names late authorization and a merchant choice as the cases where a payment stays authorized.
 
 **`auto_refund_speed_working_days_max`** — Working days, not calendar days: how long an auto-refunded (uncaptured) payment takes to reach the customer after the timeout. The page says this speed applies only to payments that are auto-refunded.
 
@@ -329,7 +326,7 @@ LIMITS DIFFER TOO, and Setu's figures do not match OC-228's: 'block funds upto R
 | `partial_void` | **no** | `SECONDARY` | 2026-09-20 | Cashfree, Pre-Authorisation docs, FAQ (fetched 20 Sep 2026) |
 | `multiple_captures` | **no** | `SECONDARY` | 2026-09-20 | Cashfree, Pre-Authorisation docs, Managing preauthorisation transactions (fetched 20 Sep 2026) |
 | `funds_held_in_customer_account` | yes | `OBSERVED` (sandbox) | 2026-08-29 | measured 29 Aug 2026 — order_status PAID, is_captured false before any capture |
-| `self_serve_enablement` | **no** | `OBSERVED` (sandbox) | 2026-08-28 | Cashfree support ticket 8266875, resolved 28 Aug 2026 |
+| `self_serve_enablement` | **no** | `SECONDARY` | 2026-08-28 | Cashfree support, reply of 28 Aug 2026 - private correspondence, not a public page |
 | `void_whole_hold` | yes | `OBSERVED` (sandbox) | 2026-09-20 | measured 20 Sep 2026 (sandbox) — POST /orders/{id}/authorization action VOID on a hold nothing was captured from, HTTP 200 |
 | `over_capture` | **no** | `OBSERVED` (sandbox) | 2026-09-20 | measured 20 Sep 2026 (sandbox) — CAPTURE ₹700 against a ₹620 hold, HTTP 400 |
 | `capture_after_void` | **no** | `OBSERVED` (sandbox) | 2026-09-20 | measured 20 Sep 2026 (sandbox) — CAPTURE after a VOID, HTTP 400 |
@@ -352,7 +349,7 @@ LIMITS DIFFER TOO, and Setu's figures do not match OC-228's: 'block funds upto R
 
 *Probe `cashfree_preauth.partial_capture`: latest conclusive answer supported (2026-09-20, sandbox; 1 conclusive run).*
 
-A sandbox confirmation of the mechanism's debit leg, and the exact shape Razorpay refuses. A pre-auth order (order_note preauth_transaction) was driven to a ₹620 hold in the sandbox — UPI collect on testsuccess@gocash, then POST /simulate to SUCCESS, order_status PAID — and a CAPTURE of ₹470 against it returned HTTP 200 with captured_amount 470.0. Reproduce with `python -m amanat.rails.probe_cashfree`.
+A sandbox confirmation of the mechanism's debit leg: the same operation (capture less than the authorised amount) that Razorpay's Capture API refuses, on a different product. Cashfree's UPI pre-authorisation is measured here; Razorpay's standard payments capture is measured there. A pre-auth order (order_note preauth_transaction) was driven to a ₹620 hold in the sandbox — UPI collect on testsuccess@gocash, then POST /simulate to SUCCESS, order_status PAID — and a CAPTURE of ₹470 against it returned HTTP 200 with captured_amount 470.0. Reproduce with `python -m amanat.rails.probe_cashfree`.
 The authorisation was forced by the sandbox's simulator, so this measures Cashfree's sandbox API, not an issuer's hold. This is a PSP pre-auth primitive (authorize-then-capture-once), a different rail SHAPE from NPCI SBMD's pre-funded drawdown pool. OBSERVED sits below PRIMARY on purpose: a rail can change behaviour after a deploy, a circular cannot — so SBMD's PRIMARY evidence and this OBSERVED evidence are complementary, not redundant.
 
 **`void_after_partial_capture`**
@@ -366,7 +363,7 @@ The authorisation was forced by the sandbox's simulator, so this measures Cashfr
 An explicit VOID after a partial CAPTURE is refused. Cashfree documents the rule behind it: "Once captured, a transaction cannot be voided." What the refusal does NOT show is where the uncaptured remainder went — see `remainder_auto_released`.
 
 **`remainder_auto_released`**
-Believed, not confirmed. The 29 Aug probe inferred the remainder was returned from the refused VOID above and from arithmetic; neither shows it. Cashfree documents that an authorisation not captured within seven days is released back to the customer, and is silent on the uncaptured remainder of a PARTIAL capture. Cashfree support's own enablement note (ticket 8266875) names "the applicable operation for processing the unused balance/remainder" as a separate operation the probe did not identify. To be measured: poll the order after a partial capture (and a capture-nothing control) at t+0, 5 min, 1 h, 24 h and 7 d 1 h — `python -m amanat.rails.probe_cashfree_release`. Until then the engine does not plan around an instant return.
+Not established. The 29 Aug probe inferred the remainder was returned from the refused VOID above and from arithmetic; neither shows it. Cashfree documents that an authorisation not captured within seven days is released back to the customer, and is silent on the uncaptured remainder of a PARTIAL capture. Cashfree support's own enablement reply (28 Aug 2026, private correspondence) names "the applicable operation for processing the unused balance/remainder" as a separate operation the probe did not identify. To be measured: poll the order after a partial capture (and a capture-nothing control) at t+0, 5 min, 1 h, 24 h and 7 d 1 h — `python -m amanat.rails.probe_cashfree_release`. Until then the engine does not plan around an instant return.
 
 **`partial_void`**
 
@@ -400,9 +397,8 @@ Consistent with a pre-auth hold rather than Razorpay's 'authorized' trap (where 
 
 > successfully enabled in the Sandbox/Test environment ... block creation, partial debit against the standing block, and the applicable operation for processing the unused balance/remainder
 
-— Cashfree support ticket 8266875, resolved 28 Aug 2026, https://www.cashfree.com/docs/api-reference/payments/latest/payments/authorize
-
-Not self-serve: UPI pre-authorization had to be requested from Cashfree support and was enabled per-account. Recorded as a real constraint on reproducibility — a fresh sandbox signup does NOT have this until the ticket lands. Production access was explicitly not granted ('No Production access has been enabled').
+Not self-serve: UPI pre-authorization had to be requested from Cashfree support and was enabled per-account. Recorded as a real constraint on reproducibility - a fresh sandbox signup does NOT have this until the request is answered. Production access was explicitly not granted ('No Production access has been enabled').
+SECONDARY, not OBSERVED: this is the vendor's statement about its own product in a message to the owner of this repository, not a response the API returned, and a reader cannot open it. It was OBSERVED, on a sandbox, until a review on 21 Sep 2026 pointed out that an email is not a measurement. The ticket number is deliberately not published.
 
 **`void_whole_hold`**
 
@@ -593,7 +589,7 @@ Not established. The guide's only stated route to a higher final amount is an in
 | Capability | Permitted | Tier | Obtained | Source |
 |---|---|---|---|---|
 | `funds_held_in_customer_account` | yes | `SECONDARY` | 2026-09-20 | Stripe Docs: Place a hold on a payment method, introduction |
-| `payment_guarantee` | yes | `SECONDARY` | 2026-09-20 | Stripe Docs: Place a hold on a payment method, introduction |
+| `payment_guarantee` | ? | `UNVERIFIED` | 2026-09-21 | not established |
 | `partial_debit` | yes | `SECONDARY` | 2026-09-20 | Stripe API Reference: Capture a PaymentIntent, Parameters > amount_to_capture |
 | `remainder_auto_released` | yes | `SECONDARY` | 2026-09-20 | Stripe Docs: Place a hold on a payment method, Capture the funds |
 | `multiple_captures` | yes | `SECONDARY` | 2026-09-20 | Stripe Docs: Capture a payment multiple times, page summary |
@@ -626,12 +622,7 @@ Not established. The guide's only stated route to a higher final amount is an in
 Stripe describes card authorisation as a hold that reserves funds until capture. Only some payment methods support hold-then-capture: cards do, ACH and iDEAL do not.
 
 **`payment_guarantee`**
-
-> Authorising a payment guarantees the amount by holding it on the customer’s payment method.
-
-— Stripe Docs: Place a hold on a payment method, introduction, https://docs.stripe.com/payments/place-a-hold-on-a-payment-method.md
-
-Stripe's own wording, so secondary evidence about Stripe and not network rules. The guarantee lasts only until the authorisation expires; after that the funds are released.
+Not established. Stripe's sentence, “Authorising a payment guarantees the amount by holding it on the customer’s payment method.” (the page's spelling varies with the reader's locale), is about reserving the amount, not about the merchant being paid. The same page limits the hold in time (`hold_expiry_days`), and nothing read says a merchant is paid once an authorisation succeeds; disputes and the card networks' own rules on late presentment were not read. This row was SECONDARY and `supported=True` until a payments review on 21 Sep 2026 pointed out that, beside UPI Reserve Pay's explicit disclaimer (`sbmd.payment_guarantee`), it told a reader the opposite of the truth: NPCI wrote its disclaimer down, and Stripe used the word "guarantees" in prose. The difference between the two cells is disclosure, not economics.
 
 **`partial_debit`**
 
@@ -647,7 +638,7 @@ Capturing less than the authorised amount is allowed, and the hold page's worked
 
 — Stripe Docs: Place a hold on a payment method, Capture the funds, https://docs.stripe.com/payments/place-a-hold-on-a-payment-method.md
 
-Default after a single partial capture. With multicapture (final_capture=false) the remainder stays authorised until a final capture, an explicit release or expiry.
+Default after a single partial capture. With multicapture (final_capture=false) the remainder stays authorised until a final capture, an explicit release or expiry. The sentence says Stripe releases the remaining amount; it does not say when the cardholder's issuer frees the cardholder-side hold, a separate step the page does not describe.
 
 **`multiple_captures`**
 
@@ -1107,13 +1098,15 @@ New capability name settled_amount_verifiable_against_usage: can the payer verif
 
 ## Outstanding verification
 
-6 capabilities are still unverified and therefore refused:
+8 capabilities are still unverified and therefore refused:
 
+- `sbmd.merchant_revocable`
 - `sbmd.block_amount_reducible_without_revoke`
 - `upi_otm.post_delivery_debit_goods`
 - `cashfree_preauth.remainder_auto_released`
 - `visa_card_auth.remainder_auto_released`
 - `visa_card_auth.over_capture`
+- `stripe_card_manual_capture.payment_guarantee`
 - `stripe_card_manual_capture.partial_void`
 
 ## Why this file exists

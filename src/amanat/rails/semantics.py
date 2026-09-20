@@ -82,7 +82,10 @@ CONCEPTS = {
     "payment_guarantee":
         "A successful hold guarantees that the merchant will be paid.",
     "partial_debit":
-        "The merchant may capture or debit less than the amount authorised or blocked.",
+        "A settlement may be for less than the amount authorised or blocked. Who may initiate it differs by "
+        "rail: on card rails the merchant captures unilaterally; on UPI Reserve Pay the debit is initiated by "
+        "the customer's action on the merchant's platform (OC-228 acquiring obligation 2); in x402 `upto` the "
+        "resource server sets the amount at settlement.",
     "over_capture":
         "The merchant may capture more than the amount authorised.",
     "multiple_captures":
@@ -98,7 +101,9 @@ CONCEPTS = {
     "remainder_auto_released":
         "After a partial capture the uncaptured remainder is released without any further action by the merchant.",
     "expiry_auto_release":
-        "A hold that is never captured is released automatically when it expires.",
+        "A hold that is never captured is released automatically when it expires. Where the rail has "
+        "already debited the payer, this is a refund rather than a release, and the rail's own limit says "
+        "how long the money takes to arrive.",
     "incremental_authorization":
         "The amount of a hold may be raised after it has been placed.",
     "buffered_authorisation":
@@ -645,9 +650,15 @@ SBMD_LIMITS = [
         source_tier=SourceTier.PRIMARY, obtained_on=NPCI_READ_ON, citation=OC228, url=OC228_URL,
         quote=_OC228_BLOCK_CEILING,
         notes=(
-            "Scoped to purpose code 77 (online goods and service delivery). "
-            "OC-200(c) gives Rs 5 lakh per transaction for code 76 (securities), "
-            "so this ceiling is not universal across SBMD. For a "
+            "OC-228 states this cap twice (issuer obligation 5 and acquiring "
+            "obligation 5(b)) with no purpose-code qualifier, in a circular that "
+            "renames SBMD as a whole ('UPI Single Block and Multiple Debits "
+            "(henceforth to be referred as UPI Reserve Pay)') and says all prior "
+            "NPCI guidelines for it continue to apply. OC-200(c) separately gives "
+            "Rs 5 lakh per transaction for purpose code 76 (securities). Which "
+            "governs a code-76 block is not stated in anything read. Per this "
+            "registry's own rule for limits, thin evidence refuses more, never "
+            "less: treat Rs 10,000 as binding until NPCI says otherwise. For a "
             "ceiling-selection thesis this is the BINDING constraint: a "
             "predicted ceiling above it cannot be blocked at all, whatever the "
             "model says."
@@ -784,7 +795,17 @@ SBMD = RailProfile(
                 "money never leaves the payer. OC-228 issuer obligation 1 adds "
                 "'The reserve amount details is shown to the customer in the "
                 "statement and other channels as applicable in due course.' "
-                "Contrast Razorpay's 'authorized', which has already debited."
+                "Contrast Razorpay's 'authorized', which has already debited.\n"
+                "The quote is about accounts held at the issuing bank. OC-228 "
+                "extends Reserve Pay to 'all UPI-permitted source of funds "
+                "(including SA, CA, OD, RuPay Credit Card, pre-sanctioned Credit "
+                "lines, etc.)', and its issuer obligation 3 is the credit carve-out: "
+                "'Only utilized amount debited after actual purchase to be "
+                "considered for bill generation as applicable for credit accounts "
+                "on UPI.' On a credit source there is no deposit balance to freeze, "
+                "and NPCI does not say how the block is held. Read this row as "
+                "'nothing is debited before the draw', not as 'a deposit balance is "
+                "frozen'."
             ),
         ),
         Capability(
@@ -802,7 +823,8 @@ SBMD = RailProfile(
                 "imposes any duty to release it after a partial debit, and "
                 "neither states any timeline for doing so. Release happens only "
                 "because somebody calls revoke or update - see "
-                "`merchant_revocable` and `customer_revocable`.\n"
+                "`customer_revocable` (PRIMARY) and `merchant_revocable` (not "
+                "established: OC-228 5(c) does not say who may revoke).\n"
                 "Consequence for the ceiling model: debit Rs 470 against a "
                 "Rs 620 block and walk away, and Rs 150 stays stranded until the "
                 "customer-chosen end date, up to 90 days. Stranding duration is "
@@ -841,27 +863,40 @@ SBMD = RailProfile(
             ),
         ),
         Capability(
-            name="merchant_revocable", supported=True,
-            source_tier=SourceTier.PRIMARY, obtained_on=NPCI_READ_ON,
-            citation=f"{OC228}, Acquiring entities obligation 5(c)",
-            url=OC228_URL,
-            quote=_OC228_MERCHANT_REVOKE,
+            name="merchant_revocable", supported=None,
+            source_tier=SourceTier.UNVERIFIED, obtained_on=NPCI_READ_ON,
+            citation="not established", url=OC228_URL,
             notes=(
-                "This is how the unused difference actually gets released: an "
-                "explicit update or revoke from the merchant platform. Both are "
-                "first-class lifecycle events - OC-228 issuer obligation 2 "
-                "requires notifications for 'block creation, modification, "
-                "debit, revoke and expiry'.\n"
-                "CORRECTION, 21 Aug 2026. This note used to end '...so a block "
-                "can be revised downward as well as torn down.' That was an "
-                "inference from the word 'update', not a finding, and it is the "
-                "kind of leap this module exists to prevent. A modify operation "
-                "does exist and does preserve the block - see "
-                "`block_amount_modifiable_without_revoke` - but nothing in "
-                "either circular or in any PSP doc says it may revise an amount "
-                "DOWNWARD, and only one of six merchant-side PSPs exposes it at "
-                "all. See `block_amount_reducible_without_revoke`, which is "
-                "UNVERIFIED for exactly that reason."
+                "NOT ESTABLISHED. This row was PRIMARY until a payments review, "
+                "21 Sep 2026, read the sentence in its context. OC-228 acquiring "
+                "obligation 5(c) says: '" + _OC228_MERCHANT_REVOKE + "' It sits in a "
+                "list of what merchants and acquirers 'shall ensure', between 5(b) "
+                "'Allow user to enter the amount and select the end date as per "
+                "their choice' and 5(e) 'Display of original block value, remaining "
+                "balance, expiry date and transaction history'. Every neighbouring "
+                "item is something the USER is given on the merchant's platform, and "
+                "UPI Apps obligation 1 gives the customer 'Easy access to revoke the "
+                "block' in the same terms. Read that way, 5(c) is the customer's "
+                "access to update and revoke from the merchant's platform, not a "
+                "grant of a merchant-initiated, unattended revoke. The circular does "
+                "not say who may initiate. OC-200(e) says the customer shall 'also' "
+                "be provided with an option of revoking, which hints that another "
+                "party may revoke; a hint is not a statement.\n"
+                "What is missing is a source saying a merchant may revoke without "
+                "the customer. PSP APIs are the likely evidence (the review names "
+                "Razorpay's cancel-token API and Cashfree's subscription-manage "
+                "CANCEL; neither has been quoted into this registry) and would be "
+                "SECONDARY. Until then the engine does not plan around a "
+                "merchant-initiated revoke on SBMD. Nothing else changes: "
+                "`customer_revocable` is PRIMARY and unaffected.\n"
+                "CORRECTION, 21 Aug 2026, kept because it still applies. This note "
+                "used to end '...so a block can be revised downward as well as torn "
+                "down.' That was an inference from the word 'update', not a finding. "
+                "A modify operation does exist and does preserve the block - see "
+                "`block_amount_modifiable_without_revoke` - but nothing in either "
+                "circular or in any PSP doc says it may revise an amount DOWNWARD. "
+                "See `block_amount_reducible_without_revoke`, which is UNVERIFIED "
+                "for exactly that reason."
             ),
         ),
         Capability(
@@ -904,9 +939,14 @@ SBMD = RailProfile(
                 "existing UPI limits for 77. Everything about drawdown, "
                 "remaining balance and revocation is stated once, for SBMD as a "
                 "whole.\n"
-                "One asymmetry worth carrying: OC-228's Rs 10,000 / 90-day block "
-                "ceiling is stated in a circular scoped to purpose code 77, so "
-                "it is not evidenced as binding on a 76 block."
+                "CORRECTION after review, 21 Sep 2026. This note used to say "
+                "OC-228's block ceiling is 'stated in a circular scoped to purpose "
+                "code 77'. It is not: OC-228 mentions code 77 once, as the "
+                "reconciliation identifier (general guideline 3), and its Rs 10,000 "
+                "/ 90-day ceiling carries no purpose-code qualifier. Whether that "
+                "later flat cap displaces OC-200(c)'s Rs 5 lakh for code 76 is not "
+                "stated in either circular; treat Rs 10,000 as binding on every "
+                "SBMD block until NPCI says otherwise."
             ),
         ),
         Capability(
@@ -926,8 +966,12 @@ SBMD = RailProfile(
                 "blocked at all on purpose code 77.\n"
                 "The '90d vs cards 7d vs mandate 60d' comparison still "
                 "originates in PayU MARKETING copy and mislabels OTM as "
-                "'standard mandate'. Real card figures: Visa India 2-4 days, "
-                "Mastercard 4 days final / 30 days preauth. Do not cite it."
+                "'standard mandate'. Do not cite it. For the card comparison use "
+                "this registry's own rows: `visa_card_auth.hold_expiry_days_*` "
+                "(5 to 30 days by channel and merchant category, from Visa's own "
+                "guide) and `stripe_card_manual_capture.hold_expiry_days`. "
+                "Country-specific approval-response validity periods are in the "
+                "Visa Rules, which have not been read."
             ),
         ),
         # ------------------------------------------------------------------
@@ -1236,9 +1280,10 @@ RAZORPAY_AUTH_CAPTURE = RailProfile(
             ),
             notes=(
                 'Default and maximum manual-capture timeout is 3 days (minimum 12 minutes); an '
-                'authorised payment not captured in time is refunded automatically. By default payments '
-                'auto-capture, and the page names late authorization and a merchant choice as the cases '
-                'where a payment stays authorized.'
+                'authorised payment not captured in time is refunded automatically. The timeout is a '
+                "merchant's own setting, so 3 days is an upper bound on a hold's life, not its life. By "
+                'default payments auto-capture, and the page names late authorization and a merchant '
+                'choice as the cases where a payment stays authorized.'
             ),
         ),
         Limit(
@@ -1312,7 +1357,7 @@ UPI_OTM = RailProfile(
 
 
 # ---------------------------------------------------------------------------
-# Cashfree UPI pre-authorization. Enabled in sandbox via support ticket 8266875
+# Cashfree UPI pre-authorization. Enabled in sandbox via a support request
 # on 28 Aug 2026, then MEASURED end to end on 29 Aug 2026 with the probe
 # `amanat.rails.probe_cashfree`. These are OBSERVED answers from a sandbox that
 # accepted a partial capture, where every earlier real rail probed refused it.
@@ -1339,8 +1384,11 @@ CASHFREE_PREAUTH = RailProfile(
                    '"captured_amount":470.0} · payment_message '
                    '"PRE_AUTH|Transaction Success"'),
             notes=(
-                "A sandbox confirmation of the mechanism's debit leg, and the exact "
-                "shape Razorpay refuses. A pre-auth order (order_note "
+                "A sandbox confirmation of the mechanism's debit leg: the same "
+                "operation (capture less than the authorised amount) that Razorpay's "
+                "Capture API refuses, on a different product. Cashfree's UPI "
+                "pre-authorisation is measured here; Razorpay's standard payments "
+                "capture is measured there. A pre-auth order (order_note "
                 "preauth_transaction) was driven to a ₹620 hold in the sandbox — UPI "
                 "collect on testsuccess@gocash, then POST /simulate to SUCCESS, "
                 "order_status PAID — and a CAPTURE of ₹470 against it returned HTTP "
@@ -1376,14 +1424,14 @@ CASHFREE_PREAUTH = RailProfile(
             citation="not established",
             url=CASHFREE_PREAUTH_URL,
             notes=(
-                "Believed, not confirmed. The 29 Aug probe inferred the remainder was "
+                "Not established. The 29 Aug probe inferred the remainder was "
                 "returned from the refused VOID above and from arithmetic; neither "
                 "shows it. Cashfree documents that an authorisation not captured "
                 "within seven days is released back to the customer, and is silent on "
                 "the uncaptured remainder of a PARTIAL capture. Cashfree support's own "
-                "enablement note (ticket 8266875) names \"the applicable operation for "
-                "processing the unused balance/remainder\" as a separate operation the "
-                "probe did not identify. To be measured: poll the order after a partial "
+                "enablement reply (28 Aug 2026, private correspondence) names \"the "
+                "applicable operation for processing the unused balance/remainder\" as a "
+                "separate operation the probe did not identify. To be measured: poll the order after a partial "
                 "capture (and a capture-nothing control) at t+0, 5 min, 1 h, 24 h and "
                 "7 d 1 h — `python -m amanat.rails.probe_cashfree_release`. Until then "
                 "the engine does not plan around an instant return."
@@ -1430,9 +1478,9 @@ CASHFREE_PREAUTH = RailProfile(
         ),
         Capability(
             name="self_serve_enablement", supported=False,
-            source_tier=SourceTier.OBSERVED, environment=Environment.SANDBOX, obtained_on="2026-08-28",
-            citation="Cashfree support ticket 8266875, resolved 28 Aug 2026",
-            url=CASHFREE_PREAUTH_URL,
+            source_tier=SourceTier.SECONDARY, obtained_on="2026-08-28",
+            citation=("Cashfree support, reply of 28 Aug 2026 - private correspondence, "
+                      "not a public page"),
             quote=("successfully enabled in the Sandbox/Test environment ... "
                    "block creation, partial debit against the standing block, and "
                    "the applicable operation for processing the unused balance/"
@@ -1440,9 +1488,14 @@ CASHFREE_PREAUTH = RailProfile(
             notes=(
                 "Not self-serve: UPI pre-authorization had to be requested from "
                 "Cashfree support and was enabled per-account. Recorded as a real "
-                "constraint on reproducibility — a fresh sandbox signup does NOT "
-                "have this until the ticket lands. Production access was explicitly "
-                "not granted ('No Production access has been enabled')."
+                "constraint on reproducibility - a fresh sandbox signup does NOT "
+                "have this until the request is answered. Production access was "
+                "explicitly not granted ('No Production access has been enabled').\n"
+                "SECONDARY, not OBSERVED: this is the vendor's statement about its own "
+                "product in a message to the owner of this repository, not a response "
+                "the API returned, and a reader cannot open it. It was OBSERVED, on a "
+                "sandbox, until a review on 21 Sep 2026 pointed out that an email is not "
+                "a measurement. The ticket number is deliberately not published."
             ),
         ),
         # ---- measured 20 Sep 2026 by `python -m amanat.probes` (sandbox; authorisation forced with
