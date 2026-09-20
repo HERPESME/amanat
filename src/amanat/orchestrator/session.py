@@ -27,7 +27,7 @@ from amanat.policy.consent import (
 )
 from amanat.policy.engine import Action, PolicyEngine, Proposal, Verdict
 from amanat.policy.envelope import Envelope, LedgerState
-from amanat.policy.obligations import Obligation, ObligationPolicy, obligations as _obligations, overdue
+from amanat.policy.obligations import Obligation, ObligationPolicy, obligations as _obligations, orphans
 from amanat.rails.base import BlockRef, RailError
 from amanat.rails.simulator import SimulatedRail
 
@@ -87,9 +87,11 @@ class AgentSession:
     def __init__(self, envelope: Envelope, rail: SimulatedRail,
                  chain: EvidenceChain | None = None, *, resume: bool = False,
                  mandate: dict | None = None,
-                 release_remainder_within: timedelta | None = None) -> None:
+                 release_remainder_within: timedelta | None = None,
+                 release_remainder_absolute: timedelta | None = None) -> None:
         self.envelope = envelope
-        self.release_remainder_within = release_remainder_within   # the human's deadline, if any
+        self.release_remainder_within = release_remainder_within   # the human's idle window, if any
+        self.release_remainder_absolute = release_remainder_absolute   # ... and ceiling since placement
         self.rail = rail
         self.chain = chain or EvidenceChain.new(envelope.subject)
         self.engine = PolicyEngine(chain=self.chain)
@@ -153,21 +155,24 @@ class AgentSession:
         cites one), the human's release deadline, and the end of the envelope. Reads the chain;
         moves no money."""
         policy = ObligationPolicy(release_remainder_within=self.release_remainder_within,
+                                  release_remainder_absolute=self.release_remainder_absolute,
                                   resolve_by=self.envelope.expires_at)
         return _obligations(self.chain.entries, rail_id=self.rail.rail_id,
                             now=now or datetime.now(timezone.utc), policy=policy)
 
     def sweep(self, now: datetime | None = None) -> list[Obligation]:
-        """Write each overdue obligation into the chain, once, and return the ones just written.
+        """Write each passed deadline into the chain, once, and return the ones just written.
 
         Noticing an orphan is evidence too. Nothing is released and the rail is not asked: what
-        to do about a forgotten remainder is a decision for a person or a later, separate step.
+        to do about a forgotten remainder is a decision for a person or a later, separate step. A
+        deadline is written as overdue where the registry evidences that the rail keeps the
+        remainder, and as unresolved where the rail may have returned it; the entry says which.
         """
         now = now or datetime.now(timezone.utc)
         noted = {(e.payload.get("kind"), e.payload.get("block_id"))
                  for e in self.chain.entries if e.event_type is EventType.OBLIGATION}
         fresh = []
-        for o in overdue(self.obligations(now)):
+        for o in orphans(self.obligations(now)):
             if (o.kind, o.block_id) in noted:
                 continue
             self.chain.append(Actor.POLICY, EventType.OBLIGATION, o.to_payload(now))

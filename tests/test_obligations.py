@@ -18,7 +18,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from amanat.evidence.chain import Actor, EventType, EvidenceChain
 from amanat.orchestrator.session import AgentSession
 from amanat.policy.envelope import Envelope
-from amanat.policy.obligations import ObligationPolicy, holds, obligations, overdue
+from amanat.policy.obligations import ObligationPolicy, holds, obligations, orphans, overdue
 from amanat.rails.simulator import SimulatedRail
 
 T0 = datetime(2026, 9, 20, 10, 0, 0, tzinfo=timezone.utc)
@@ -105,12 +105,13 @@ class TestTheRailsOwnDeadline:
 
     def test_it_says_what_it_rests_on(self):
         o = one(cab(), "rail_hold_expiry", now=T0)
-        assert "Cashfree" in o.basis and "7 days" in o.basis
+        assert "Cashfree" in o.basis and "up to 7 days" in o.basis
         assert "If not captured within 7 days" in o.quote and o.citation
 
-    def test_past_the_deadline_with_money_still_shown_held_it_is_overdue(self):
+    def test_past_the_deadline_with_money_still_shown_held_the_rail_has_acted_and_the_chain_cannot_say_what(self):
+        """At this deadline the rail itself releases the hold, so 'still held' would be a guess."""
         o = one(cab(), "rail_hold_expiry", now=T0 + timedelta(days=7))
-        assert o.status == "overdue"
+        assert o.status == "unresolved"
 
     def test_one_second_before_the_deadline_it_is_still_pending(self):
         o = one(cab(), "rail_hold_expiry", now=T0 + timedelta(days=7) - timedelta(seconds=1))
@@ -121,11 +122,14 @@ class TestTheRailsOwnDeadline:
         assert o.status == "met"
 
     def test_a_rail_with_no_documented_expiry_has_no_such_clock(self):
-        assert one(cab(), "rail_hold_expiry", now=T0 + timedelta(days=365), rail="sbmd") is None
+        assert one(cab(), "rail_hold_expiry", now=T0 + timedelta(days=365), rail="upi_otm") is None
 
-    def test_razorpays_three_days_are_its_own(self):
+    def test_razorpays_three_days_are_its_own_and_an_upper_bound(self):
+        """The timeout is the merchant's setting, between 12 minutes and 3 days: the notice may never
+        come early, and it must not claim the hold lived exactly three days."""
         o = one(cab(), "rail_hold_expiry", now=T0, rail="razorpay_auth_capture")
         assert o.due_at == T0 + timedelta(days=3)
+        assert "up to 3 days" in o.basis and "documented life of" not in o.basis
 
     def test_a_rail_that_is_not_in_the_registry_has_no_rail_clock_and_is_not_an_error(self):
         assert obligations(cab(), rail_id="no_such_rail", now=T0, policy=ObligationPolicy()) == []
@@ -139,8 +143,9 @@ class TestTheDeadlineTheHumanGave:
 
     def test_it_runs_from_the_last_debit(self):
         due = T0 + timedelta(minutes=30) + timedelta(minutes=15)
-        assert one(cab(), "remainder_release", now=due - timedelta(seconds=1), policy=self.POLICY).status == "pending"
-        o = one(cab(), "remainder_release", now=due, policy=self.POLICY)
+        assert one(cab(), "remainder_release", now=due - timedelta(seconds=1), policy=self.POLICY,
+                   rail="sbmd").status == "pending"
+        o = one(cab(), "remainder_release", now=due, policy=self.POLICY, rail="sbmd")
         assert o.status == "overdue" and o.due_at == due and o.remainder == 15_000
 
     def test_a_later_debit_restarts_the_clock(self):
@@ -149,7 +154,7 @@ class TestTheDeadlineTheHumanGave:
         assert o.due_at == T0 + timedelta(minutes=65) and o.status == "pending"
 
     def test_with_no_debit_yet_it_runs_from_placement(self):
-        o = one(cab(debit=0), "remainder_release", now=T0 + timedelta(minutes=16), policy=self.POLICY)
+        o = one(cab(debit=0), "remainder_release", now=T0 + timedelta(minutes=16), policy=self.POLICY, rail="sbmd")
         assert o.due_at == T0 + timedelta(minutes=15) and o.status == "overdue" and o.remainder == 62_000
 
     def test_releasing_the_remainder_meets_it(self):
@@ -174,8 +179,9 @@ class TestTheDeadlineTheHumanGave:
             del s.RAILS["auto"]
 
     def test_an_unverified_claim_of_auto_release_does_not_switch_the_clock_off(self):
-        """Cashfree's remainder release is UNVERIFIED, so the human's deadline still applies."""
-        assert one(cab(), "remainder_release", now=T0 + timedelta(days=1), policy=self.POLICY).status == "overdue"
+        """Cashfree's remainder release is UNVERIFIED, so the human's deadline still applies. It is
+        UNRESOLVED, not overdue: the rail may have returned the money, and nobody has confirmed."""
+        assert one(cab(), "remainder_release", now=T0 + timedelta(days=1), policy=self.POLICY).status == "unresolved"
 
     def test_sbmd_never_frees_the_remainder_so_the_clock_applies(self):
         assert one(cab(), "remainder_release", now=T0 + timedelta(days=1), rail="sbmd", policy=self.POLICY).status == "overdue"
@@ -186,8 +192,8 @@ class TestTheEndOfTheHumansAuthority:
 
     def test_nothing_may_stay_held_past_the_grant(self):
         p = ObligationPolicy(resolve_by=self.END)
-        assert one(cab(), "resolve_by", now=self.END - timedelta(seconds=1), policy=p).status == "pending"
-        o = one(cab(), "resolve_by", now=self.END, policy=p)
+        assert one(cab(), "resolve_by", now=self.END - timedelta(seconds=1), policy=p, rail="sbmd").status == "pending"
+        o = one(cab(), "resolve_by", now=self.END, policy=p, rail="sbmd")
         assert o.status == "overdue" and o.due_at == self.END
 
     def test_a_closed_hold_has_nothing_to_resolve(self):
@@ -201,14 +207,14 @@ class TestTheEndOfTheHumansAuthority:
 class TestReadingTheResult:
     def test_overdue_returns_only_the_orphans_in_order_of_their_deadline(self):
         p = ObligationPolicy(release_remainder_within=timedelta(minutes=15), resolve_by=T0 + timedelta(hours=6))
-        got = overdue(obligations(cab(), rail_id="cashfree_preauth", now=T0 + timedelta(hours=7), policy=p))
-        assert [o.kind for o in got] == ["remainder_release", "resolve_by"]      # 10:45 then 16:00; the 7 days is not yet
+        got = overdue(obligations(cab(), rail_id="sbmd", now=T0 + timedelta(hours=7), policy=p))
+        assert [o.kind for o in got] == ["remainder_release", "resolve_by"]      # 10:45 then 16:00; the 90 days is not yet
         assert all(o.status == "overdue" for o in got)
 
     def test_the_order_is_by_deadline_not_by_the_order_the_clocks_were_listed_in(self):
         """Each hold lists its clocks in a fixed order; the orphans come back soonest-first."""
         p = ObligationPolicy(release_remainder_within=timedelta(minutes=15), resolve_by=T0 + timedelta(minutes=20))
-        got = overdue(obligations(cab(), rail_id="cashfree_preauth", now=T0 + timedelta(hours=1), policy=p))
+        got = orphans(obligations(cab(), rail_id="cashfree_preauth", now=T0 + timedelta(hours=1), policy=p))
         assert [o.kind for o in got] == ["resolve_by", "remainder_release"]          # 10:20 before 10:45
         assert [o.due_at for o in got] == sorted(o.due_at for o in got)
 
@@ -357,3 +363,212 @@ class TestSweepingWritesWhatItFindsOnce:
         s.sweep(now=datetime.now(timezone.utc) + timedelta(minutes=20))
         loaded = EvidenceChain.load(path, key)
         assert loaded.entries[-1].event_type is EventType.OBLIGATION
+
+
+class TestWhenTheRailActsTheChainCannotSayTheMoneyIsStillHeld:
+    """The chain's remainder is arithmetic over the transitions it recorded; the rail was never asked.
+
+    Where the rail itself acts at a deadline, or may already have acted, 'overdue' would sign a
+    statement that money is held which the rail may have returned weeks earlier: the one place
+    UNVERIFIED would mean *assert* instead of *refuse*. UNRESOLVED says what is true: the deadline
+    passed, the chain shows no release, and nobody has confirmed either way.
+    """
+
+    POLICY = ObligationPolicy(release_remainder_within=timedelta(minutes=15), resolve_by=T0 + timedelta(hours=6))
+    LATE = T0 + timedelta(days=30)
+
+    def test_a_rail_that_keeps_the_remainder_leaves_the_human_overdue(self):
+        """Reserve Pay's block stays until someone revokes it (PRIMARY): the chain's claim is right."""
+        for kind in ("remainder_release", "resolve_by"):
+            assert one(cab(), kind, now=self.LATE, rail="sbmd", policy=self.POLICY).status == "overdue", kind
+
+    def test_a_rail_whose_release_is_unverified_leaves_the_human_unresolved(self):
+        for kind in ("remainder_release", "resolve_by"):
+            assert one(cab(), kind, now=self.LATE, rail="cashfree_preauth", policy=self.POLICY).status == "unresolved", kind
+
+    def test_a_rail_with_no_row_for_it_is_unresolved_too(self):
+        assert one(cab(), "remainder_release", now=self.LATE, rail="razorpay_auth_capture", policy=self.POLICY).status == "unresolved"
+
+    def test_a_rail_that_returns_the_remainder_by_itself_makes_the_chains_remainder_no_evidence_of_anything(self):
+        assert one(cab(), "resolve_by", now=self.LATE, rail="stripe_card_manual_capture", policy=self.POLICY).status == "unresolved"
+
+    def test_the_rails_own_deadline_is_always_unresolved_once_it_passes(self):
+        for rail in ("cashfree_preauth", "razorpay_auth_capture", "sbmd"):
+            (o,) = [x for x in obligations(cab(), rail_id=rail, now=T0 + timedelta(days=100), policy=ObligationPolicy())
+                    if x.kind == "rail_hold_expiry"]
+            assert o.status == "unresolved", rail
+
+    def test_a_closed_hold_is_met_whatever_the_rail_does(self):
+        assert one(cab(released=15_000), "resolve_by", now=self.LATE, rail="cashfree_preauth",
+                   policy=self.POLICY).status == "met"
+
+    def test_orphans_are_the_overdue_and_the_unresolved_and_overdue_is_only_the_first(self):
+        found = obligations(cab(), rail_id="cashfree_preauth", now=self.LATE, policy=self.POLICY)
+        assert overdue(found) == []
+        assert {o.status for o in orphans(found)} == {"unresolved"} and len(orphans(found)) == 3
+        assert [o.due_at for o in orphans(found)] == sorted(o.due_at for o in orphans(found))
+
+    def test_the_notice_says_what_the_number_is_and_what_the_rail_is_evidenced_to_do(self):
+        (o,) = [x for x in obligations(cab(), rail_id="cashfree_preauth", now=self.LATE, policy=self.POLICY)
+                if x.kind == "remainder_release"]
+        p = o.to_payload(self.LATE)
+        assert p["rule"] == "obligation_unresolved"
+        assert "chain arithmetic" in p["remainder_basis"] and "not asked" in p["remainder_basis"]
+        assert p["rail_remainder_release"] == "unverified"
+        (o,) = [x for x in obligations(cab(), rail_id="sbmd", now=self.LATE, policy=self.POLICY)
+                if x.kind == "remainder_release"]
+        p = o.to_payload(self.LATE)
+        assert p["rule"] == "obligation_overdue" and p["rail_remainder_release"] == "primary"
+        (o,) = [x for x in obligations(cab(), rail_id="razorpay_auth_capture", now=self.LATE, policy=self.POLICY)
+                if x.kind == "remainder_release"]
+        assert o.to_payload(self.LATE)["rail_remainder_release"] == "absent"
+
+    @pytest.mark.parametrize("now", [T0, T0 + timedelta(minutes=1)])
+    def test_only_a_deadline_that_has_passed_can_be_written_into_the_chain(self, now):
+        pending = one(cab(), "resolve_by", now=now, rail="sbmd", policy=self.POLICY)
+        assert pending.status == "pending"
+        with pytest.raises(ValueError, match="pending"):
+            pending.to_payload(now)
+        met = one(cab(released=15_000), "resolve_by", now=self.LATE, rail="sbmd", policy=self.POLICY)
+        with pytest.raises(ValueError, match="met"):
+            met.to_payload(self.LATE)
+
+
+class TestActivityCannotStarveTheReleaseDeadline:
+    """The idle window restarts on every debit. On a standing pool that is drawn from for weeks,
+    ordinary use would postpone the notice for ever, on the rail where stranding lasts longest."""
+
+    IDLE = timedelta(minutes=15)
+
+    def _busy(self):
+        """A ₹10,000 block, ₹10 drawn every ten minutes for three hours."""
+        es = [transition("reserve", 10_000_00, at(0))]
+        es += [transition("debit", 10_00, at(m)) for m in range(10, 190, 10)]
+        return es
+
+    def test_with_only_the_idle_window_a_busy_block_is_never_overdue(self):
+        p = ObligationPolicy(release_remainder_within=self.IDLE)
+        assert one(self._busy(), "remainder_release", now=T0 + timedelta(minutes=185), rail="sbmd", policy=p).status == "pending"
+
+    def test_an_absolute_ceiling_counts_from_placement_whatever_was_drawn_since(self):
+        p = ObligationPolicy(release_remainder_within=self.IDLE, release_remainder_absolute=timedelta(hours=1))
+        o = one(self._busy(), "remainder_release", now=T0 + timedelta(minutes=61), rail="sbmd", policy=p)
+        assert o.status == "overdue" and o.due_at == T0 + timedelta(hours=1)
+        assert "of placing the hold, whatever has been drawn since" in o.basis
+
+    def test_the_earlier_bound_binds_and_the_basis_names_it(self):
+        p = ObligationPolicy(release_remainder_within=self.IDLE, release_remainder_absolute=timedelta(hours=6))
+        o = one(cab(), "remainder_release", now=T0 + timedelta(minutes=46), rail="sbmd", policy=p)
+        assert o.due_at == T0 + timedelta(minutes=45) and "of the last debit" in o.basis
+
+    def test_a_ceiling_alone_is_a_clock(self):
+        p = ObligationPolicy(release_remainder_absolute=timedelta(hours=2))
+        o = one(cab(), "remainder_release", now=T0 + timedelta(hours=3), rail="sbmd", policy=p)
+        assert o.status == "overdue" and o.due_at == T0 + timedelta(hours=2)
+
+    def test_a_multi_debit_rail_without_a_ceiling_says_in_the_record_that_activity_postpones_it(self):
+        o = one(cab(), "remainder_release", now=T0, rail="sbmd", policy=ObligationPolicy(release_remainder_within=self.IDLE))
+        assert "restarts this clock" in o.basis and "release_remainder_absolute" in o.basis
+
+    def test_it_does_not_say_so_where_the_rail_permits_one_debit_or_a_ceiling_is_set(self):
+        idle = ObligationPolicy(release_remainder_within=self.IDLE)
+        assert "restarts this clock" not in one(cab(), "remainder_release", now=T0, rail="cashfree_preauth", policy=idle).basis
+        both = ObligationPolicy(release_remainder_within=self.IDLE, release_remainder_absolute=timedelta(hours=1))
+        assert "restarts this clock" not in one(cab(), "remainder_release", now=T0, rail="sbmd", policy=both).basis
+
+    def test_a_ceiling_the_rail_frees_by_itself_still_leaves_nothing_to_do(self):
+        p = ObligationPolicy(release_remainder_absolute=timedelta(hours=1))
+        assert one(cab(), "remainder_release", now=T0 + timedelta(days=2), rail="x402_upto_svm", policy=p) is None
+
+
+class TestASingleBlockMultipleDebitsRailHasAClockToo:
+    """SBMD names its own bound (`max_block_validity_days`) and the customer chooses the end date; a
+    block that carries neither used to have no rail clock at all."""
+
+    def test_the_regulatory_maximum_is_the_clock_when_the_block_names_no_date_of_its_own(self):
+        o = one(cab(), "rail_hold_expiry", now=T0, rail="sbmd")
+        assert o.due_at == T0 + timedelta(days=90)
+        assert "regulatory maximum" in o.basis and "not this block's own end date" in o.basis
+        assert "up to 90 days" in o.basis and o.citation and o.quote
+
+    def test_a_block_that_reports_its_own_end_date_is_held_to_it(self):
+        end = T0 + timedelta(days=12)
+        es = [dict(transition("reserve", 62_000, at(0)), payload={**transition("reserve", 62_000, at(0))["payload"],
+                                                                  "expires_at": end.isoformat()})]
+        o = one(es, "rail_hold_expiry", now=T0, rail="sbmd")
+        assert o.due_at == end and "the block's own end date" in o.basis and "regulatory maximum" not in o.basis
+
+    def test_an_end_date_the_rail_reports_is_a_clock_even_where_the_registry_names_no_bound(self):
+        end = T0 + timedelta(days=3)
+        payload = {**transition("reserve", 62_000, at(0))["payload"], "expires_at": end.isoformat()}
+        es = [dict(transition("reserve", 62_000, at(0)), payload=payload)]
+        o = one(es, "rail_hold_expiry", now=T0, rail="upi_otm")
+        assert o.due_at == end and o.citation == ""
+
+    def test_an_unreadable_end_date_is_an_error_not_a_guess(self):
+        payload = {**transition("reserve", 62_000, at(0))["payload"], "expires_at": "soon"}
+        with pytest.raises(ValueError, match="expires_at"):
+            holds([dict(transition("reserve", 62_000, at(0)), payload=payload)])
+
+
+class TestAReserveThatNamesAnotherAmountIsNotIgnored:
+    """A second reserve on a live block is either a modification or a mistake. Keeping the first
+    amount and saying nothing computes every remainder from a stale ceiling."""
+
+    def test_a_replay_of_the_same_reserve_is_still_one_hold_and_unremarkable(self):
+        (h,) = holds([transition("reserve", 62_000, at(0)), transition("reserve", 62_000, at(1))])
+        assert h.held == 62_000 and not h.restated
+
+    def test_a_different_amount_marks_the_hold_restated_and_keeps_the_first_as_placed(self):
+        (h,) = holds([transition("reserve", 62_000, at(0)), transition("reserve", 80_000, at(5))])
+        assert h.held == 62_000 and h.restated and h.placed_at == T0
+
+    def test_a_restated_hold_that_passes_a_deadline_is_unresolved_even_on_a_rail_that_keeps_the_remainder(self):
+        es = [transition("reserve", 62_000, at(0)), transition("debit", 47_000, at(30)), transition("reserve", 80_000, at(35))]
+        p = ObligationPolicy(release_remainder_within=timedelta(minutes=15))
+        o = one(es, "remainder_release", now=T0 + timedelta(days=1), rail="sbmd", policy=p)
+        assert o.status == "unresolved" and "restated" in o.basis
+
+    def test_a_restated_hold_that_has_not_passed_is_pending_and_still_says_so(self):
+        es = [transition("reserve", 62_000, at(0)), transition("reserve", 80_000, at(5))]
+        o = one(es, "rail_hold_expiry", now=T0, rail="cashfree_preauth")
+        assert o.status == "pending" and "restated" in o.basis
+
+
+class TestTheSessionWritesWhatIsTrueAboutEachPassedDeadline:
+    def _cashfree(self, **kw):
+        s = AgentSession(_env(), SimulatedRail("cashfree_preauth", customer_balance=1_000_000), **kw)
+        assert s.reserve(62_000, "citycabs", "ceiling").ok and s.debit(47_000, "fare").ok
+        return s
+
+    def test_where_the_rail_may_have_returned_the_money_the_chain_says_unresolved_not_overdue(self):
+        s = self._cashfree(release_remainder_within=timedelta(minutes=15))
+        later = datetime.now(timezone.utc) + timedelta(days=8)
+        noted = s.sweep(now=later)
+        assert sorted(o.kind for o in noted) == ["rail_hold_expiry", "remainder_release", "resolve_by"]
+        entries = [e for e in s.chain.entries if e.event_type is EventType.OBLIGATION]
+        assert {e.payload["rule"] for e in entries} == {"obligation_unresolved"}
+        assert all("not asked" in e.payload["remainder_basis"] for e in entries)
+        assert {e.payload["rail_remainder_release"] for e in entries} == {"unverified"}
+        s.chain.verify()
+
+    def test_where_the_rail_keeps_the_remainder_the_chain_says_overdue(self):
+        s = _drawn(release_remainder_within=timedelta(minutes=15))
+        s.sweep(now=datetime.now(timezone.utc) + timedelta(minutes=20))
+        (e,) = [e for e in s.chain.entries if e.event_type is EventType.OBLIGATION]
+        assert e.payload["rule"] == "obligation_overdue" and e.payload["rail_remainder_release"] == "primary"
+
+    def test_a_ceiling_on_the_release_deadline_reaches_the_session(self):
+        s = _session(release_remainder_within=timedelta(hours=2), release_remainder_absolute=timedelta(hours=1))
+        assert s.reserve(62_000, "citycabs", "ceiling").ok
+        for i in range(1, 8):
+            assert s.debit(1_000, f"draw {i}").ok
+        now = datetime.now(timezone.utc)
+        by_kind = {o.kind: o for o in s.obligations(now=now + timedelta(minutes=61))}
+        assert by_kind["remainder_release"].status == "overdue"
+        assert "whatever has been drawn since" in by_kind["remainder_release"].basis
+
+    def test_a_reserve_pay_block_has_a_rail_clock_in_the_session(self):
+        s = _drawn()
+        (o,) = [o for o in s.obligations() if o.kind == "rail_hold_expiry"]
+        assert "regulatory maximum" in o.basis

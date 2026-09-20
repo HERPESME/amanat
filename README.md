@@ -8,7 +8,7 @@
 
 *Block a ceiling. Debit the actual. Prove what the money did.*
 
-[![tests](https://img.shields.io/badge/tests-1301-2ea44f?style=flat-square)](#testing)
+[![tests](https://img.shields.io/badge/tests-1332-2ea44f?style=flat-square)](#testing)
 [![python](https://img.shields.io/badge/python-3.11%2B-3776ab?style=flat-square)](#quick-start)
 [![live rail](https://img.shields.io/badge/live%20rail-%E2%82%B9470%20of%20%E2%82%B9620%20%C2%B7%20HTTP%20200-2ea44f?style=flat-square)](#what-it-does)
 [![rails](https://img.shields.io/badge/rails-UPI%20SBMD%20%C2%B7%20Cashfree%20%C2%B7%20Razorpay%20%C2%B7%20Setu-6c5ce7?style=flat-square)](#the-evidence-table)
@@ -132,7 +132,7 @@ git clone https://github.com/HERPESME/amanat && cd amanat
 # The eight-act walkthrough — the whole argument in one command
 uv run --with cryptography python -m amanat.demo
 
-# 1301 tests. No API key, no network (Node.js runs the browser-verifier tests).
+# 1332 tests. No API key, no network (Node.js runs the browser-verifier tests).
 uv run --with pytest --with cryptography --with httpx --with fastapi --with pydantic \
        --with numpy --with scikit-learn --with pandas --with pyarrow --with hypothesis pytest tests/ -q
 ```
@@ -540,15 +540,28 @@ A ceiling is the customer's money, held, and a forgotten remainder does its harm
 block stays until it is revoked or expires; Cashfree documents that an authorisation not captured
 within seven days is released and is silent about the remainder of a partial capture; Razorpay
 refunds an uncaptured payment after at most three days. `session.obligations()` reads three clocks
-off the chain: the rail's own deadline where the registry cites one (`hold_expiry_days`), the
-deadline the human gave (`release_remainder_within` — what is not drawn is released within so long
-of the last debit), and the end of the envelope. `session.sweep()` writes each overdue one into the
-chain as an `obligation` entry, once. It releases nothing and asks the rail nothing: noticing is
-evidence; acting on it is a person's decision, or a later step's. The human's deadline is switched
-off only where the registry has evidence usable as fact that the rail returns the remainder by
-itself, so on Cashfree, whose release is `UNVERIFIED`, it keeps running. The detector is a pure
-function of a chain's entries and a time (`amanat.policy.obligations`), so it reads an exported
-packet as well as a live session, and no model is anywhere near it.
+off the chain: the rail's own deadline (`hold_expiry_days`, or for Reserve Pay the block's own end
+date when the rail reports one and otherwise the regulatory maximum), the deadline the human gave
+(`release_remainder_within`: what is not drawn is released within so long of the last debit, and
+`release_remainder_absolute`: within so long of placing the hold, whatever was drawn since, because
+each debit restarts the first and a busy standing pool would otherwise postpone the notice for
+ever), and the end of the envelope. `session.sweep()` writes each passed deadline into the chain as
+an `obligation` entry, once. It releases nothing and asks the rail nothing: noticing is evidence;
+acting on it is a person's decision, or a later step's.
+
+The remainder in that entry is arithmetic over the transitions the chain recorded, not something
+the rail was asked, so the entry says which of two things it is. **Overdue** where the registry
+evidences that the rail keeps the remainder (Reserve Pay: the block stays until someone revokes it).
+**Unresolved** where the rail acts at the deadline itself, or may already have returned the money
+(Cashfree's release is `UNVERIFIED`; some rails have no row at all): the deadline passed, the chain
+shows no release, and nobody has confirmed either way. A signed "still held" about money the rail may
+have returned weeks earlier would have been the one place where an unverified row meant *assert*
+instead of *refuse*. The human's deadline is switched off only where the registry has evidence usable
+as fact that the rail returns the remainder by itself. `met` means the release was instructed and the
+rail applied it, not that the money has arrived: Razorpay's auto-refund takes five to seven working
+days, and that clock is not built. The detector is a pure function of a chain's entries and a time
+(`amanat.policy.obligations`), so it reads an exported packet as well as a live session, and no model
+is anywhere near it.
 
 ---
 
@@ -595,7 +608,7 @@ uv run --with pytest --with cryptography --with httpx --with fastapi --with pyda
        --with numpy --with scikit-learn --with pandas --with pyarrow --with hypothesis pytest tests/ -q
 ```
 
-**1301 tests, no credential and no network.** If proving the agent is bounded ever
+**1332 tests, no credential and no network.** If proving the agent is bounded ever
 required a live model, the agent would not be bounded.
 
 | Suite | What it pins |

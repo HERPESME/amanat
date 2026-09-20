@@ -4,6 +4,8 @@ Confirms the endpoint drives the real policy engine (allows the happy path,
 refuses over-budget / wrong-payee / ceiling-too-low), bounds its inputs, and
 returns a packet that verifies.
 """
+from pathlib import Path
+
 import pytest
 
 pytest.importorskip("fastapi")
@@ -409,3 +411,22 @@ class TestTheRegistryIsServedByTheConsole:
         docker = (Path(__file__).resolve().parents[1] / "Dockerfile").read_text(encoding="utf-8")
         web_stage = docker[docker.index("AS web"):]
         assert "COPY docs/registry/" in web_stage
+
+
+class TestTheConsoleTellsOverdueFromUnresolved:
+    """A signed 'still held' is a claim about the rail; where the rail may have returned the money
+    the chain says only that the deadline passed and the chain shows no release."""
+
+    HTML = (Path(__file__).resolve().parents[1] / "web" / "index.html").read_text(encoding="utf-8")
+
+    @property
+    def _case(self):
+        start = self.HTML.index("case 'obligation'")
+        return self.HTML[start:self.HTML.index("case 'compensation'", start)]
+
+    def test_an_unresolved_obligation_is_worded_as_not_established(self):
+        assert "obligation_unresolved" in self._case
+        assert "whether the rail returned it is not established" in self._case and "deadline passed" in self._case
+
+    def test_an_overdue_obligation_still_says_the_money_is_held(self):
+        assert "still held on" in self._case and "<b>overdue</b>" in self._case

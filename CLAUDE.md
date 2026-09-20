@@ -42,7 +42,7 @@ committing to it.** They killed the first design; that is what they are for.
 ## Commands
 
 ```bash
-uv run --extra ml --extra web --extra dev pytest tests/ -q   # 1301 tests (Node.js runs the browser-verifier tests)
+uv run --extra ml --extra web --extra dev pytest tests/ -q   # 1332 tests (Node.js runs the browser-verifier tests)
 uv run --extra dev python -m amanat.demo                     # end-to-end walkthrough
 uv run --extra dev python -m amanat.registry.watch           # re-check every cited quote against its source (network)
 uv run --extra dev python -m amanat.probes run               # re-measure the Cashfree sandbox (network, sandbox credentials in .env)

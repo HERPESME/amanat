@@ -495,7 +495,12 @@ function summarize(e){
     case 'refusal': return '<b>refused</b> — '+esc(p.reason||p.rule||'');
     case 'rail_intent': return 'about to ask the rail to <b>'+esc(p.action)+'</b> <span class="amt">'+rs(p.amount)+'</span> — written before the call';
     case 'rail_in_doubt': return '<b>outcome unknown</b> — the '+esc(p.action)+' of '+rs(p.amount)+' did not complete; no further money moves until it is resolved';
-    case 'obligation': return '<b>overdue</b> — <span class="amt">'+rs(p.remainder||0)+'</span> still held on '+esc(p.block_id)+' past its '+esc(String(p.kind||'').replace(/_/g,' '))+' deadline';
+    case 'obligation': {
+      const due=esc(String(p.kind||'').replace(/_/g,' '));
+      return p.rule==='obligation_unresolved'
+        ? '<b>deadline passed</b> — the chain shows <span class="amt">'+rs(p.remainder||0)+'</span> unreleased on '+esc(p.block_id)+' past its '+due+' deadline; whether the rail returned it is not established'
+        : '<b>overdue</b> — <span class="amt">'+rs(p.remainder||0)+'</span> still held on '+esc(p.block_id)+' past its '+due+' deadline';
+    }
     case 'compensation': return '<b>compensation owed</b> — '+rs(p.refund_due||0)+' captured but not yet returned after '+esc(p.attempts)+' refund attempts';
     case 'rail_transition': {
       const verb=esc((p.transition||p.action||'').toString());
