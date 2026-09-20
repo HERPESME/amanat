@@ -63,7 +63,7 @@ report is published.
    capture. A dated measurement is running; the question, not a defect, is what to ask.
 3. **Stripe: two pages that read differently.** The capture API reference says the amount to capture
    "must be less than or equal to the original amount", while the overcapture page says "Overcapture
-   allows you to capture with an amount that’s higher than the authorised amount for a card payment."
+   allows you to capture with an amount that’s higher than the authorized amount for a card payment."
    The second is an opt-in with eligibility conditions, so this is a wording gap rather than an error.
 4. **Setu: two documented hosts that did not resolve.** On 21 Aug 2026 the UMAP quickstart named
    `uatapi.setu.co` (sandbox) and `api.setu.co` (production), and neither resolved in public DNS from two

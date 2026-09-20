@@ -594,7 +594,7 @@ Not established. The guide's only stated route to a higher final amount is an in
 | `remainder_auto_released` | yes | `SECONDARY` | 2026-09-20 | Stripe Docs: Place a hold on a payment method, Capture the funds |
 | `multiple_captures` | yes | `SECONDARY` | 2026-09-20 | Stripe Docs: Capture a payment multiple times, page summary |
 | `over_capture` | yes | `SECONDARY` | 2026-09-20 | Stripe Docs: Capture more than the authorised amount on a payment, introduction |
-| `void_whole_hold` | yes | `SECONDARY` | 2026-09-20 | Stripe Docs: How Payment Intents and Setup Intents work, Lifecycle table, Cancelled row |
+| `void_whole_hold` | yes | `SECONDARY` | 2026-09-20 | Stripe Docs: How Payment Intents and Setup Intents work, Lifecycle table, Canceled row |
 | `incremental_authorization` | yes | `SECONDARY` | 2026-09-20 | Stripe Docs: Increment an authorisation, introduction |
 | `idempotent_replay` | yes | `SECONDARY` | 2026-09-20 | Stripe API Reference: Idempotent requests, introduction |
 | `partial_void` | ? | `UNVERIFIED` | 2026-09-20 | not established |
@@ -642,7 +642,7 @@ Default after a single partial capture. With multicapture (final_capture=false) 
 
 **`multiple_captures`**
 
-> Capture a PaymentIntent multiple times, up to the authorised amount.
+> Capture a PaymentIntent multiple times, up to the authorized amount.
 
 — Stripe Docs: Capture a payment multiple times, page summary, https://docs.stripe.com/payments/multicapture.md?platform=web&ui=stripe-hosted
 
@@ -650,7 +650,7 @@ Opt-in: IC+ pricing, online card payments, capture_method=manual, and multicaptu
 
 **`over_capture`**
 
-> Overcapture allows you to capture with an amount that’s higher than the authorised amount for a card payment.
+> Overcapture allows you to capture with an amount that’s higher than the authorized amount for a card payment.
 
 — Stripe Docs: Capture more than the authorised amount on a payment, introduction, https://docs.stripe.com/payments/overcapture.md?platform=web&ui=stripe-hosted
 
@@ -658,15 +658,15 @@ Opt-in per PaymentIntent (request_overcapture=if_available), offered to IC+ pric
 
 **`void_whole_hold`**
 
-> Cancellation invalidates the PaymentIntent for future payment attempts, releases any held funds and can’t be undone.
+> Cancellation invalidates the PaymentIntent for future payment attempts, releases any held funds, and can’t be undone.
 
-— Stripe Docs: How Payment Intents and Setup Intents work, Lifecycle table, Cancelled row, https://docs.stripe.com/payments/paymentintents/lifecycle.md
+— Stripe Docs: How Payment Intents and Setup Intents work, Lifecycle table, Canceled row, https://docs.stripe.com/payments/paymentintents/lifecycle.md
 
 Cancelling the PaymentIntent releases held funds and cannot be undone; it must happen before the PaymentIntent reaches processing or succeeded. The cancel API reference adds that for requires_capture the remaining amount_capturable is automatically refunded.
 
 **`incremental_authorization`**
 
-> Incremental authorisation allows you to increase the authorised amount on a confirmed PaymentIntent before you capture it.
+> Incremental authorization allows you to increase the authorized amount on a confirmed PaymentIntent before you capture it.
 
 — Stripe Docs: Increment an authorisation, introduction, https://docs.stripe.com/payments/incremental-authorization.md?platform=web&ui=stripe-hosted
 

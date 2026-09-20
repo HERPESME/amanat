@@ -44,6 +44,13 @@ from amanat.registry import store
 TOOL = "amanat.registry.watch/1"
 STREAM = "watch"
 USER_AGENT = "amanat-registry-watch/1 (+https://github.com/HERPESME/amanat)"
+
+# Vendors localise their documentation: docs.stripe.com serves "authorise" to one reader and
+# "authorize" to another, by Accept-Language and by where the request comes from. The watcher asks
+# for one locale, so a quote is checked against one rendering wherever the job runs, and every
+# quote in the registry is transcribed in it. A quote checked from another locale can fail
+# legitimately; that is a property of the source, not a change to it.
+LOCALE = "en-US,en;q=0.9"
 MIN_TEXT = 400            # below this a page has no readable text (a JavaScript shell)
 MIN_FRAGMENT = 8          # a fragment shorter than this could match anything
 MAX_BYTES = 8_000_000
@@ -337,13 +344,17 @@ def latest(path: Path | None = None) -> dict[tuple[str, str, str], dict]:
 
 # ---------------------------------------------------------------------------- fetching
 
-def http_fetcher(*, timeout: float = 30.0, delay: float = 1.0) -> Fetcher:
-    """A polite fetcher: an honest User-Agent, one request a second per host, a size cap."""
+def http_fetcher(*, timeout: float = 30.0, delay: float = 1.0, transport=None) -> Fetcher:
+    """A polite fetcher: an honest User-Agent, one locale, one request a second per host, a size cap.
+
+    `transport` lets a test see the request without a network.
+    """
     import httpx
 
-    client = httpx.Client(follow_redirects=True, timeout=timeout, headers={
+    client = httpx.Client(follow_redirects=True, timeout=timeout, transport=transport, headers={
         "User-Agent": USER_AGENT,
         "Accept": "text/html,application/xhtml+xml,text/markdown,application/pdf;q=0.9,*/*;q=0.5",
+        "Accept-Language": LOCALE,
     })
     last: dict[str, float] = {}
 

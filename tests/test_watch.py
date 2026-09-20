@@ -273,3 +273,55 @@ class TestTheRegistryRows:
                     for kind, rows in (("capability", rail.capabilities), ("limit", rail.limits))
                     for row_ in rows.values()}
         assert got == expected
+
+
+class TestTheFetcherAsksForOneLocale:
+    """Vendors localise their documentation, so a quote is checked against one rendering.
+
+    docs.stripe.com serves "Authorising a payment guarantees the amount" to one reader and
+    "Authorizing ..." to another, by Accept-Language and by where the request comes from. A
+    scheduled job on a US runner would have reported six quotes missing that a person in India
+    could read. The watcher asks for one locale; the registry's quotes are transcribed in it.
+    """
+
+    def _requests_made(self):
+        import httpx
+
+        seen = []
+
+        def handler(request):
+            seen.append(request)
+            return httpx.Response(200, text="<p>Authorizing a payment</p>",
+                                  headers={"content-type": "text/html"})
+
+        fetch = watch.http_fetcher(delay=0, transport=httpx.MockTransport(handler))
+        fetch("https://docs.example/p")
+        return seen
+
+    def test_the_request_names_a_locale(self):
+        (request,) = self._requests_made()
+        assert request.headers["accept-language"] == watch.LOCALE
+        assert watch.LOCALE.startswith("en-US")
+
+    def test_the_request_still_says_who_is_asking(self):
+        (request,) = self._requests_made()
+        assert request.headers["user-agent"] == watch.USER_AGENT
+
+    def test_a_quote_carries_the_punctuation_the_pinned_locale_serves_not_only_its_spelling(self):
+        """Stripe's lifecycle page reads "...releases any held funds and can't be undone" to an en-GB
+        reader and "...held funds, and can't be undone" (a serial comma) to an en-US one: found by the
+        first live run with the locale pinned, not by the reviewer who named the spelling."""
+        from amanat.rails.semantics import RAILS
+
+        quote = RAILS["stripe_card_manual_capture"].capabilities["void_whole_hold"].quote
+        assert "held funds, and can\u2019t be undone" in quote
+
+    def test_no_quote_is_transcribed_in_a_spelling_the_pinned_locale_does_not_serve(self):
+        """A quote on a vendor page that localises must be in the en-US rendering."""
+        from amanat.rails.semantics import RAILS
+
+        british = ("authoris", "Authoris")
+        for rail_id in ("stripe_card_manual_capture",):
+            for group in (RAILS[rail_id].capabilities, RAILS[rail_id].limits):
+                for row_ in group.values():
+                    assert not any(b in row_.quote for b in british), (rail_id, row_.name)

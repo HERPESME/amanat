@@ -8,7 +8,7 @@
 
 *Block a ceiling. Debit the actual. Prove what the money did.*
 
-[![tests](https://img.shields.io/badge/tests-1332-2ea44f?style=flat-square)](#testing)
+[![tests](https://img.shields.io/badge/tests-1336-2ea44f?style=flat-square)](#testing)
 [![python](https://img.shields.io/badge/python-3.11%2B-3776ab?style=flat-square)](#quick-start)
 [![live rail](https://img.shields.io/badge/live%20rail-%E2%82%B9470%20of%20%E2%82%B9620%20%C2%B7%20HTTP%20200-2ea44f?style=flat-square)](#what-it-does)
 [![rails](https://img.shields.io/badge/rails-UPI%20SBMD%20%C2%B7%20Cashfree%20%C2%B7%20Razorpay%20%C2%B7%20Setu-6c5ce7?style=flat-square)](#the-evidence-table)
@@ -132,7 +132,7 @@ git clone https://github.com/HERPESME/amanat && cd amanat
 # The eight-act walkthrough — the whole argument in one command
 uv run --with cryptography python -m amanat.demo
 
-# 1332 tests. No API key, no network (Node.js runs the browser-verifier tests).
+# 1336 tests. No API key, no network (Node.js runs the browser-verifier tests).
 uv run --with pytest --with cryptography --with httpx --with fastapi --with pydantic \
        --with numpy --with scikit-learn --with pandas --with pyarrow --with hypothesis pytest tests/ -q
 ```
@@ -499,8 +499,11 @@ items in the current data that would need it. Nothing has been sent.
 
 Every quote is also **re-checked against the page it cites** — `python -m amanat.registry.watch`
 fetches the source and the quote must still appear verbatim (or, where a row marks a gap with `…`,
-each piece in order) after whitespace, entity, quote and dash normalisation. Results go to a
-hash-chained, append-only log, [`docs/observations/store/watch.jsonl`](docs/observations/store/watch.jsonl),
+each piece in order) after whitespace, entity, quote and dash normalisation. Vendors localise their
+documentation (`docs.stripe.com` serves "authorise" and no serial comma to one reader, "authorize" and a
+serial comma to another), so the watcher asks for `Accept-Language: en-US` and every quote is stored in that
+rendering; a quote checked from another locale can fail legitimately, which is a property of the source and
+not a change to it. Results go to a hash-chained, append-only log, [`docs/observations/store/watch.jsonl`](docs/observations/store/watch.jsonl),
 and each row in the JSON export says when it was last checked and how that went; the page and the report
 give the counts for the latest run. Two things the check cannot do. It cannot read the two NPCI
 circulars: the regulator's site answers scripted clients with HTTP 403, so those rows are reported as
@@ -635,7 +638,7 @@ uv run --with pytest --with cryptography --with httpx --with fastapi --with pyda
        --with numpy --with scikit-learn --with pandas --with pyarrow --with hypothesis pytest tests/ -q
 ```
 
-**1332 tests, no credential and no network.** If proving the agent is bounded ever
+**1336 tests, no credential and no network.** If proving the agent is bounded ever
 required a live model, the agent would not be bounded.
 
 | Suite | What it pins |

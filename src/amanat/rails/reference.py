@@ -447,7 +447,7 @@ STRIPE_CARD_MANUAL_CAPTURE = RailProfile(
             name='multiple_captures', supported=True,
             source_tier=SourceTier.SECONDARY, obtained_on="2026-09-20",
             citation='Stripe Docs: Capture a payment multiple times, page summary', url=_STRIPE_MULTICAPTURE_VARIANT,
-            quote='Capture a PaymentIntent multiple times, up to the authorised amount.',
+            quote='Capture a PaymentIntent multiple times, up to the authorized amount.',
             notes=(
                 'Opt-in: IC+ pricing, online card payments, capture_method=manual, and multicapture '
                 'must show as available on the charge. Stripe allows up to 50 non-final captures plus '
@@ -459,7 +459,7 @@ STRIPE_CARD_MANUAL_CAPTURE = RailProfile(
             source_tier=SourceTier.SECONDARY, obtained_on="2026-09-20",
             citation='Stripe Docs: Capture more than the authorised amount on a payment, introduction', url=_STRIPE_OVERCAPTURE_VARIANT,
             quote=(
-                'Overcapture allows you to capture with an amount that’s higher than the authorised '
+                'Overcapture allows you to capture with an amount that’s higher than the authorized '
                 'amount for a card payment.'
             ),
             notes=(
@@ -473,12 +473,12 @@ STRIPE_CARD_MANUAL_CAPTURE = RailProfile(
             name='void_whole_hold', supported=True,
             source_tier=SourceTier.SECONDARY, obtained_on="2026-09-20",
             citation=(
-                'Stripe Docs: How Payment Intents and Setup Intents work, Lifecycle table, Cancelled '
+                'Stripe Docs: How Payment Intents and Setup Intents work, Lifecycle table, Canceled '
                 'row'
             ), url=_STRIPE_LIFECYCLE,
             quote=(
                 'Cancellation invalidates the PaymentIntent for future payment attempts, releases any '
-                'held funds and can’t be undone.'
+                'held funds, and can’t be undone.'
             ),
             notes=(
                 'Cancelling the PaymentIntent releases held funds and cannot be undone; it must happen '
@@ -492,7 +492,7 @@ STRIPE_CARD_MANUAL_CAPTURE = RailProfile(
             source_tier=SourceTier.SECONDARY, obtained_on="2026-09-20",
             citation='Stripe Docs: Increment an authorisation, introduction', url=_STRIPE_INCREMENTAL_AUTHORIZATION_VARIANT,
             quote=(
-                'Incremental authorisation allows you to increase the authorised amount on a confirmed '
+                'Incremental authorization allows you to increase the authorized amount on a confirmed '
                 'PaymentIntent before you capture it.'
             ),
             notes=(
@@ -541,7 +541,7 @@ STRIPE_CARD_MANUAL_CAPTURE = RailProfile(
                 'Stripe Docs: Place a hold on a payment method, Extended authorisations note (under '
                 'Tell Stripe to authorise only)'
             ), url=_STRIPE_PLACE_A_HOLD_ON_A_PAYMENT_METHOD,
-            quote='Usually, an authorisation for an online card payment is valid for 7 days.',
+            quote='Usually, an authorization for an online card payment is valid for 7 days.',
             notes=(
                 'Default validity for online card payments; in-person Terminal card payments are '
                 'usually 2 days and Visa merchant-initiated card-not-present is 5 days (separate row). '
