@@ -449,8 +449,11 @@ The first five rails are the ones this repository has adapters or engine rules f
 rails have neither: they are there so the registry can be **compared** — does authorisation hold funds,
 can a capture be smaller, is the rest released and by whom, how long does a hold last, does a retry act
 once — and the answers differ more than the marketing does (Razorpay refuses a partial capture, Stripe
-and Adyen offer it, x402's `upto` on EVM holds nothing at all while on Solana it escrows the ceiling).
-Their rows were proposed by agents that read the sources; each was admitted only because the watcher
+and Adyen offer it, x402's `upto` on EVM authorises a ceiling by signature instead of escrowing it while
+on Solana it escrows the ceiling). Count them with care: Visa, Stripe and Adyen describe one card
+mechanism from the network's side and from two acquirers' sides, and six of the fourteen rails are
+documents of one protocol, so a total over "rails" is a total over documents; the report breaks each
+answer down by kind. Their rows were proposed by agents that read the sources; each was admitted only because the watcher
 (below) found its quote on the page, and where a source is silent the row is `UNVERIFIED`. Visa's guide
 is `SECONDARY`, not `PRIMARY`: it states that the Visa Rules govern in any conflict, and the Rules have not
 been read.
@@ -467,10 +470,11 @@ they are image-only scans, every quote read from pages rendered at 220 dpi.
 
 The table is also published as JSON — [`docs/registry/registry.json`](docs/registry/registry.json) —
 with a [JSON Schema](docs/registry/registry.schema.json) that carries the rules above: a row is
-`permitted` only if it is supported **and** rests on evidence usable as fact, every row that is not
-`UNVERIFIED` carries a verbatim quote, and an `OBSERVED` row names what it was observed on
-(`sandbox` or `live`) and the date it was obtained. A consumer that validates against the schema
-inherits those rules.
+`permitted` only if it is supported **and** rests on evidence usable as fact, a row that is not
+`UNVERIFIED` carries a non-empty quote, an `UNVERIFIED` row says neither yes nor no, and an `OBSERVED`
+row names what it was observed on (`sandbox` or `live`) and the date it was obtained. A consumer that
+validates against the schema inherits those rules. Whether a quote is actually verbatim is decided by
+the watcher (below), not by the schema, which can only check that there is one.
 
 The same data as a page you can read: [`docs/registry/index.html`](docs/registry/index.html), a comparison
 matrix — questions down, rails across — where every cell is one rail's answer with the sentence it
@@ -478,31 +482,54 @@ rests on, the date, and whether the source has been re-read since. It works with
 loads nothing from outside. Open the file, or run the console and visit `/registry/`.
 
 Rails that are [Hyperswitch](https://github.com/juspay/hyperswitch) connectors — Stripe, Adyen, Razorpay — carry the
-connector's name (`hyperswitch_connector` in the export), so the registry can be joined to Hyperswitch's own
-per-connector capability flag: theirs says whether, this says what the quote, the date and the probe are. The mapping is
-checked offline against an unmodified copy of their `Connector` enum at a pinned commit. Cashfree and Setu are not
-connectors there, and networks, schemes and protocols never are, so those rails carry none.
+connector's name (`hyperswitch_connector` in the export), so the registry can be joined to Hyperswitch's own public
+capability matrix, which records per connector and payment-method type the capture methods, mandates, refunds and 3DS
+support it derives from its connector implementations. That matrix carries no quote, date or source for a flag, and does
+not say what becomes of the remainder after a partial capture, how long a hold lives or whether a retry acts once; this
+registry answers those three, with a dated sentence for each. The overlap is three rails. The mapping is checked offline
+against an unmodified copy of their `Connector` enum at a pinned commit. Cashfree, Setu, Visa's card network and the x402
+schemes are not connectors there (Hyperswitch lists Visa and Mastercard Click to Pay, a different product), so those rails
+carry none.
 
 A dated snapshot in prose: [Rail Semantics Report #1](docs/reports/rail-semantics-report-1.md), generated from the
 registry and the evidence streams behind it, so every number and list in it is computed and CI fails if it drifts. It
 is a draft for a person to publish. Anything in it that reads as a bug in a vendor's product should reach that vendor
-first — [`docs/reports/VENDOR-NOTIFICATION.md`](docs/reports/VENDOR-NOTIFICATION.md) says how, and lists the three
+first — [`docs/reports/VENDOR-NOTIFICATION.md`](docs/reports/VENDOR-NOTIFICATION.md) says how, and lists the four
 items in the current data that would need it. Nothing has been sent.
 
 Every quote is also **re-checked against the page it cites** — `python -m amanat.registry.watch`
 fetches the source and the quote must still appear verbatim (or, where a row marks a gap with `…`,
-each piece in order). Results go to a hash-chained, append-only log,
-[`docs/observations/store/watch.jsonl`](docs/observations/store/watch.jsonl), and each row in the
-JSON export says when it was last checked and how that went. The first run (20 Sep 2026) read 35 rows:
-25 have a source to check; 10 were verified, 15 could not be read — the two NPCI circulars, whose site
-answers scripted clients with HTTP 403 (their committed copies' SHA-256 are in the export, so anyone can
-compare against a browser download) — and it **found nine of the registry's own quotes that were not on
-the page they cited**: three Cashfree rows cited the API reference where the guide holds the sentence,
-two Razorpay rows quoted a different sentence from the one their claim rests on, a Setu quote wrote
-"Rs." where the page has "₹", and three joined separate list items or headings with punctuation
-that is not on the page (now marked with `…` and checked piece by piece). All were repaired the
-same day. A check that only ever passes proves nothing; this one failed nine times on its
-first run.
+each piece in order) after whitespace, entity, quote and dash normalisation. Results go to a
+hash-chained, append-only log, [`docs/observations/store/watch.jsonl`](docs/observations/store/watch.jsonl),
+and each row in the JSON export says when it was last checked and how that went; the page and the report
+give the counts for the latest run. Two things the check cannot do. It cannot read the two NPCI
+circulars: the regulator's site answers scripted clients with HTTP 403, so those rows are reported as
+unreadable (the committed copies' SHA-256 are in the export, so anyone can compare against a browser
+download) and were transcribed from pages read by a person. And it cannot show drift for a source
+pinned to a commit: the x402 rows cite specification files at a fixed revision, so re-reading them
+shows that a quote was transcribed correctly and can never show that anything changed. The vendor
+pages are what it guards, and the page and the report count the two apart.
+
+A pass over the checkable rows, made before any run was recorded, found nine of the registry's own quotes
+that were not on the page they cited: three Cashfree rows cited the API reference where the guide holds
+the sentence, two Razorpay rows quoted a different sentence from the one their claim rests on, a Setu
+quote wrote "Rs." where the page has "₹", and three joined separate list items or headings with
+punctuation that is not on the page (now marked with `…` and checked piece by piece). All nine were
+repaired before the first run was committed, so the log records the repaired state and not the
+failures; they are described here, not in the chain. From that run on every result, pass or fail, is
+appended.
+
+### Prior work
+
+A cited, dated capability matrix that is re-checked against reality is a familiar shape, and this one
+is not the only member. MDN's browser-compat-data records per-feature support and its mdn-bcd-collector
+runs tests in real browsers to find where the record and the engines disagree; Open Terms Archive
+snapshots and diffs vendors' documents; oasdiff and similar tools detect breaking changes between API
+descriptions; the OpenID FAPI and UK Open Banking conformance suites run machine-checked tests against
+financial APIs; Jepsen measures a system, publishes what it did and gives its vendor the chance to
+respond; and Hyperswitch publishes a capability matrix across its connectors. What this registry adds is
+narrow: a verbatim quote and a date per cell rather than a version number, a row that says *unknown*
+where the source is silent, and a policy engine that refuses to plan around an unknown row.
 
 ### Probes — the semantics are measured, then measured again
 
@@ -683,8 +710,9 @@ Stated here rather than waiting to be asked.
   for every semantic it models). But amount-contingent settlement itself is no longer
   simulator-only: the identical *block → partial-debit → release* lifecycle was measured
   end to end on Cashfree's UPI pre-auth sandbox (`HTTP 200`, ₹470 of ₹620). Cashfree
-  pre-auth had to be enabled by a support ticket — not self-serve — which is recorded as
-  its own `OBSERVED` capability rather than glossed over.
+  pre-auth had to be enabled by a support request — not self-serve — which is recorded as
+  its own capability rather than glossed over (a vendor's reply in private correspondence, so
+  `SECONDARY` and not a measurement).
 - **No public Indian COD-RTO or metered-fare dataset exists.** The ceiling model trains
   on NYC TLC fares. The method transfers; the coefficients do not.
 - **Razorpay already ships** RTO Shield, risk-tiered COD fees, partial COD, and a live
@@ -699,18 +727,32 @@ Stated here rather than waiting to be asked.
   yet verify.
 - **A packet alone proves internal consistency, not who signed it** — see *What verification
   proves*. Witnessed checkpoints are planned, not built.
+- **On Reserve Pay a person, not the agent, places the block and starts each debit.** OC-200 clause (b)
+  makes block creation payer-initiated (QR, intent or SDK) and says other modes of initiation are for later;
+  OC-228 describes the debits as "initiated by the customer on the merchant's platform". So "the agent blocks
+  a ceiling and debits the actual" is the mechanism on Cashfree's pre-authorisation and on card rails; on
+  Reserve Pay the agent proposes the ceiling and a person places it, and whether a server-to-server debit
+  against an existing block needs a fresh customer action in practice has not been tested. That is the
+  assumption most likely to be false here, and the test is an afternoon on Setu's staging.
 - **`sbmd.block_amount_reducible_without_revoke` is UNVERIFIED.** No circular or PSP doc
-  states whether a modify may *lower* an amount, so it is refused.
+  states whether a modify may *lower* an amount, so it is refused. `sbmd.merchant_revocable` is UNVERIFIED
+  too: OC-228 5(c) gives the user easy access to update and revoke on the merchant's platform, and does not
+  say that a merchant may revoke without the user.
 - **A quote found on a page shows the page says it, not that the page is right.** The watcher checks words;
   it cannot check that a vendor's documentation matches its production behaviour.
 - **The interpretation of a row is not machine-verified.** For the Visa, Stripe, Adyen and x402 rows, agents
   read the sources and a check admitted each quote; whether a row says `supported` or `not supported`, and
-  what its note concludes, was read by a person and can be wrong. A row that a vendor believes is wrong is
+  what its note concludes, was read by a person and can be wrong (two rows have already been downgraded to
+  `UNVERIFIED` after a reviewer read their sentences in context). A row that a vendor believes is wrong is
   a bug to report.
 - **The registry is a snapshot.** Pages change and sandboxes change; the nightly jobs that would say so
   exist but do nothing until credentials are configured.
-- **Fifteen rows cannot be re-read by machine:** the regulator's site answers scripted clients with HTTP 403.
-  Those quotes were transcribed from committed PDFs whose hashes are published.
+- **The rows that cite the NPCI circulars cannot be re-read by machine:** the regulator's site answers
+  scripted clients with HTTP 403. Those quotes were transcribed from committed PDFs whose hashes are published.
+- **Visa's guide says it is confidential.** Visa hosts it publicly, and its last page says the information
+  must not be published or disclosed in whole or in part without written permission. The registry quotes it
+  in short, attributed sentences and commits no copy; whether that is acceptable is a decision for the
+  repository's owner, and the quotations come out on request.
 
 ---
 

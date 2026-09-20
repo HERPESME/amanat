@@ -57,6 +57,13 @@ A row needs a verbatim `quote`, the `url` of the page that carries it, and `obta
 needs an `environment` and, unless it is on the legacy list in `tests/test_registry_probes.py`, a `probe_id`.
 **A model may propose a row; only the watcher admits it** (`python -m amanat.registry.watch` must find the
 quote on the page). A row that names a probe fails the suite if the rail's latest conclusive run disagrees.
+`supported` is `None` exactly when a row is UNVERIFIED (a row with no answer says neither yes nor no), and an
+OBSERVED row needs its date. Editing or adding a quote fails a ratchet test until the watcher has run again,
+so a row change needs the network. **A quote check admits words, not meaning**: two rows the watcher had
+admitted were later found not to say what the row said, so read the sentence in its context and run
+`payments-architect` on new rows. A passed obligation deadline is *overdue* only where the registry evidences
+that the rail keeps the remainder, and *unresolved* otherwise: the chain's remainder is arithmetic, and the
+rail was never asked.
 Evidence lives in `docs/observations/store/` as append-only hash-chained JSONL: never edit a line. Anything
 that reads as a bug in a vendor's product goes to the vendor first (`docs/reports/VENDOR-NOTIFICATION.md`),
 so do not push or publish the report or the raw probe data without the owner's say-so.
@@ -64,9 +71,11 @@ so do not push or publish the report or the raw probe data without the owner's s
 ## Open research
 
 `sbmd.partial_debit` is resolved: PRIMARY, by necessary implication from NPCI OC-228 and
-OC-200. Six capabilities are still UNVERIFIED (and therefore refused); `docs/RAIL_SEMANTICS.md`
+OC-200. Eight capabilities are still UNVERIFIED (and therefore refused); `docs/RAIL_SEMANTICS.md`
 lists them under "Outstanding verification", and `cashfree_preauth.remainder_auto_released` is
-one because the earlier "auto-released" result was an inference, not a reading. A dated
+one because the earlier "auto-released" result was an inference, not a reading. Two of the eight
+(`sbmd.merchant_revocable`, `stripe_card_manual_capture.payment_guarantee`) were cited rows until a
+review read their sentences in context. A dated
 measurement is running: `python -m amanat.rails.probe_cashfree_release poll` appends to
 `docs/observations/cashfree-release/` (run it at about +24 h and +7 d 1 h after the start,
 18:23 IST on 20 Sep 2026; reads so far show no change).
