@@ -298,7 +298,7 @@ function arrow(s, x1, y1, x2, y2, color = "6E6A63") {
   eyebrow(s, "Measured, not quoted", "Two real rails: one accepts, one refuses.");
   const rows = [
     ["Cashfree · UPI pre-auth debit", "HTTP 200", GREEN,
-     "captured ₹470 of a ₹620 hold; the ₹150 auto-returned — amount-contingent settlement, accepted live on a regulated UPI rail."],
+     "captured ₹470 of a ₹620 hold on the sandbox — the debit leg, accepted. The ₹150’s return is unverified; a dated measurement is running."],
     ["Razorpay · partial capture", "HTTP 400", RED,
      "the identical shape, refused: “Capture amount must be equal to the amount authorized” — live rail and docs agree word for word."],
     ["Razorpay · live settlement", "rfnd_TT5K…", GREEN,
@@ -393,7 +393,7 @@ function arrow(s, x1, y1, x2, y2, color = "6E6A63") {
     ["python -m amanat.compare", "two rails, side by side"]]);
   cmdcol(ML + 4.55, [
     ["python -m amanat.dispute.demo", "settle on AP2, then contest it"],
-    ["python -m amanat.rails.probe_cashfree", "the mechanism, live on a real rail"]]);
+    ["python -m amanat.rails.probe_cashfree", "the capture, on a live sandbox"]]);
   footnote(s, "Cloud Run, scales to zero — it costs nothing idle; open it once beforehand to skip the cold start.");
 }
 

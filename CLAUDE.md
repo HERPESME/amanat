@@ -42,13 +42,18 @@ committing to it.** They killed the first design; that is what they are for.
 ## Commands
 
 ```bash
-uv run --with pytest --with cryptography pytest tests/   # 37 tests
-uv run --with cryptography python -m amanat.demo         # end-to-end walkthrough
+uv run --extra ml --extra web --extra dev pytest tests/ -q   # 419 tests (Node.js runs the browser-verifier tests)
+uv run --extra dev python -m amanat.demo                     # end-to-end walkthrough
 ```
 
-## The open research task that blocks the thesis
+## Open research
 
-`sbmd.partial_debit` is UNVERIFIED, so the system currently **refuses its own core
-mechanism** on the real rail. Only vendor docs describe partial debit; the NPCI circular
-clause has not been read. Resolving this is *research*, not code. See
-`tests/test_policy.py::test_partial_debit_on_sbmd_is_refused_pending_verification`.
+`sbmd.partial_debit` is resolved: PRIMARY, by necessary implication from NPCI OC-228 and
+OC-200. Still UNVERIFIED (and therefore refused): `sbmd.block_amount_reducible_without_revoke`,
+`upi_otm.post_delivery_debit_goods`, and `cashfree_preauth.remainder_auto_released` — the last
+one because the earlier "auto-released" result was an inference, not a reading. A dated
+measurement is running: `python -m amanat.rails.probe_cashfree_release poll` appends to
+`docs/observations/cashfree-release/` (run it at about +24 h and +7 d 1 h after the start).
+
+Round-6 audit and strategy are in `.claude/decisions/round6-*.md` (local): read them before
+conceptual changes.

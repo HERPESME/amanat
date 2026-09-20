@@ -8,7 +8,7 @@
 
 *Block a ceiling. Debit the actual. Prove what the money did.*
 
-[![tests](https://img.shields.io/badge/tests-241%20passing-2ea44f?style=flat-square)](#testing)
+[![tests](https://img.shields.io/badge/tests-419%20passing-2ea44f?style=flat-square)](#testing)
 [![python](https://img.shields.io/badge/python-3.11%2B-3776ab?style=flat-square)](#quick-start)
 [![live rail](https://img.shields.io/badge/live%20rail-%E2%82%B9470%20of%20%E2%82%B9620%20%C2%B7%20HTTP%20200-2ea44f?style=flat-square)](#what-it-does)
 [![rails](https://img.shields.io/badge/rails-UPI%20SBMD%20%C2%B7%20Cashfree%20%C2%B7%20Razorpay%20%C2%B7%20Setu-6c5ce7?style=flat-square)](#the-evidence-table)
@@ -20,7 +20,7 @@
 &nbsp;·&nbsp;
 **[Verify a signed packet](https://claude.ai/code/artifact/6edf0c30-6be8-4f60-961b-285b11af9995)** — recomputes its own hashes and signatures in your browser; press *Tamper* to watch it catch a change.
 &nbsp;·&nbsp;
-**Watch the mechanism run on a real rail** — `python -m amanat.rails.probe_cashfree` holds ₹620, debits ₹470, and the ₹150 comes back, live on Cashfree's UPI pre-auth sandbox.
+**Watch the debit leg run against a real rail's sandbox** — `python -m amanat.rails.probe_cashfree` holds ₹620 and captures ₹470 on Cashfree's UPI pre-auth sandbox (`HTTP 200`). Whether the ₹150 comes back at capture or at the documented 7-day expiry is [being measured](docs/observations/cashfree-release/).
 &nbsp;·&nbsp;
 **[Pitch deck (PDF)](docs/pitch/amanat-deck.pdf)** — the five-minute argument (`docs/pitch/amanat-deck.pptx` for editing).
 
@@ -92,12 +92,15 @@ revocable by you at any moment. That the rail *legally* permits a debit smaller 
 block is settled from the NPCI circular itself (OC-228, `PRIMARY` evidence), not from a
 vendor's blog.
 
-**And it is not only legal on paper — it runs.** The full *block → debit → release*
-lifecycle was measured end to end on a live rail: Cashfree's UPI pre-authorization sandbox
-held ₹620, captured ₹470, and returned the ₹150 **on its own** — `HTTP 200`,
-`captured_amount 470.0`, `PRE_AUTH|Transaction Success`. Every other real rail measured here
-*refused* the mechanism; this one accepts it. Reproduce in ~15 seconds:
-`python -m amanat.rails.probe_cashfree`.
+**And the debit leg runs.** On Cashfree's UPI pre-authorization *sandbox*, a ₹620 hold was
+captured for ₹470 — `HTTP 200`, `captured_amount 470.0`, `PRE_AUTH|Transaction Success`.
+Razorpay's sandbox refuses the same partial capture. (The authorisation was forced with the
+sandbox's `POST /simulate`, so this measures Cashfree's API, not an issuer.) What was **not**
+observed is the ₹150 going back: the API's own read of the order shows `payment_amount 620.0`
+and no refund, and Cashfree documents release only for an authorisation *not captured* within
+seven days. That leg is recorded as `UNVERIFIED` and is being measured — see
+[`docs/observations/`](docs/observations/cashfree-release/). Reproduce the capture in ~15
+seconds: `python -m amanat.rails.probe_cashfree`.
 
 ### The same intent across three real rails — measured, not quoted
 
@@ -107,13 +110,15 @@ amount-contingent settlement, asked of three real rails:
 | Rail | Debit smaller than the block? | Evidence |
 |---|---|---|
 | **UPI SBMD** (Reserve Pay) | ✅ legal by the circular | `PRIMARY` — NPCI OC-228, read from the scanned PDF |
-| **Cashfree** UPI pre-auth | ✅ **executed live** — ₹470 of ₹620, remainder auto-returned | `OBSERVED` — `HTTP 200`, measured 29 Aug 2026 |
+| **Cashfree** UPI pre-auth | ✅ **capture accepted in the sandbox** — ₹470 of ₹620; the remainder's release *not observed* | `OBSERVED` — `HTTP 200`, measured 29 Aug 2026 |
 | **Razorpay** manual capture | ❌ refused | `OBSERVED` — `HTTP 400`, *"Capture amount must be equal to the amount authorized"* |
 
-The negative and the positive are both the point: Razorpay forecloses the mechanism,
-Cashfree accepts it, and on the rail that keeps the remainder blocked (SBMD) versus the
-one that returns it automatically (Cashfree pre-auth), the signed chain records which path
-actually ran. Compare two chains side by side: `python -m amanat.compare`.
+The negative and the positive are both the point: Razorpay forecloses the mechanism and
+Cashfree's sandbox accepts the debit leg. What happens to the remainder differs by rail —
+SBMD keeps it blocked until someone revokes it (`PRIMARY`), while Cashfree documents a
+seven-day expiry and is silent on a partial capture's remainder (`UNVERIFIED`) — and the
+signed chain records which path actually ran. Compare two chains side by side:
+`python -m amanat.compare`.
 
 ---
 
@@ -127,7 +132,7 @@ git clone https://github.com/HERPESME/amanat && cd amanat
 # The eight-act walkthrough — the whole argument in one command
 uv run --with cryptography python -m amanat.demo
 
-# 241 tests. No API key, no network.
+# 419 tests. No API key, no network (Node.js runs the browser-verifier tests).
 uv run --with pytest --with cryptography --with httpx --with fastapi --with pydantic \
        --with numpy --with scikit-learn --with pandas --with pyarrow --with hypothesis pytest tests/ -q
 ```
@@ -162,7 +167,7 @@ uv run --with google-genai --with cryptography python -m amanat.orchestrator.cli
 uv run --with numpy --with pandas --with scikit-learn --with pyarrow \
        python -m amanat.ceiling.frontier
 
-# Watch the core mechanism run on a real rail: hold ₹620, debit ₹470, ₹150 returns
+# Cashfree sandbox: hold ₹620, capture ₹470 (HTTP 200); the ₹150's return is not observed
 uv run --with httpx --with cryptography python -m amanat.rails.probe_cashfree
 
 # Measure Razorpay's refusal of the same shape (HTTP 400), live
@@ -287,41 +292,60 @@ until the NPCI circular was actually read.
 
 ### 2 · The evidence chain goes below authorization
 
-Every agent-payment evidence standard shipping today — **AP2's mandate chain, Visa
-Trusted Agent Protocol, Mastercard Agentic Tokens, Pine Labs Grantex**, and the
-offline-verifiable receipt lineage of US 12,671,588 — terminates at authorization: they
-prove the agent was *permitted* to spend.
-
-This extends the signed chain downward through the rail's own state transitions — block
-placed, partial debit, release, revoke — **including the transitions the system refused
-to make** — producing an artifact **verifiable by a party who does not trust the
-orchestrator**.
+Agent-payment specifications establish what an agent may spend and attest a payment's
+outcome: AP2's mandates and receipts, ACP's checkout state, x402's payment receipts. In the
+ones read for this project, none records the rail's *intermediate* states — a hold placed, a
+partial debit, a release — or the transitions the system **refused** to make. This chain does,
+so the artifact shows not only what was authorized but what the money actually did.
+(Visa's Trusted Agent Protocol, Mastercard's agentic tokens and Pine Labs' Grantex were not
+reviewed and are not characterised here.)
 
 That is an auditability contribution, not a payments one. It is modest, and saying so is
-what makes it credible.
+what makes it credible. The primitive is ordinary — hash-linked, signed entries — and generic
+tamper-evident logging is well covered elsewhere (SCITT, Sigstore's transparency logs,
+receiver-signed receipts). What is offered here is *what* is chained, and refusals with it.
+
+#### What verification proves — and what it does not
+
+| A packet verified on its own proves | It does **not** prove |
+|---|---|
+| entries hash-link, in order, without gaps | who holds the signing key — the packet embeds it, so anyone can mint one |
+| each entry was signed by the key the packet names | that nothing was removed from the end |
+| the payloads are unaltered since signing | that the operator did not rewrite history and re-sign it |
+
+Two things the verifier already holds close those gaps: the signer's **public key**
+(`trusted_keys`) and a **checkpoint** of the chain taken earlier (`checkpoint`: length and head
+hash), which fails a packet that is shorter than, or diverges from, what was committed. A
+checkpoint is only as strong as the party holding it; it must live outside the operator's control
+(a counterparty, a witness, a timestamp authority). Anchoring checkpoints with independent
+witnesses is planned, not built. So: **a packet is checkable offline by a party who does not
+trust the orchestrator when that party holds the key or a checkpoint from a source the
+orchestrator does not control — and on its own it proves internal consistency only.** The
+verifier page says the same, and accepts `#key=<hex>` or `#len=<n>&head=<hash>` in its URL to pin.
 
 The artifact is real, not rhetorical: `python -m amanat.evidence.render` exports the chain
 as a **self-contained HTML file that verifies itself in the browser** — recomputing every
 hash with WebCrypto and re-checking every Ed25519 signature against the embedded key, with
-no network and no trust in whoever produced it. Edit any payload and it names the entry
-that no longer verifies.
+no network. Edit any payload and it names the entry that no longer verifies; and it says
+plainly what a green result means (see above) rather than calling the packet "verified".
 
 > **▶ Verify one live in your browser:**
 > **[claude.ai/code/artifact/6edf0c30…](https://claude.ai/code/artifact/6edf0c30-6be8-4f60-961b-285b11af9995)**
 > — open it, then press **Tamper** and watch it catch the change.
 > Source: [`docs/sample/dispute-packet.html`](docs/sample/dispute-packet.html).
 
-### And the dispute the market has no answer for
+### And the dispute
 
-Google AP2, OpenAI/Stripe ACP, Coinbase x402, Visa Trusted Agent Protocol and
-Mastercard Agent Pay all establish that an agent was *permitted* to spend, and
-stop there. The contested question comes after — a cardholder says *"my agent did
-it"* — and there is no post-transaction record to settle it against. This project
-produces exactly that record, so it can adjudicate.
+AP2, ACP and x402 establish what an agent may spend and attest a payment's outcome. In the
+specifications read for this project, post-authorisation dispute evidence is either out of
+scope or an open request rather than a defined record. The contested question comes after —
+a cardholder says *"my agent did it"* — and this project produces a record to settle it
+against, so it can adjudicate.
 
-Give it a signed packet, a real **AP2 Open Payment Mandate** (parsed from AP2's
-own schema, `vct: mandate.payment.open.1` — the envelope round-trips through it,
-it doesn't just borrow the field names), and a cardholder's claim. It verifies
+Give it a signed packet, an **AP2 Open Payment Mandate** (read from AP2's own schema,
+`vct: mandate.payment.open.1`, field names and constraint types verbatim; the mandate's
+signature here is Ed25519 over canonical JSON, not AP2's SD-JWT credential), and a
+cardholder's claim. It verifies
 the record, then states with cited entry numbers what the evidence shows:
 
 - *"The ₹470 charged was authorized and within every bound — the AP2 mandate at
@@ -383,14 +407,16 @@ creation is not enabled on a self-serve account.</td>
 </tr>
 <tr>
 <td><b>6</b></td>
-<td><b>Cashfree UPI pre-auth accepts the mechanism — the one positive result, measured live</b><br/>
-The full lifecycle ran end to end on the sandbox: a ₹620 hold, a <code>CAPTURE</code> of
-₹470 returning <code>HTTP 200</code> with <code>captured_amount 470.0</code>, and the ₹150
-remainder <b>auto-released</b> (an explicit void afterward is refused — there is nothing
-left to void). This is the exact shape Razorpay rejects, accepted by a real regulated UPI
-rail, and it is what turns <code>cashfree_preauth.partial_debit</code> from
-<code>UNVERIFIED</code> to <code>OBSERVED</code>. It needed a support ticket to enable
-(not self-serve) — recorded honestly. Reproduce: <code>python -m amanat.rails.probe_cashfree</code>.</td>
+<td><b>Cashfree's UPI pre-auth sandbox accepts a partial capture — and the release leg turned out unmeasured</b><br/>
+A ₹620 hold, a <code>CAPTURE</code> of ₹470 returning <code>HTTP 200</code> with
+<code>captured_amount 470.0</code>: the exact shape Razorpay rejects, and what turns
+<code>cashfree_preauth.partial_debit</code> from <code>UNVERIFIED</code> to <code>OBSERVED</code>.
+An earlier version of this finding also said the ₹150 remainder was <i>auto-released</i>. That was
+inferred, not read: a refused void (which Cashfree documents as impossible after any capture) and
+arithmetic. Re-reading the order shows <code>payment_amount 620.0</code> and no refund, so the
+release is now <code>UNVERIFIED</code> and a dated measurement is running
+(<code>docs/observations/</code>). Enabling pre-auth needed a support ticket (not self-serve).
+Reproduce: <code>python -m amanat.rails.probe_cashfree</code>.</td>
 </tr>
 </table>
 
@@ -398,18 +424,18 @@ rail, and it is what turns <code>cashfree_preauth.partial_debit</code> from
 
 ## The evidence table
 
-28 capabilities across 5 rails. What each claim rests on:
+31 capabilities across 5 rails. What each claim rests on:
 
 | Rail | Capabilities | Evidence |
 |---|---|---|
 | **UPI SBMD** (Reserve Pay) | 16 | 12 `PRIMARY` · 3 `SECONDARY` · 1 `UNVERIFIED` |
-| **Cashfree** UPI pre-auth | 4 | 4 `OBSERVED` — measured live 29 Aug 2026 |
+| **Cashfree** UPI pre-auth | 7 | 4 `OBSERVED` (sandbox, 29 Aug 2026) · 2 `SECONDARY` · 1 `UNVERIFIED` — the remainder's release |
 | **Razorpay** manual capture | 3 | 1 `OBSERVED` · 2 `SECONDARY` |
 | **Setu UMAP** | 3 | 2 `OBSERVED` · 1 `SECONDARY` |
 | **UPI OTM** | 2 | 1 `SECONDARY` · 1 `UNVERIFIED` |
 
-Two capabilities remain deliberately `UNVERIFIED` (`sbmd.block_amount_reducible_without_revoke`,
-`upi_otm.post_delivery_debit_goods`) — believed, not confirmed, so the policy engine refuses
+Three capabilities remain deliberately `UNVERIFIED` (`sbmd.block_amount_reducible_without_revoke`,
+`upi_otm.post_delivery_debit_goods`, `cashfree_preauth.remainder_auto_released`) — believed, not confirmed, so the policy engine refuses
 to plan around them. Both NPCI circulars are committed in [`docs/sources/`](docs/sources/);
 they are image-only scans, every quote read from pages rendered at 220 dpi.
 
@@ -423,17 +449,21 @@ src/amanat/
 │   ├── semantics.py    ← the capability table. Cited or refused.
 │   ├── simulator.py    ← enforces the same table the policy engine reads
 │   ├── razorpay.py     ← real adapter; refuses what the rail cannot honour
-│   ├── cashfree.py     ← real adapter; the rail that ACCEPTS partial debit (live)
+│   ├── cashfree.py     ← sandbox adapter; accepts a partial capture, records only what it read
 │   ├── settlement.py   ← capture-then-refund on Razorpay's real verbs
 │   ├── probe.py        ← measures Razorpay live (its refusal, HTTP 400)
-│   ├── probe_cashfree.py ← drives the pre-auth lifecycle live (HTTP 200, ₹470 of ₹620)
+│   ├── probe_cashfree.py ← drives the pre-auth lifecycle in the sandbox (HTTP 200, ₹470 of ₹620)
+│   ├── probe_cashfree_release.py ← measures, over time, what the API says about the remainder
 │   ├── cashfree_settle.py ← signs a real Cashfree run into a verifiable evidence packet
 │   └── authorize.py    ← browser harness for an authorized-but-uncaptured payment
 ├── policy/
 │   ├── envelope.py     ← the human's grant. Frozen; widening leaves a trace.
+│   ├── consent.py      ← the human's signed widening: signed elsewhere, verified here
 │   └── engine.py       ← deterministic. No model call, ever.
 ├── evidence/
-│   ├── chain.py        ← Ed25519 + SHA-256, append-only, records refusals
+│   ├── chain.py        ← Ed25519 + SHA-256, append-only, records refusals; keys, checkpoints
+│   ├── canonical.py    ← the one serialisation every hash is taken over (RFC 8785, integers only)
+│   ├── transitions.py  ← what a chain's rail transitions say money did (rejected ≠ moved)
 │   └── render.py       ← exports a chain as a browser-verifiable HTML packet
 ├── interop/ap2.py      ← reads/writes real AP2 Open Payment Mandates
 ├── dispute/            ← adjudicate a chain against its AP2 authorization
@@ -453,7 +483,7 @@ uv run --with pytest --with cryptography --with httpx --with fastapi --with pyda
        --with numpy --with scikit-learn --with pandas --with pyarrow --with hypothesis pytest tests/ -q
 ```
 
-**241 tests, no credential and no network.** If proving the agent is bounded ever
+**419 tests, no credential and no network.** If proving the agent is bounded ever
 required a live model, the agent would not be bounded.
 
 | Suite | What it pins |
@@ -461,6 +491,12 @@ required a live model, the agent would not be bounded.
 | `test_semantics.py` | every capability cited; unverified never permitted |
 | `test_policy.py` | envelope + rail limits enforced; the live-measured Cashfree partial debit permitted, an unverified one refused |
 | `test_evidence.py` | append-only, hash-linked, tamper detected by entry |
+| `test_canonical.py` | one serialisation, RFC 8785 restricted to integers; the page's real JavaScript, run under Node, agrees byte for byte |
+| `test_packet_trust.py` | what verification proves: a forgery and a truncation pass unpinned and **fail** when pinned to a key or checkpoint |
+| `test_envelope_and_ledger.py` | a frozen grant; budget = spent + held; one standing block; the rail and the ledger agree |
+| `test_recovery.py` | a crash or a lost response converges exactly once: write-ahead intent, idempotent rail, IN_DOUBT |
+| `test_consent.py` | the human's consent is signed elsewhere and verified here — including a consent signed by Node's WebCrypto |
+| `test_cashfree_adapter.py` · `test_cashfree_settle.py` | the adapter and the signed receipt state only what the rail said |
 | `test_session.py` | no path to money skips policy |
 | `test_adversarial.py` | 23 attacks — amounts, homoglyph payees, sequence, malformed calls |
 | `test_ceiling.py` | conformal guarantee holds on *exchangeable* data |
@@ -470,7 +506,7 @@ required a live model, the agent would not be bounded.
 | `test_properties.py` | money invariants proven over thousands of random sequences |
 | `test_settlement.py` | capture-then-refund gated; double-settlement refused |
 | `test_compare.py` | the two rails share no transition verbs |
-| `test_render.py` | the browser's hashing reproduces Python's, byte for byte |
+| `test_render.py` | the page's hashing reproduces Python's, and what its banner may claim |
 
 CI additionally regenerates `RAIL_SEMANTICS.md` and **fails on any diff**, so the prose
 cannot claim more than the runtime honours.
@@ -480,6 +516,9 @@ cannot claim more than the runtime honours.
 ## Honest limitations
 
 Stated here rather than waiting to be asked.
+
+- **The Cashfree release leg is unmeasured.** The debit leg is observed; where the uncaptured remainder goes is not. This README and the signed real-rail receipt once said it was auto-returned; that was an inference, since corrected (see finding 6).
+- **The sandbox is not an issuer.** Cashfree's authorisation is forced with `POST /simulate`, so `OBSERVED` here means "Cashfree's sandbox API said so".
 
 - **Razorpay's `authorized` state has already debited the customer.** It is not a hold.
   Partial capture is unsupported there — measured, not assumed.
@@ -499,6 +538,11 @@ Stated here rather than waiting to be asked.
   settle-at-a-reduced-amount and refund-the-remainder, plus a *"tamper-proof history of
   the operations"*. Neither the settlement mechanism nor tamper-proof payment history is
   claimed as new here.
+- **AP2 interop is at the schema level.** Mandates are read by AP2's field names and
+  constraint types; real AP2 mandates are SD-JWT verifiable credentials, which this does not
+  yet verify.
+- **A packet alone proves internal consistency, not who signed it** — see *What verification
+  proves*. Witnessed checkpoints are planned, not built.
 - **`sbmd.block_amount_reducible_without_revoke` is UNVERIFIED.** No circular or PSP doc
   states whether a modify may *lower* an amount, so it is refused.
 
