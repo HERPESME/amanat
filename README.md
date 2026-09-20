@@ -425,18 +425,39 @@ Reproduce: <code>python -m amanat.rails.probe_cashfree</code>.</td>
 
 ## The evidence table
 
-36 capabilities across 5 rails. What each claim rests on:
+97 capabilities across 14 rails. What each claim rests on:
 
 | Rail | Capabilities | Evidence |
 |---|---|---|
 | **UPI SBMD** (Reserve Pay) | 16 | 12 `PRIMARY` · 3 `SECONDARY` · 1 `UNVERIFIED` |
 | **Cashfree** UPI pre-auth | 12 | 9 `OBSERVED` (sandbox, 29 Aug and 20 Sep 2026) · 2 `SECONDARY` · 1 `UNVERIFIED` — the remainder's release |
-| **Razorpay** manual capture | 3 | 1 `OBSERVED` · 2 `SECONDARY` |
+| **Razorpay** manual capture | 6 | 1 `OBSERVED` · 5 `SECONDARY` |
 | **Setu UMAP** | 3 | 2 `OBSERVED` · 1 `SECONDARY` |
 | **UPI OTM** | 2 | 1 `SECONDARY` · 1 `UNVERIFIED` |
+| *Reference:* **Visa** card authorization | 9 | 7 `SECONDARY` · 2 `UNVERIFIED` |
+| *Reference:* **Stripe** cards, manual capture | 10 | 9 `SECONDARY` · 1 `UNVERIFIED` |
+| *Reference:* **Adyen** cards | 9 | 9 `SECONDARY` |
+| *Reference:* **x402** protocol extensions | 1 | 1 `PRIMARY` |
+| *Reference:* **x402** `exact` | 3 | 3 `PRIMARY` |
+| *Reference:* **x402** `upto`, EVM | 5 | 5 `PRIMARY` |
+| *Reference:* **x402** `upto`, Solana | 7 | 7 `PRIMARY` |
+| *Reference:* **x402** `auth-capture` | 8 | 8 `PRIMARY` |
+| *Reference:* **x402** `batch-settlement` | 6 | 6 `PRIMARY` |
 
-Three capabilities remain deliberately `UNVERIFIED` (`sbmd.block_amount_reducible_without_revoke`,
-`upi_otm.post_delivery_debit_goods`, `cashfree_preauth.remainder_auto_released`) — believed, not confirmed, so the policy engine refuses
+The first five rails are the ones this repository has adapters or engine rules for. The nine *reference*
+rails have neither: they are there so the registry can be **compared** — does authorisation hold funds,
+can a capture be smaller, is the rest released and by whom, how long does a hold last, does a retry act
+once — and the answers differ more than the marketing does (Razorpay refuses a partial capture, Stripe
+and Adyen offer it, x402's `upto` on EVM holds nothing at all while on Solana it escrows the ceiling).
+Their rows were proposed by agents that read the sources; each was admitted only because the watcher
+(below) found its quote on the page, and where a source is silent the row is `UNVERIFIED`. Visa's guide
+is `SECONDARY`, not `PRIMARY`: it states that the Visa Rules govern in any conflict, and the Rules have not
+been read.
+
+Six capabilities remain deliberately `UNVERIFIED` (`sbmd.block_amount_reducible_without_revoke`,
+`upi_otm.post_delivery_debit_goods`, `cashfree_preauth.remainder_auto_released`,
+`visa_card_auth.remainder_auto_released`, `visa_card_auth.over_capture`,
+`stripe_card_manual_capture.partial_void`) — believed or asked, not confirmed, so the policy engine refuses
 to plan around them. Both NPCI circulars are committed in [`docs/sources/`](docs/sources/);
 they are image-only scans, every quote read from pages rendered at 220 dpi.
 

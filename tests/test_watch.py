@@ -109,6 +109,36 @@ class TestMatching:
         assert r["result"] == "verified"
 
 
+class TestQuotesFromMarkdownSources:
+    """A spec written in Markdown is quoted as it is read, or as it is written: either way the
+    words are the same. Backticks, emphasis, links and table pipes are not part of the sentence."""
+
+    MD = (b"# Scheme\n\n| Phase | Effect | Repeat |\n|---|---|---|\n"
+          b"| `authorize` | Reserves the client's funds, where they are held. | No \xe2\x80\x94 once per payment. |\n\n"
+          b"The **facilitator** verifies the signature against `permitted.amount` and [transfers](https://x.test) it.\n"
+          + b"Padding sentence for length. " * 30)
+
+    def _one(self, quote):
+        f = Fetched(200, "text/markdown", self.MD, "https://raw.example/spec.md")
+        return one(Pages(**{"https://raw.example/spec.md": f}),
+                   row(quote, url="https://raw.example/spec.md"))["result"]
+
+    def test_a_quote_that_keeps_the_backticks_still_matches(self):
+        assert self._one("The facilitator verifies the signature against `permitted.amount`") == "verified"
+
+    def test_a_quote_that_drops_them_matches_too(self):
+        assert self._one("The facilitator verifies the signature against permitted.amount") == "verified"
+
+    def test_a_table_row_quoted_with_its_pipes_matches(self):
+        assert self._one("`authorize` | Reserves the client's funds, where they are held. | No - once per payment.") == "verified"
+
+    def test_a_link_quoted_with_its_markup_matches(self):
+        assert self._one("verifies the signature against permitted.amount and [transfers](https://x.test) it") == "verified"
+
+    def test_a_different_word_still_does_not(self):
+        assert self._one("The facilitator refuses the signature against `permitted.amount`") == "not_found"
+
+
 class TestWhatIsChecked:
     def test_an_observed_row_is_skipped_because_a_probe_checks_it_not_a_page(self):
         f = Pages()

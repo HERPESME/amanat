@@ -48,6 +48,14 @@ def test_a_quote_edited_after_its_last_check_is_checked_again(row):
         "the quote changed since it was last checked: run python -m amanat.registry.watch"
 
 
+@pytest.mark.parametrize("row", CHECKABLE, ids=lambda r: f"{r.rail_id}.{r.name}")
+def test_a_url_changed_after_its_last_check_is_checked_again(row):
+    """A quote verified on one page says nothing about another."""
+    res = LATEST.get(row.key)
+    assert res is None or res["url"] == row.url, \
+        "the url changed since the quote was last checked: run python -m amanat.registry.watch"
+
+
 def test_the_only_sources_the_watcher_cannot_read_are_the_regulators_scans():
     """A row that becomes unfetchable elsewhere (a page rewritten as a JavaScript app, a moved
     URL) must be noticed, not absorbed."""

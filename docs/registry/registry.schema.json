@@ -9,6 +9,7 @@
     "schema_version",
     "as_of",
     "tiers",
+    "concepts",
     "sources",
     "stores",
     "rails"
@@ -34,10 +35,11 @@
         "$ref": "#/$defs/tier"
       }
     },
-    "rails": {
+    "concepts": {
+      "description": "The vocabulary the rails are compared in. A capability name that two or more rails use is defined here once, so the same name is the same question on every rail.",
       "type": "array",
       "items": {
-        "$ref": "#/$defs/rail"
+        "$ref": "#/$defs/concept"
       }
     },
     "sources": {
@@ -52,6 +54,12 @@
       "type": "array",
       "items": {
         "$ref": "#/$defs/streamHead"
+      }
+    },
+    "rails": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/rail"
       }
     }
   },
@@ -570,6 +578,33 @@
           }
         }
       ]
+    },
+    "concept": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "definition",
+        "rails"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "definition": {
+          "type": "string",
+          "minLength": 20
+        },
+        "rails": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9_]+$"
+          }
+        }
+      }
     }
   }
 }

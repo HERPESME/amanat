@@ -169,7 +169,9 @@ def pdf_text(data: bytes) -> str | None:
     if exe is None:
         return None
     try:
-        out = subprocess.run([exe, "-layout", "-", "-"], input=data, capture_output=True, timeout=120)
+        # Reading order, not `-layout`: layout mode keeps physical columns, which interleaves the
+        # lines of a two-column page and splits sentences that the quote holds whole.
+        out = subprocess.run([exe, "-", "-"], input=data, capture_output=True, timeout=120)
     except (OSError, subprocess.SubprocessError):
         return None
     return out.stdout.decode("utf-8", errors="replace") if out.returncode == 0 else None
@@ -246,6 +248,7 @@ def _kind(f: Fetched, url: str) -> str:
 
 def _judge(r: Row, f: Fetched, copies: dict[str, str], to_text) -> dict:
     digest = hashlib.sha256(f.body).hexdigest()
+    quote = r.quote
 
     def out(result, detail):
         return _result(r, result, detail, http_status=f.status, content_sha256=digest)
@@ -267,13 +270,14 @@ def _judge(r: Row, f: Fetched, copies: dict[str, str], to_text) -> dict:
             return out(UNFETCHABLE, "the PDF has no text layer and there is no committed copy to compare")
     elif kind == "markdown":
         text = markdown_to_text(f.body.decode("utf-8", errors="replace"))
+        quote = markdown_to_text(r.quote)        # marks are not part of the sentence, on either side
     else:
         text = html_to_text(f.body.decode("utf-8", errors="replace"))
     size = len(normalise(text))
     if size < MIN_TEXT:
         return out(UNFETCHABLE, f"the page has no readable text ({size} characters): "
                                 "probably rendered by JavaScript")
-    found = match_quote(text, r.quote)
+    found = match_quote(text, quote)
     if found == NOT_FOUND:
         return out(NOT_FOUND, f"fetched (HTTP 200, {size:,} characters of text); the quote is not present")
     note = "the quote is present verbatim" if found == VERIFIED else "every fragment is present, in order"

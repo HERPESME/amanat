@@ -18,7 +18,7 @@ import json
 from pathlib import Path
 
 from amanat.rails.semantics import (
-    RAILS, SOURCE_COPIES, Capability, Limit, RailProfile, SourceTier,
+    CONCEPTS, RAILS, SOURCE_COPIES, Capability, Limit, RailProfile, SourceTier,
 )
 from amanat.probes import runner
 from amanat.registry import store, watch
@@ -100,6 +100,13 @@ def _limit(rail: RailProfile, lim: Limit, history: dict, probes: dict) -> dict:
             **_evidence(lim, v, _observation(rail.rail_id, lim, probes))}
 
 
+def _concepts() -> list[dict]:
+    """The shared vocabulary, each name with the rails that use it."""
+    return [{"name": name, "definition": text,
+             "rails": [rid for rid, rail in RAILS.items() if name in rail.capabilities]}
+            for name, text in CONCEPTS.items()]
+
+
 def _sources() -> list[dict]:
     """The committed documents the quotes were transcribed from, with their hashes."""
     out = []
@@ -149,6 +156,7 @@ def build(store_dir: Path | None = None) -> dict:
         "as_of": max(dates) if dates else None,
         "tiers": [{"tier": t.value, "usable_as_fact": t.is_fact, "meaning": t.meaning}
                   for t in SourceTier],
+        "concepts": _concepts(),
         "sources": _sources(),
         "stores": _stores(paths),
         "rails": rails,

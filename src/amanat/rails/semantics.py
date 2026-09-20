@@ -69,6 +69,56 @@ _TIER_MEANING = {
 }
 
 
+# The vocabulary rails are compared in. A capability name that two or more rails use is defined
+# here once, so `partial_debit` on Visa and on Cashfree are the same question; a name only one
+# rail uses is that rail's own. A test keeps this honest in both directions: every shared name is
+# defined, and every definition is used.
+CONCEPTS = {
+    "funds_held_in_customer_account":
+        "Authorisation holds funds in the payer's account or an escrow, rather than debiting them.",
+    "payment_guarantee":
+        "A successful hold guarantees that the merchant will be paid.",
+    "partial_debit":
+        "The merchant may capture or debit less than the amount authorised or blocked.",
+    "over_capture":
+        "The merchant may capture more than the amount authorised.",
+    "multiple_captures":
+        "One authorisation may be drawn on more than once.",
+    "partial_void":
+        "Part of a hold may be released without capturing it, by a partial reversal or a downward adjustment.",
+    "void_whole_hold":
+        "A whole hold may be released before anything is captured.",
+    "void_after_partial_capture":
+        "The uncaptured remainder may be released by a void once a partial capture has been made.",
+    "capture_after_void":
+        "A hold that has been voided may still be captured.",
+    "remainder_auto_released":
+        "After a partial capture the uncaptured remainder is released without any further action by the merchant.",
+    "expiry_auto_release":
+        "A hold that is never captured is released automatically when it expires.",
+    "incremental_authorization":
+        "The amount of a hold may be raised after it has been placed.",
+    "buffered_authorisation":
+        "A merchant may authorise more than it expects to charge, as a safety margin.",
+    "capped_initial_authorization":
+        "A fixed, capped amount may be authorised before the final amount is known, with no increments.",
+    "manual_capture":
+        "A payment can be authorised now and captured later.",
+    "idempotent_replay":
+        "A repeated request under the same idempotency key acts once and returns the first result.",
+    "idempotent_capture_replay":
+        "A repeated capture under the same idempotency key returns the first result, while the same call under another key is refused.",
+    "concurrent_capture_single_winner":
+        "Of several simultaneous captures against one hold, exactly one succeeds and the rest are refused.",
+    "settled_amount_verifiable_against_usage":
+        "The payer can verify from protocol data that the amount settled matches what was actually consumed.",
+    "post_delivery_debit_goods":
+        "A merchant may debit after delivering goods, rather than before delivery.",
+    "block_amount_modifiable_without_revoke":
+        "The amount of a standing block may be changed without tearing the block down.",
+}
+
+
 class Environment(Enum):
     """What an OBSERVED row was observed on.
 
@@ -398,6 +448,7 @@ _RAZORPAY_AUTHORIZED_DEBITED = (
 
 # Razorpay, Payment Capture Settings > Manually Capture Payments.
 RAZORPAY_CAPTURE_SETTINGS_URL = "https://razorpay.com/docs/payments/payments/capture-settings/"
+RAZORPAY_CAPTURE_URL = "https://razorpay.com/docs/api/payments/capture/"
 _RAZORPAY_MANUAL_CAPTURE = (
     "You can manually capture payments in the authorized state using our "
     "Capture API or from the Dashboard. All payments that are not captured "
@@ -1092,6 +1143,81 @@ RAZORPAY_AUTH_CAPTURE = RailProfile(
             notes=("Authorize-now / capture-later exists, but capture must be for the full amount "
                    "(the `partial_debit` row: measured, and stated in the Capture API's error list)."),
         ),
+        Capability(
+            name='expiry_auto_release', supported=True,
+            source_tier=SourceTier.SECONDARY, obtained_on="2026-09-20",
+            citation='Razorpay Docs, Payment Capture Settings, Manually Capture Payments', url=RAZORPAY_CAPTURE_SETTINGS_URL,
+            quote=(
+                'All payments that are not captured within the manual timeout period will be '
+                'auto-refunded.'
+            ),
+            notes=(
+                'New capability name expiry_auto_release: an authorisation that is never captured is '
+                'released back to the payer automatically at expiry, with no action by merchant or '
+                'payer. Razorpay auto-refunds it, and the credit reaches the customer in 5-7 working '
+                'days.'
+            ),
+        ),
+        Capability(
+            name='over_capture', supported=False,
+            source_tier=SourceTier.SECONDARY, obtained_on="2026-09-20",
+            citation=(
+                'Razorpay Docs API Reference, Capture a Payment, Errors, Capture amount must be equal '
+                'to the amount authorized (400), Solution'
+            ), url=RAZORPAY_CAPTURE_URL,
+            quote='Ensure that the amount to be captured is equal to the authorised amount.',
+            notes=(
+                'Same rule from the other side: the capture amount must equal the authorised amount, so '
+                "capturing more is refused. The parameter table also says the amount 'should be equal "
+                "to the order amount'."
+            ),
+        ),
+        Capability(
+            name='multiple_captures', supported=False,
+            source_tier=SourceTier.SECONDARY, obtained_on="2026-09-20",
+            citation=(
+                'Razorpay Docs API Reference, Capture a Payment, Errors, Only payments which have been '
+                'authorized and not yet captured can be captured (400)'
+            ), url=RAZORPAY_CAPTURE_URL,
+            quote='Only payments which have been authorized and not yet captured can be captured.',
+            notes=(
+                'A captured payment cannot be captured again (HTTP 400), so there is one capture per '
+                'authorised payment. Neither page describes splitting one authorisation across several '
+                'captures.'
+            ),
+        ),
+    ],
+    limits=[
+        Limit(
+            name='hold_expiry_days', value=3, unit='days',
+            source_tier=SourceTier.SECONDARY, obtained_on="2026-09-20",
+            citation='Razorpay Docs, Payment Capture Settings, Options table, Manual capture timeout', url=RAZORPAY_CAPTURE_SETTINGS_URL,
+            quote=(
+                'Allows you to define custom manual capture timeout. The minimum value is 12 minutes. '
+                'The maximum value (default) is 3 days.'
+            ),
+            notes=(
+                'Default and maximum manual-capture timeout is 3 days (minimum 12 minutes); an '
+                'authorised payment not captured in time is refunded automatically. By default payments '
+                'auto-capture, and the page names late authorization and a merchant choice as the cases '
+                'where a payment stays authorized.'
+            ),
+        ),
+        Limit(
+            name='auto_refund_speed_working_days_max', value=7, unit='days',
+            source_tier=SourceTier.SECONDARY, obtained_on="2026-09-20",
+            citation='Razorpay Docs, Payment Capture Settings, Options table, Auto-refund speed', url=RAZORPAY_CAPTURE_SETTINGS_URL,
+            quote=(
+                'Payments in the authorized state are auto-refunded after the timeout. The available '
+                'option is Normal Refund where the payment is refunded to your customer in 5-7 working '
+                'days.'
+            ),
+            notes=(
+                'Working days, not calendar days: how long an auto-refunded (uncaptured) payment takes '
+                'to reach the customer after the timeout. The page says this speed applies only to '
+                'payments that are auto-refunded.'
+            ),
+        ),
     ],
 )
 
@@ -1423,3 +1549,8 @@ def unverified_report() -> list[tuple[str, str, str]]:
         for cap in rail.capabilities.values()
         if not cap.is_fact
     ]
+
+
+# The reference rails (card networks, PSPs, x402 schemes) are defined in their own module and
+# registered here, after everything they import exists.
+from amanat.rails import reference as _reference  # noqa: E402,F401

@@ -28,6 +28,218 @@
       "meaning": "Believed, not confirmed"
     }
   ],
+  "concepts": [
+    {
+      "name": "funds_held_in_customer_account",
+      "definition": "Authorisation holds funds in the payer's account or an escrow, rather than debiting them.",
+      "rails": [
+        "sbmd",
+        "razorpay_auth_capture",
+        "cashfree_preauth",
+        "visa_card_auth",
+        "stripe_card_manual_capture",
+        "adyen_card_auth",
+        "x402_exact",
+        "x402_upto_evm",
+        "x402_upto_svm",
+        "x402_auth_capture",
+        "x402_batch_settlement"
+      ]
+    },
+    {
+      "name": "payment_guarantee",
+      "definition": "A successful hold guarantees that the merchant will be paid.",
+      "rails": [
+        "sbmd",
+        "stripe_card_manual_capture"
+      ]
+    },
+    {
+      "name": "partial_debit",
+      "definition": "The merchant may capture or debit less than the amount authorised or blocked.",
+      "rails": [
+        "sbmd",
+        "razorpay_auth_capture",
+        "upi_otm",
+        "cashfree_preauth",
+        "visa_card_auth",
+        "stripe_card_manual_capture",
+        "adyen_card_auth",
+        "x402_exact",
+        "x402_upto_evm",
+        "x402_upto_svm",
+        "x402_auth_capture",
+        "x402_batch_settlement"
+      ]
+    },
+    {
+      "name": "over_capture",
+      "definition": "The merchant may capture more than the amount authorised.",
+      "rails": [
+        "razorpay_auth_capture",
+        "cashfree_preauth",
+        "visa_card_auth",
+        "stripe_card_manual_capture",
+        "adyen_card_auth",
+        "x402_exact",
+        "x402_upto_evm",
+        "x402_upto_svm",
+        "x402_auth_capture"
+      ]
+    },
+    {
+      "name": "multiple_captures",
+      "definition": "One authorisation may be drawn on more than once.",
+      "rails": [
+        "razorpay_auth_capture",
+        "cashfree_preauth",
+        "stripe_card_manual_capture",
+        "adyen_card_auth",
+        "x402_upto_evm",
+        "x402_upto_svm",
+        "x402_auth_capture",
+        "x402_batch_settlement"
+      ]
+    },
+    {
+      "name": "partial_void",
+      "definition": "Part of a hold may be released without capturing it, by a partial reversal or a downward adjustment.",
+      "rails": [
+        "cashfree_preauth",
+        "visa_card_auth",
+        "stripe_card_manual_capture",
+        "adyen_card_auth",
+        "x402_auth_capture",
+        "x402_batch_settlement"
+      ]
+    },
+    {
+      "name": "void_whole_hold",
+      "definition": "A whole hold may be released before anything is captured.",
+      "rails": [
+        "cashfree_preauth",
+        "visa_card_auth",
+        "stripe_card_manual_capture",
+        "adyen_card_auth",
+        "x402_upto_svm",
+        "x402_auth_capture"
+      ]
+    },
+    {
+      "name": "void_after_partial_capture",
+      "definition": "The uncaptured remainder may be released by a void once a partial capture has been made.",
+      "rails": [
+        "cashfree_preauth"
+      ]
+    },
+    {
+      "name": "capture_after_void",
+      "definition": "A hold that has been voided may still be captured.",
+      "rails": [
+        "cashfree_preauth"
+      ]
+    },
+    {
+      "name": "remainder_auto_released",
+      "definition": "After a partial capture the uncaptured remainder is released without any further action by the merchant.",
+      "rails": [
+        "sbmd",
+        "cashfree_preauth",
+        "visa_card_auth",
+        "stripe_card_manual_capture",
+        "adyen_card_auth",
+        "x402_upto_svm",
+        "x402_auth_capture",
+        "x402_batch_settlement"
+      ]
+    },
+    {
+      "name": "expiry_auto_release",
+      "definition": "A hold that is never captured is released automatically when it expires.",
+      "rails": [
+        "razorpay_auth_capture"
+      ]
+    },
+    {
+      "name": "incremental_authorization",
+      "definition": "The amount of a hold may be raised after it has been placed.",
+      "rails": [
+        "visa_card_auth",
+        "stripe_card_manual_capture",
+        "adyen_card_auth",
+        "x402_auth_capture"
+      ]
+    },
+    {
+      "name": "buffered_authorisation",
+      "definition": "A merchant may authorise more than it expects to charge, as a safety margin.",
+      "rails": [
+        "visa_card_auth"
+      ]
+    },
+    {
+      "name": "capped_initial_authorization",
+      "definition": "A fixed, capped amount may be authorised before the final amount is known, with no increments.",
+      "rails": [
+        "visa_card_auth"
+      ]
+    },
+    {
+      "name": "manual_capture",
+      "definition": "A payment can be authorised now and captured later.",
+      "rails": [
+        "razorpay_auth_capture"
+      ]
+    },
+    {
+      "name": "idempotent_replay",
+      "definition": "A repeated request under the same idempotency key acts once and returns the first result.",
+      "rails": [
+        "stripe_card_manual_capture",
+        "adyen_card_auth",
+        "x402"
+      ]
+    },
+    {
+      "name": "idempotent_capture_replay",
+      "definition": "A repeated capture under the same idempotency key returns the first result, while the same call under another key is refused.",
+      "rails": [
+        "cashfree_preauth"
+      ]
+    },
+    {
+      "name": "concurrent_capture_single_winner",
+      "definition": "Of several simultaneous captures against one hold, exactly one succeeds and the rest are refused.",
+      "rails": [
+        "cashfree_preauth"
+      ]
+    },
+    {
+      "name": "settled_amount_verifiable_against_usage",
+      "definition": "The payer can verify from protocol data that the amount settled matches what was actually consumed.",
+      "rails": [
+        "x402_upto_evm",
+        "x402_upto_svm",
+        "x402_batch_settlement"
+      ]
+    },
+    {
+      "name": "post_delivery_debit_goods",
+      "definition": "A merchant may debit after delivering goods, rather than before delivery.",
+      "rails": [
+        "sbmd",
+        "upi_otm"
+      ]
+    },
+    {
+      "name": "block_amount_modifiable_without_revoke",
+      "definition": "The amount of a standing block may be changed without tearing the block down.",
+      "rails": [
+        "sbmd",
+        "setu_umap"
+      ]
+    }
+  ],
   "sources": [
     {
       "url": "https://www.npci.org.in/uploads/UPI_OC_No_228_FY_2025_26_Enhancement_in_UPI_Single_Block_Multiple_Debits_UPI_Reserve_Pay_a9095c181d.pdf",
@@ -50,8 +262,8 @@
     },
     {
       "stream": "watch",
-      "length": 1,
-      "head": "c99e362c572dcf67f0706db76027b1ee27b992a33321cc49b998d082d6f800d0"
+      "length": 2,
+      "head": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764"
     }
   ],
   "rails": [
@@ -77,8 +289,8 @@
             "detail": "HTTP 403",
             "checked_on": "2026-09-20",
             "quote_current": true,
-            "evidence_hash": "c99e362c572dcf67f0706db76027b1ee27b992a33321cc49b998d082d6f800d0",
-            "checks": 1,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 2,
             "changes": []
           },
           "observation": null
@@ -101,8 +313,8 @@
             "detail": "HTTP 403",
             "checked_on": "2026-09-20",
             "quote_current": true,
-            "evidence_hash": "c99e362c572dcf67f0706db76027b1ee27b992a33321cc49b998d082d6f800d0",
-            "checks": 1,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 2,
             "changes": []
           },
           "observation": null
@@ -125,8 +337,8 @@
             "detail": "HTTP 403",
             "checked_on": "2026-09-20",
             "quote_current": true,
-            "evidence_hash": "c99e362c572dcf67f0706db76027b1ee27b992a33321cc49b998d082d6f800d0",
-            "checks": 1,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 2,
             "changes": []
           },
           "observation": null
@@ -149,8 +361,8 @@
             "detail": "HTTP 403",
             "checked_on": "2026-09-20",
             "quote_current": true,
-            "evidence_hash": "c99e362c572dcf67f0706db76027b1ee27b992a33321cc49b998d082d6f800d0",
-            "checks": 1,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 2,
             "changes": []
           },
           "observation": null
@@ -173,8 +385,8 @@
             "detail": "HTTP 403",
             "checked_on": "2026-09-20",
             "quote_current": true,
-            "evidence_hash": "c99e362c572dcf67f0706db76027b1ee27b992a33321cc49b998d082d6f800d0",
-            "checks": 1,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 2,
             "changes": []
           },
           "observation": null
@@ -197,8 +409,8 @@
             "detail": "HTTP 403",
             "checked_on": "2026-09-20",
             "quote_current": true,
-            "evidence_hash": "c99e362c572dcf67f0706db76027b1ee27b992a33321cc49b998d082d6f800d0",
-            "checks": 1,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 2,
             "changes": []
           },
           "observation": null
@@ -221,8 +433,8 @@
             "detail": "HTTP 403",
             "checked_on": "2026-09-20",
             "quote_current": true,
-            "evidence_hash": "c99e362c572dcf67f0706db76027b1ee27b992a33321cc49b998d082d6f800d0",
-            "checks": 1,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 2,
             "changes": []
           },
           "observation": null
@@ -245,8 +457,8 @@
             "detail": "HTTP 403",
             "checked_on": "2026-09-20",
             "quote_current": true,
-            "evidence_hash": "c99e362c572dcf67f0706db76027b1ee27b992a33321cc49b998d082d6f800d0",
-            "checks": 1,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 2,
             "changes": []
           },
           "observation": null
@@ -269,8 +481,8 @@
             "detail": "HTTP 403",
             "checked_on": "2026-09-20",
             "quote_current": true,
-            "evidence_hash": "c99e362c572dcf67f0706db76027b1ee27b992a33321cc49b998d082d6f800d0",
-            "checks": 1,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 2,
             "changes": []
           },
           "observation": null
@@ -293,8 +505,8 @@
             "detail": "HTTP 403",
             "checked_on": "2026-09-20",
             "quote_current": true,
-            "evidence_hash": "c99e362c572dcf67f0706db76027b1ee27b992a33321cc49b998d082d6f800d0",
-            "checks": 1,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 2,
             "changes": []
           },
           "observation": null
@@ -317,8 +529,8 @@
             "detail": "HTTP 403",
             "checked_on": "2026-09-20",
             "quote_current": true,
-            "evidence_hash": "c99e362c572dcf67f0706db76027b1ee27b992a33321cc49b998d082d6f800d0",
-            "checks": 1,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 2,
             "changes": []
           },
           "observation": null
@@ -341,8 +553,8 @@
             "detail": "HTTP 403",
             "checked_on": "2026-09-20",
             "quote_current": true,
-            "evidence_hash": "c99e362c572dcf67f0706db76027b1ee27b992a33321cc49b998d082d6f800d0",
-            "checks": 1,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 2,
             "changes": []
           },
           "observation": null
@@ -365,8 +577,8 @@
             "detail": "every fragment is present, in order",
             "checked_on": "2026-09-20",
             "quote_current": true,
-            "evidence_hash": "c99e362c572dcf67f0706db76027b1ee27b992a33321cc49b998d082d6f800d0",
-            "checks": 1,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 2,
             "changes": []
           },
           "observation": null
@@ -405,8 +617,8 @@
             "detail": "the quote is present verbatim",
             "checked_on": "2026-09-20",
             "quote_current": true,
-            "evidence_hash": "c99e362c572dcf67f0706db76027b1ee27b992a33321cc49b998d082d6f800d0",
-            "checks": 1,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 2,
             "changes": []
           },
           "observation": null
@@ -429,8 +641,8 @@
             "detail": "every fragment is present, in order",
             "checked_on": "2026-09-20",
             "quote_current": true,
-            "evidence_hash": "c99e362c572dcf67f0706db76027b1ee27b992a33321cc49b998d082d6f800d0",
-            "checks": 1,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 2,
             "changes": []
           },
           "observation": null
@@ -455,8 +667,8 @@
             "detail": "HTTP 403",
             "checked_on": "2026-09-20",
             "quote_current": true,
-            "evidence_hash": "c99e362c572dcf67f0706db76027b1ee27b992a33321cc49b998d082d6f800d0",
-            "checks": 1,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 2,
             "changes": []
           },
           "observation": null
@@ -479,8 +691,8 @@
             "detail": "HTTP 403",
             "checked_on": "2026-09-20",
             "quote_current": true,
-            "evidence_hash": "c99e362c572dcf67f0706db76027b1ee27b992a33321cc49b998d082d6f800d0",
-            "checks": 1,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 2,
             "changes": []
           },
           "observation": null
@@ -503,8 +715,8 @@
             "detail": "HTTP 403",
             "checked_on": "2026-09-20",
             "quote_current": true,
-            "evidence_hash": "c99e362c572dcf67f0706db76027b1ee27b992a33321cc49b998d082d6f800d0",
-            "checks": 1,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 2,
             "changes": []
           },
           "observation": null
@@ -549,8 +761,8 @@
             "detail": "the quote is present verbatim",
             "checked_on": "2026-09-20",
             "quote_current": true,
-            "evidence_hash": "c99e362c572dcf67f0706db76027b1ee27b992a33321cc49b998d082d6f800d0",
-            "checks": 1,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 2,
             "changes": []
           },
           "observation": null
@@ -573,14 +785,135 @@
             "detail": "the quote is present verbatim",
             "checked_on": "2026-09-20",
             "quote_current": true,
-            "evidence_hash": "c99e362c572dcf67f0706db76027b1ee27b992a33321cc49b998d082d6f800d0",
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 2,
+            "changes": []
+          },
+          "observation": null
+        },
+        {
+          "name": "expiry_auto_release",
+          "supported": true,
+          "permitted": true,
+          "tier": "secondary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "Razorpay Docs, Payment Capture Settings, Manually Capture Payments",
+          "url": "https://razorpay.com/docs/payments/payments/capture-settings/",
+          "quote": "All payments that are not captured within the manual timeout period will be auto-refunded.",
+          "notes": "New capability name expiry_auto_release: an authorisation that is never captured is released back to the payer automatically at expiry, with no action by merchant or payer. Razorpay auto-refunds it, and the credit reaches the customer in 5-7 working days.",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 1,
+            "changes": []
+          },
+          "observation": null
+        },
+        {
+          "name": "over_capture",
+          "supported": false,
+          "permitted": false,
+          "tier": "secondary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "Razorpay Docs API Reference, Capture a Payment, Errors, Capture amount must be equal to the amount authorized (400), Solution",
+          "url": "https://razorpay.com/docs/api/payments/capture/",
+          "quote": "Ensure that the amount to be captured is equal to the authorised amount.",
+          "notes": "Same rule from the other side: the capture amount must equal the authorised amount, so capturing more is refused. The parameter table also says the amount 'should be equal to the order amount'.",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 1,
+            "changes": []
+          },
+          "observation": null
+        },
+        {
+          "name": "multiple_captures",
+          "supported": false,
+          "permitted": false,
+          "tier": "secondary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "Razorpay Docs API Reference, Capture a Payment, Errors, Only payments which have been authorized and not yet captured can be captured (400)",
+          "url": "https://razorpay.com/docs/api/payments/capture/",
+          "quote": "Only payments which have been authorized and not yet captured can be captured.",
+          "notes": "A captured payment cannot be captured again (HTTP 400), so there is one capture per authorised payment. Neither page describes splitting one authorisation across several captures.",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
             "checks": 1,
             "changes": []
           },
           "observation": null
         }
       ],
-      "limits": []
+      "limits": [
+        {
+          "name": "hold_expiry_days",
+          "value": 3,
+          "unit": "days",
+          "tier": "secondary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "Razorpay Docs, Payment Capture Settings, Options table, Manual capture timeout",
+          "url": "https://razorpay.com/docs/payments/payments/capture-settings/",
+          "quote": "Allows you to define custom manual capture timeout. The minimum value is 12 minutes. The maximum value (default) is 3 days.",
+          "notes": "Default and maximum manual-capture timeout is 3 days (minimum 12 minutes); an authorised payment not captured in time is refunded automatically. By default payments auto-capture, and the page names late authorization and a merchant choice as the cases where a payment stays authorized.",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 1,
+            "changes": []
+          },
+          "observation": null
+        },
+        {
+          "name": "auto_refund_speed_working_days_max",
+          "value": 7,
+          "unit": "days",
+          "tier": "secondary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "Razorpay Docs, Payment Capture Settings, Options table, Auto-refund speed",
+          "url": "https://razorpay.com/docs/payments/payments/capture-settings/",
+          "quote": "Payments in the authorized state are auto-refunded after the timeout. The available option is Normal Refund where the payment is refunded to your customer in 5-7 working days.",
+          "notes": "Working days, not calendar days: how long an auto-refunded (uncaptured) payment takes to reach the customer after the timeout. The page says this speed applies only to payments that are auto-refunded.",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 1,
+            "changes": []
+          },
+          "observation": null
+        }
+      ]
     },
     {
       "rail_id": "upi_otm",
@@ -620,8 +953,8 @@
             "detail": "the quote is present verbatim",
             "checked_on": "2026-09-20",
             "quote_current": true,
-            "evidence_hash": "c99e362c572dcf67f0706db76027b1ee27b992a33321cc49b998d082d6f800d0",
-            "checks": 1,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 2,
             "changes": []
           },
           "observation": null
@@ -721,8 +1054,8 @@
             "detail": "the quote is present verbatim",
             "checked_on": "2026-09-20",
             "quote_current": true,
-            "evidence_hash": "c99e362c572dcf67f0706db76027b1ee27b992a33321cc49b998d082d6f800d0",
-            "checks": 1,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 2,
             "changes": []
           },
           "observation": null
@@ -745,8 +1078,8 @@
             "detail": "the quote is present verbatim",
             "checked_on": "2026-09-20",
             "quote_current": true,
-            "evidence_hash": "c99e362c572dcf67f0706db76027b1ee27b992a33321cc49b998d082d6f800d0",
-            "checks": 1,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 2,
             "changes": []
           },
           "observation": {
@@ -960,8 +1293,8 @@
             "detail": "the quote is present verbatim",
             "checked_on": "2026-09-20",
             "quote_current": true,
-            "evidence_hash": "c99e362c572dcf67f0706db76027b1ee27b992a33321cc49b998d082d6f800d0",
-            "checks": 1,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 2,
             "changes": []
           },
           "observation": null
@@ -1022,7 +1355,974 @@
             "detail": "every fragment is present, in order",
             "checked_on": "2026-09-20",
             "quote_current": true,
-            "evidence_hash": "c99e362c572dcf67f0706db76027b1ee27b992a33321cc49b998d082d6f800d0",
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 2,
+            "changes": []
+          },
+          "observation": null
+        }
+      ],
+      "limits": []
+    },
+    {
+      "rail_id": "visa_card_auth",
+      "display_name": "Visa card authorization (merchant requirements guide)",
+      "capabilities": [
+        {
+          "name": "funds_held_in_customer_account",
+          "supported": true,
+          "permitted": true,
+          "tier": "secondary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "Visa, Estimated and Incremental Authorization and Reversal Processing Requirements for Visa Merchants (PDF, ©2024 Visa), p. 1, Efficiently managing authorizations",
+          "url": "https://usa.visa.com/content/dam/VCOM/regional/na/us/support-legal/documents/authorization-and-reversal-processing-best-practices-for-merchants.pdf",
+          "quote": "With each successful authorization, the issuer typically reduces the amount available to the cardholder for other purchases to cover the approved transaction - this is commonly known as an authorization hold.",
+          "notes": "The hold lowers the cardholder's available amount, and the guide says the issuer 'typically' does this, so it is issuer behaviour rather than a network guarantee. Page 1 says an unsettled hold ties up money the cardholder could use elsewhere. Visa's own merchant guide, which states that the Visa Rules govern in any conflict: SECONDARY until the Rules are read.",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 1,
+            "changes": []
+          },
+          "observation": null
+        },
+        {
+          "name": "partial_debit",
+          "supported": true,
+          "permitted": true,
+          "tier": "secondary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "Visa, Estimated and Incremental Authorization and Reversal Processing Requirements for Visa Merchants (PDF, ©2024 Visa), p. 3, Authorization reversals",
+          "url": "https://usa.visa.com/content/dam/VCOM/regional/na/us/support-legal/documents/authorization-and-reversal-processing-best-practices-for-merchants.pdf",
+          "quote": "Completed transaction where the sum of an estimated authorization and any incremental authorization(s) exceeds the final amount: the difference between the authorized amount (or amounts) and the transaction amount must be reversed within 24 hours of when the transaction is completed.",
+          "notes": "By necessary implication a completed transaction may be for less than the authorised sum, with the merchant reversing the difference. The rule is written for estimated and incremental authorizations, not for every Visa authorization. Visa's own merchant guide, which states that the Visa Rules govern in any conflict: SECONDARY until the Rules are read.",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 1,
+            "changes": []
+          },
+          "observation": null
+        },
+        {
+          "name": "partial_void",
+          "supported": true,
+          "permitted": true,
+          "tier": "secondary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "Visa, Estimated and Incremental Authorization and Reversal Processing Requirements for Visa Merchants (PDF, ©2024 Visa), p. 2, Estimated authorization request",
+          "url": "https://usa.visa.com/content/dam/VCOM/regional/na/us/support-legal/documents/authorization-and-reversal-processing-best-practices-for-merchants.pdf",
+          "quote": "If the estimated authorization exceeds the final amount, the merchant must reduce the authorized amount using a partial authorization reversal.",
+          "notes": "A partial authorization reversal releases part of a hold, and the guide makes it mandatory when the estimate exceeds the final amount. Reversals notify the issuer that the hold should be removed or adjusted (p.3). Visa's own merchant guide, which states that the Visa Rules govern in any conflict: SECONDARY until the Rules are read.",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 1,
+            "changes": []
+          },
+          "observation": null
+        },
+        {
+          "name": "void_whole_hold",
+          "supported": true,
+          "permitted": true,
+          "tier": "secondary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "Visa, Estimated and Incremental Authorization and Reversal Processing Requirements for Visa Merchants (PDF, ©2024 Visa), p. 4, Processing integrity fees, Misuse of authorization system fee",
+          "url": "https://usa.visa.com/content/dam/VCOM/regional/na/us/support-legal/documents/authorization-and-reversal-processing-best-practices-for-merchants.pdf",
+          "quote": "If an authorization was attempted and received but the transaction was not settled, merchants must reverse the authorization. In order to maintain the data integrity of the Visa authorization system, a Misuse of Authorization System Fee is assessed by Visa to approved and partially-approved authorizations that cannot be matched to a clearing transaction or an authorization reversal.",
+          "notes": "Reversing an unused authorization is compulsory, and Visa charges a fee on approved authorizations that match neither a clearing nor a reversal. The 24-hour timing rule is on page 3. Visa's own merchant guide, which states that the Visa Rules govern in any conflict: SECONDARY until the Rules are read.",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 1,
+            "changes": []
+          },
+          "observation": null
+        },
+        {
+          "name": "incremental_authorization",
+          "supported": true,
+          "permitted": true,
+          "tier": "secondary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "Visa, Estimated and Incremental Authorization and Reversal Processing Requirements for Visa Merchants (PDF, ©2024 Visa), p. 3, Incremental authorization request",
+          "url": "https://usa.visa.com/content/dam/VCOM/regional/na/us/support-legal/documents/authorization-and-reversal-processing-best-practices-for-merchants.pdf",
+          "quote": "A merchant may request an incremental authorization any time the total authorized amount appears to be insufficient. A merchant may request multiple incremental authorizations for a single transaction.",
+          "notes": "It must follow an estimated or another incremental authorization (p.3), does not extend the validity window (p.4) and has no stated count limit (p.5). An initial authorization cannot be incremented (p.6). Visa's own merchant guide, which states that the Visa Rules govern in any conflict: SECONDARY until the Rules are read.",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 1,
+            "changes": []
+          },
+          "observation": null
+        },
+        {
+          "name": "buffered_authorisation",
+          "supported": false,
+          "permitted": false,
+          "tier": "secondary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "Visa, Estimated and Incremental Authorization and Reversal Processing Requirements for Visa Merchants (PDF, ©2024 Visa), p. 2, Estimated authorization request",
+          "url": "https://usa.visa.com/content/dam/VCOM/regional/na/us/support-legal/documents/authorization-and-reversal-processing-best-practices-for-merchants.pdf",
+          "quote": "An estimated authorization must be a genuine estimate and must not be an arbitrary amount. … Visa requires that an estimated authorization must not contain incidental spend amounts such as tips or a buffer for damage.",
+          "notes": "Second statement of the same rule: an estimated authorization may not carry tips or a damage buffer, and the stated aim is to prevent over-authorization. It applies to estimated authorizations; the guide does not extend it to other authorization types. Visa's own merchant guide, which states that the Visa Rules govern in any conflict: SECONDARY until the Rules are read.",
+          "verification": {
+            "result": "verified_fragments",
+            "detail": "every fragment is present, in order",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 1,
+            "changes": []
+          },
+          "observation": null
+        },
+        {
+          "name": "capped_initial_authorization",
+          "supported": true,
+          "permitted": true,
+          "tier": "secondary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "Visa, Estimated and Incremental Authorization and Reversal Processing Requirements for Visa Merchants (PDF, ©2024 Visa), p. 6, Common Questions, initial authorization",
+          "url": "https://usa.visa.com/content/dam/VCOM/regional/na/us/support-legal/documents/authorization-and-reversal-processing-best-practices-for-merchants.pdf",
+          "quote": "The amount of the authorization is capped. The merchant is not permitted to do an incremental authorization following an initial authorization and must stop the transaction if the purchase hits the authorized amount.",
+          "notes": "New capability name capped_initial_authorization: a fixed capped amount is authorised before the final amount is known, with no increments and a hard stop at the cap. From April 2025 only automated fuel dispensers may use it, while other unattended merchants are encouraged to move to estimated authorizations (p.6). Visa's own merchant guide, which states that the Visa Rules govern in any conflict: SECONDARY until the Rules are read.",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 1,
+            "changes": []
+          },
+          "observation": null
+        },
+        {
+          "name": "remainder_auto_released",
+          "supported": true,
+          "permitted": false,
+          "tier": "unverified",
+          "usable_as_fact": false,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "not established",
+          "url": "https://usa.visa.com/content/dam/VCOM/regional/na/us/support-legal/documents/authorization-and-reversal-processing-best-practices-for-merchants.pdf",
+          "quote": "",
+          "notes": "Not established. Reading 1: the merchant must send a reversal for the difference within 24 hours (p.3), so release is not automatic from the merchant's side. Reading 2: issuers match reversals and clearings to the authorization and a failed match leaves funds held longer, but the guide does not say whether the difference is freed without a reversal. Visa's own merchant guide, which states that the Visa Rules govern in any conflict: SECONDARY until the Rules are read. The closest sentence read: “Visa processing requirements are designed to assist issuers in matching these multiple authorization messages with the clearing. Missing or non-matching data elements may mean issuers are not able to affect a match, which often means that funds remain held for a longer period or in duplicate.”",
+          "verification": null,
+          "observation": null
+        },
+        {
+          "name": "over_capture",
+          "supported": true,
+          "permitted": false,
+          "tier": "unverified",
+          "usable_as_fact": false,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "not established",
+          "url": "https://usa.visa.com/content/dam/VCOM/regional/na/us/support-legal/documents/authorization-and-reversal-processing-best-practices-for-merchants.pdf",
+          "quote": "",
+          "notes": "Not established. The guide's only stated route to a higher final amount is an incremental authorization; it is silent on whether clearing above the authorised sum is allowed. Marked null because the absence of a stated permission does not settle the question. Visa's own merchant guide, which states that the Visa Rules govern in any conflict: SECONDARY until the Rules are read. The closest sentence read: “If the cardholder spends more than expected, the merchant may obtain an additional authorization using an incremental authorization request.”",
+          "verification": null,
+          "observation": null
+        }
+      ],
+      "limits": [
+        {
+          "name": "hold_expiry_days_lodging_vehicle_rental_cruise",
+          "value": 30,
+          "unit": "days",
+          "tier": "secondary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "Visa, Estimated and Incremental Authorization and Reversal Processing Requirements for Visa Merchants (PDF, ©2024 Visa), p. 4, Transaction and processing timeframes",
+          "url": "https://usa.visa.com/content/dam/VCOM/regional/na/us/support-legal/documents/authorization-and-reversal-processing-best-practices-for-merchants.pdf",
+          "quote": "Lodging, Vehicle Rental, Cruise Line Merchants – 30 days from day of estimated authorization approval",
+          "notes": "Per the page-4 lead-in, the maximum time from a valid estimated authorization to processing, counted from approval; the Visa Rules govern and country-specific timeframes apply. Incremental authorizations do not extend it, so a longer stay needs a reversal and a new authorization. Visa's own merchant guide, which states that the Visa Rules govern in any conflict: SECONDARY until the Rules are read.",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 1,
+            "changes": []
+          },
+          "observation": null
+        },
+        {
+          "name": "hold_expiry_days_rental_merchant_categories",
+          "value": 10,
+          "unit": "days",
+          "tier": "secondary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "Visa, Estimated and Incremental Authorization and Reversal Processing Requirements for Visa Merchants (PDF, ©2024 Visa), p. 4, Transaction and processing timeframes",
+          "url": "https://usa.visa.com/content/dam/VCOM/regional/na/us/support-legal/documents/authorization-and-reversal-processing-best-practices-for-merchants.pdf",
+          "quote": "Rental Merchant Categories – 10 days from day of estimated authorization approval",
+          "notes": "Per the page-4 lead-in, the maximum time from a valid estimated authorization to processing, counted from approval; the Visa Rules govern and country-specific timeframes apply. Incremental authorizations do not extend it, so a longer stay needs a reversal and a new authorization. Visa's own merchant guide, which states that the Visa Rules govern in any conflict: SECONDARY until the Rules are read.",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 1,
+            "changes": []
+          },
+          "observation": null
+        },
+        {
+          "name": "hold_expiry_days_card_absent_cardholder_initiated",
+          "value": 10,
+          "unit": "days",
+          "tier": "secondary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "Visa, Estimated and Incremental Authorization and Reversal Processing Requirements for Visa Merchants (PDF, ©2024 Visa), p. 4, Transaction and processing timeframes",
+          "url": "https://usa.visa.com/content/dam/VCOM/regional/na/us/support-legal/documents/authorization-and-reversal-processing-best-practices-for-merchants.pdf",
+          "quote": "Cardholder-initiated Transactions in a Card-Absent Environment – 10 days from day of estimated authorization approval",
+          "notes": "Per the page-4 lead-in, the maximum time from a valid estimated authorization to processing, counted from approval; the Visa Rules govern and country-specific timeframes apply. Incremental authorizations do not extend it, so a longer stay needs a reversal and a new authorization. Visa's own merchant guide, which states that the Visa Rules govern in any conflict: SECONDARY until the Rules are read.",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 1,
+            "changes": []
+          },
+          "observation": null
+        },
+        {
+          "name": "hold_expiry_days_card_present",
+          "value": 5,
+          "unit": "days",
+          "tier": "secondary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "Visa, Estimated and Incremental Authorization and Reversal Processing Requirements for Visa Merchants (PDF, ©2024 Visa), p. 4, Transaction and processing timeframes",
+          "url": "https://usa.visa.com/content/dam/VCOM/regional/na/us/support-legal/documents/authorization-and-reversal-processing-best-practices-for-merchants.pdf",
+          "quote": "Card-Present Transactions – 5 days from day of estimated authorization approval",
+          "notes": "Per the page-4 lead-in, the maximum time from a valid estimated authorization to processing, counted from approval; the Visa Rules govern and country-specific timeframes apply. Incremental authorizations do not extend it, so a longer stay needs a reversal and a new authorization. Visa's own merchant guide, which states that the Visa Rules govern in any conflict: SECONDARY until the Rules are read.",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 1,
+            "changes": []
+          },
+          "observation": null
+        },
+        {
+          "name": "reversal_deadline_hours",
+          "value": 24,
+          "unit": "hours",
+          "tier": "secondary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "Visa, Estimated and Incremental Authorization and Reversal Processing Requirements for Visa Merchants (PDF, ©2024 Visa), p. 3, Authorization reversals",
+          "url": "https://usa.visa.com/content/dam/VCOM/regional/na/us/support-legal/documents/authorization-and-reversal-processing-best-practices-for-merchants.pdf",
+          "quote": "Transaction not completed: Entire authorized amount must be reversed within 24 hours of when the merchant becomes aware that that transaction would not be completed or the end of the authorization validity period.",
+          "notes": "The 24-hour clock runs from the merchant learning the transaction will not complete, or from the end of the validity period. The lead-in says merchants 'should' reverse in a timely manner while the bullet says 'must'. Visa's own merchant guide, which states that the Visa Rules govern in any conflict: SECONDARY until the Rules are read.",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 1,
+            "changes": []
+          },
+          "observation": null
+        },
+        {
+          "name": "reversal_deadline_hours_excess_after_completion",
+          "value": 24,
+          "unit": "hours",
+          "tier": "secondary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "Visa, Estimated and Incremental Authorization and Reversal Processing Requirements for Visa Merchants (PDF, ©2024 Visa), p. 3, Authorization reversals",
+          "url": "https://usa.visa.com/content/dam/VCOM/regional/na/us/support-legal/documents/authorization-and-reversal-processing-best-practices-for-merchants.pdf",
+          "quote": "Completed transaction where the sum of an estimated authorization and any incremental authorization(s) exceeds the final amount: the difference between the authorized amount (or amounts) and the transaction amount must be reversed within 24 hours of when the transaction is completed.",
+          "notes": "Applies when a completed transaction is for less than the authorised sum: the difference must be reversed within 24 hours of completion. The guide is silent on any issuer-side release of that difference. Visa's own merchant guide, which states that the Visa Rules govern in any conflict: SECONDARY until the Rules are read.",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 1,
+            "changes": []
+          },
+          "observation": null
+        }
+      ]
+    },
+    {
+      "rail_id": "stripe_card_manual_capture",
+      "display_name": "Stripe cards, manual capture (hold, then capture)",
+      "capabilities": [
+        {
+          "name": "funds_held_in_customer_account",
+          "supported": true,
+          "permitted": true,
+          "tier": "secondary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "Stripe Docs: Place a hold on a payment method, introduction",
+          "url": "https://docs.stripe.com/payments/place-a-hold-on-a-payment-method.md",
+          "quote": "When you create a payment, you can place a hold on an eligible payment method to reserve funds that you can capture later.",
+          "notes": "Stripe describes card authorisation as a hold that reserves funds until capture. Only some payment methods support hold-then-capture: cards do, ACH and iDEAL do not.",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 1,
+            "changes": []
+          },
+          "observation": null
+        },
+        {
+          "name": "payment_guarantee",
+          "supported": true,
+          "permitted": true,
+          "tier": "secondary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "Stripe Docs: Place a hold on a payment method, introduction",
+          "url": "https://docs.stripe.com/payments/place-a-hold-on-a-payment-method.md",
+          "quote": "Authorising a payment guarantees the amount by holding it on the customer’s payment method.",
+          "notes": "Stripe's own wording, so secondary evidence about Stripe and not network rules. The guarantee lasts only until the authorisation expires; after that the funds are released.",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 1,
+            "changes": []
+          },
+          "observation": null
+        },
+        {
+          "name": "partial_debit",
+          "supported": true,
+          "permitted": true,
+          "tier": "secondary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "Stripe API Reference: Capture a PaymentIntent, Parameters > amount_to_capture",
+          "url": "https://docs.stripe.com/api/payment_intents/capture.md",
+          "quote": "The amount to capture from the PaymentIntent, which must be less than or equal to the original amount.",
+          "notes": "Capturing less than the authorised amount is allowed, and the hold page's worked example captures 7.50 USD of an authorised 10.99 USD payment. The same sentence says less than or equal to the original amount; capturing more is a separate opt-in feature (overcapture).",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 1,
+            "changes": []
+          },
+          "observation": null
+        },
+        {
+          "name": "remainder_auto_released",
+          "supported": true,
+          "permitted": true,
+          "tier": "secondary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "Stripe Docs: Place a hold on a payment method, Capture the funds",
+          "url": "https://docs.stripe.com/payments/place-a-hold-on-a-payment-method.md",
+          "quote": "A partial capture automatically releases the remaining amount.",
+          "notes": "Default after a single partial capture. With multicapture (final_capture=false) the remainder stays authorised until a final capture, an explicit release or expiry.",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 1,
+            "changes": []
+          },
+          "observation": null
+        },
+        {
+          "name": "multiple_captures",
+          "supported": true,
+          "permitted": true,
+          "tier": "secondary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "Stripe Docs: Capture a payment multiple times, page summary",
+          "url": "https://docs.stripe.com/payments/multicapture.md?platform=web&ui=stripe-hosted",
+          "quote": "Capture a PaymentIntent multiple times, up to the authorised amount.",
+          "notes": "Opt-in: IC+ pricing, online card payments, capture_method=manual, and multicapture must show as available on the charge. Stripe allows up to 50 non-final captures plus one final capture per PaymentIntent.",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 1,
+            "changes": []
+          },
+          "observation": null
+        },
+        {
+          "name": "over_capture",
+          "supported": true,
+          "permitted": true,
+          "tier": "secondary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "Stripe Docs: Capture more than the authorised amount on a payment, introduction",
+          "url": "https://docs.stripe.com/payments/overcapture.md?platform=web&ui=stripe-hosted",
+          "quote": "Overcapture allows you to capture with an amount that’s higher than the authorised amount for a card payment.",
+          "notes": "Opt-in per PaymentIntent (request_overcapture=if_available), offered to IC+ pricing users on Visa, Mastercard, American Express or Discover, with per-brand and per-category caps. The API capture reference still says amount_to_capture must be less than or equal to the original amount, so the two Stripe pages read differently.",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 1,
+            "changes": []
+          },
+          "observation": null
+        },
+        {
+          "name": "void_whole_hold",
+          "supported": true,
+          "permitted": true,
+          "tier": "secondary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "Stripe Docs: How Payment Intents and Setup Intents work, Lifecycle table, Cancelled row",
+          "url": "https://docs.stripe.com/payments/paymentintents/lifecycle.md",
+          "quote": "Cancellation invalidates the PaymentIntent for future payment attempts, releases any held funds and can’t be undone.",
+          "notes": "Cancelling the PaymentIntent releases held funds and cannot be undone; it must happen before the PaymentIntent reaches processing or succeeded. The cancel API reference adds that for requires_capture the remaining amount_capturable is automatically refunded.",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 1,
+            "changes": []
+          },
+          "observation": null
+        },
+        {
+          "name": "incremental_authorization",
+          "supported": true,
+          "permitted": true,
+          "tier": "secondary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "Stripe Docs: Increment an authorisation, introduction",
+          "url": "https://docs.stripe.com/payments/incremental-authorization.md?platform=web&ui=stripe-hosted",
+          "quote": "Incremental authorisation allows you to increase the authorised amount on a confirmed PaymentIntent before you capture it.",
+          "notes": "Only for Visa, Mastercard, American Express and Discover, offered to IC+ pricing users, and only while the PaymentIntent is completely uncaptured. Maximum of 10 attempts per PaymentIntent, each increment capped at the higher of 500 USD or 500% over the previously authorised amount, and increments do not extend the validity window.",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 1,
+            "changes": []
+          },
+          "observation": null
+        },
+        {
+          "name": "idempotent_replay",
+          "supported": true,
+          "permitted": true,
+          "tier": "secondary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "Stripe API Reference: Idempotent requests, introduction",
+          "url": "https://docs.stripe.com/api/idempotent_requests.md",
+          "quote": "Stripe’s idempotency works by saving the resulting status code and body of the first request made for any given idempotency key, regardless of whether it succeeds or fails. Subsequent requests with the same key return the same result",
+          "notes": "POST requests accept an Idempotency-Key of up to 255 characters, and a replay returns the stored result including 500 errors. Reusing a key with different parameters returns an error.",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 1,
+            "changes": []
+          },
+          "observation": null
+        },
+        {
+          "name": "partial_void",
+          "supported": true,
+          "permitted": false,
+          "tier": "unverified",
+          "usable_as_fact": false,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "not established",
+          "url": "https://docs.stripe.com/payments/multicapture.md?platform=web&ui=stripe-hosted",
+          "quote": "",
+          "notes": "Not established. Closest analogue only: the sentence continues 'to 0 and set final_capture to true', which releases the whole remainder back to the cardholder after at least one capture and moves the PaymentIntent to succeeded. None of the Stripe pages read describes reducing an uncaptured authorisation by a partial amount, so partial_void stays unverified for Stripe. The closest sentence read: “If you performed at least one capture and want to release the remaining uncaptured funds, set the amount to”",
+          "verification": null,
+          "observation": null
+        }
+      ],
+      "limits": [
+        {
+          "name": "hold_expiry_days",
+          "value": 7,
+          "unit": "days",
+          "tier": "secondary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "Stripe Docs: Place a hold on a payment method, Extended authorisations note (under Tell Stripe to authorise only)",
+          "url": "https://docs.stripe.com/payments/place-a-hold-on-a-payment-method.md",
+          "quote": "Usually, an authorisation for an online card payment is valid for 7 days.",
+          "notes": "Default validity for online card payments; in-person Terminal card payments are usually 2 days and Visa merchant-initiated card-not-present is 5 days (separate row). On expiry the funds are released and the PaymentIntent status changes to canceled.",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 1,
+            "changes": []
+          },
+          "observation": null
+        },
+        {
+          "name": "hold_expiry_days_extended",
+          "value": 30,
+          "unit": "days",
+          "tier": "secondary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "Stripe Docs: Place an extended hold on an online card payment, introduction",
+          "url": "https://docs.stripe.com/payments/extended-authorization.md?platform=web&ui=stripe-hosted",
+          "quote": "extended validity periods can go up to 30 days depending on the card network.",
+          "notes": "Opt-in for online cards (request_extended_authorization=if_available), only on Visa, Mastercard, American Express and Discover, offered to IC+ pricing users, with merchant-category limits on some networks. The exact Visa window is 29 days and 18 hours, and Stripe says to rely on the capture_before field because the rules can change without notice.",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 1,
+            "changes": []
+          },
+          "observation": null
+        },
+        {
+          "name": "idempotency_key_retention_hours_min",
+          "value": 24,
+          "unit": "hours",
+          "tier": "secondary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "Stripe API Reference: Idempotent requests, introduction",
+          "url": "https://docs.stripe.com/api/idempotent_requests.md",
+          "quote": "You can remove keys from the system automatically after they’re at least 24 hours old.",
+          "notes": "Keys may be removed once at least 24 hours old, so 24 hours is a floor and not a guaranteed maximum. A key reused after pruning generates a new request.",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 1,
+            "changes": []
+          },
+          "observation": null
+        }
+      ]
+    },
+    {
+      "rail_id": "adyen_card_auth",
+      "display_name": "Adyen cards, pre-authorization and capture",
+      "capabilities": [
+        {
+          "name": "funds_held_in_customer_account",
+          "supported": true,
+          "permitted": true,
+          "tier": "secondary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "Adyen Docs: Capture, introduction",
+          "url": "https://docs.adyen.com/online-payments/capture/",
+          "quote": "The authorization reserves the funds on the shopper's bank account.",
+          "notes": "Applies when separate (manual or delayed) capture is used; Adyen's default is to capture automatically, immediately after authorization. Pre-authorization is described as checking sufficient funds without debiting the account.",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 1,
+            "changes": []
+          },
+          "observation": null
+        },
+        {
+          "name": "partial_debit",
+          "supported": true,
+          "permitted": true,
+          "tier": "secondary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "Adyen Docs: Capture, Partial manual capture",
+          "url": "https://docs.adyen.com/online-payments/capture/",
+          "quote": "Any unclaimed amount that is left over after partially capturing a payment is automatically cancelled.",
+          "notes": "Partial capture is a documented mode, and the capture amount must be the same as or, for a partial capture, less than the authorized amount. Some payment methods return 'Only possible to capture the full amount', so support is per payment method.",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 1,
+            "changes": []
+          },
+          "observation": null
+        },
+        {
+          "name": "remainder_auto_released",
+          "supported": true,
+          "permitted": true,
+          "tier": "secondary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "Adyen Docs: Capture, Partial manual capture > Single partial capture",
+          "url": "https://docs.adyen.com/online-payments/capture/",
+          "quote": "Any unclaimed amount that is left over after partially capturing a payment is automatically cancelled.",
+          "notes": "Holds for the single partial capture type; with multiple partial captures enabled the leftover is not cancelled automatically. The pages say the leftover is cancelled but do not say when the issuer frees the shopper-side hold.",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 1,
+            "changes": []
+          },
+          "observation": null
+        },
+        {
+          "name": "multiple_captures",
+          "supported": true,
+          "permitted": true,
+          "tier": "secondary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "Adyen Docs: Capture, Partial manual capture > Multiple partial captures",
+          "url": "https://docs.adyen.com/online-payments/capture/",
+          "quote": "The unclaimed amount after an initial partial capture is not automatically cancelled.",
+          "notes": "Disabled by default; Adyen Support must enable it. The related 'Adjust an authorization' page adds that the number of partial captures depends on the issuer and that some issuers may flag multiple partial captures as a fraud risk that can make the capture fail.",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 1,
+            "changes": []
+          },
+          "observation": null
+        },
+        {
+          "name": "over_capture",
+          "supported": false,
+          "permitted": false,
+          "tier": "secondary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "Adyen Docs: API idempotency, introduction (default accounting rules)",
+          "url": "https://docs.adyen.com/development-resources/api-idempotency/",
+          "quote": "when partial captures are allowed, it is not possible to capture a higher amount than the authorized one.",
+          "notes": "The capture page's failure reason 'The requested capture amount is more than the balance on the payment' says the same. No overcapture feature is described on the pages read.",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 1,
+            "changes": []
+          },
+          "observation": null
+        },
+        {
+          "name": "partial_void",
+          "supported": true,
+          "permitted": true,
+          "tier": "secondary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "Adyen Docs: Authorization adjustment, Authorization type > Pre-authorization",
+          "url": "https://docs.adyen.com/online-payments/adjust-authorisation/",
+          "quote": "It allows you to increase or decrease the initially authorized amount at a later point in time.",
+          "notes": "Decreasing works only for the pre-authorization type on eligible card schemes and merchant category codes, and is ultimately up to the issuing bank. The related 'Adjust an authorization' page adds that a zero-value adjustment is not allowed and that at most 50 adjustments are allowed per payment.",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 1,
+            "changes": []
+          },
+          "observation": null
+        },
+        {
+          "name": "incremental_authorization",
+          "supported": true,
+          "permitted": true,
+          "tier": "secondary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "Adyen Docs: Authorization adjustment, introduction",
+          "url": "https://docs.adyen.com/online-payments/adjust-authorisation/",
+          "quote": "Using the authorization type pre-authorization for your payment request, you can increase or decrease the authorized amount at a later stage, and then capture the payment manually.",
+          "notes": "Same pre-authorization-only mechanism, with eligibility set by card scheme and merchant category code. The related 'Adjust an authorization' page adds that a Mastercard amount adjustment automatically extends the validity period.",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 1,
+            "changes": []
+          },
+          "observation": null
+        },
+        {
+          "name": "void_whole_hold",
+          "supported": true,
+          "permitted": true,
+          "tier": "secondary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "Adyen Docs: Cancel, introduction",
+          "url": "https://docs.adyen.com/online-payments/cancel/",
+          "quote": "When you cancel the payment, the financial institution releases the funds back to the shopper's bank account.",
+          "notes": "Only before capture: after a payment has been captured it can no longer be cancelled, and an expired authorization can no longer be cancelled either. Cancelling by your own reference works only within 24 hours of authorization.",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 1,
+            "changes": []
+          },
+          "observation": null
+        },
+        {
+          "name": "idempotent_replay",
+          "supported": true,
+          "permitted": true,
+          "tier": "secondary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "Adyen Docs: API idempotency, Enable idempotency",
+          "url": "https://docs.adyen.com/development-resources/api-idempotency/",
+          "quote": "If the Adyen payments platform already processed the request, the response to the first attempt will be returned without duplication.",
+          "notes": "Send an idempotency-key header on POST requests; keys are at most 64 characters. A duplicate sent while the first is still running returns HTTP 422 or 409 with error code 704, and a transient-error header marks retryable failures.",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 1,
+            "changes": []
+          },
+          "observation": null
+        }
+      ],
+      "limits": [
+        {
+          "name": "hold_expiry_days",
+          "value": 28,
+          "unit": "days",
+          "tier": "secondary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "Adyen Docs: Authorization adjustment, Expiration of pre-authorizations",
+          "url": "https://docs.adyen.com/online-payments/adjust-authorisation/",
+          "quote": "For the global card schemes, Adyen expires (pre-)authorization requests automatically after 28 days from the day the payment is authorized.",
+          "notes": "Adyen's own expiry, layered on the card scheme's validity period and changeable through Adyen Support per merchant account and scheme. Manual capture after the scheme-side expiry is possible but raises the risk of a failed capture, extra fees and 'No Authorization' or 'Late Presentment' chargebacks; after Adyen's own expiry the payment can no longer be captured or cancelled.",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 1,
+            "changes": []
+          },
+          "observation": null
+        },
+        {
+          "name": "idempotency_key_retention_hours_min",
+          "value": 168,
+          "unit": "hours",
+          "tier": "secondary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "Adyen Docs: API idempotency, Key scope and validity time",
+          "url": "https://docs.adyen.com/development-resources/api-idempotency/",
+          "quote": "Idempotency keys are valid for a period of 7 to 14 days after first submission.",
+          "notes": "Adyen states a range of 7 to 14 days (168 to 336 hours), so the value is the lower bound. Keys are stored per company account and are not checked across regional endpoints.",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 1,
+            "changes": []
+          },
+          "observation": null
+        }
+      ]
+    },
+    {
+      "rail_id": "x402",
+      "display_name": "x402 protocol extensions",
+      "capabilities": [
+        {
+          "name": "idempotent_replay",
+          "supported": true,
+          "permitted": true,
+          "tier": "primary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "x402-foundation/x402 @c9160a6 (main), specs/extensions/payment_identifier.md, Summary",
+          "url": "https://raw.githubusercontent.com/x402-foundation/x402/c9160a6cbf0fc831ac7036d400ef2d671493e392/specs/extensions/payment_identifier.md",
+          "quote": "The `payment-identifier` extension enables clients to provide an `id` that serves as an idempotency key. Both resource servers and facilitators consume `PaymentPayload`, so this can be leveraged at either or both points in the stack to deduplicate requests and return cached responses for repeated submissions.",
+          "notes": "Optional extension: a repeated id with the same payload returns the cached response and a different payload returns 409 Conflict. A server may leave it off (required defaults to false), and the scheme rules themselves rely on nonces.",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
             "checks": 1,
             "changes": []
           },
@@ -1030,6 +2330,762 @@
         }
       ],
       "limits": []
+    },
+    {
+      "rail_id": "x402_exact",
+      "display_name": "x402 `exact` scheme (a fixed amount, no ceiling)",
+      "capabilities": [
+        {
+          "name": "partial_debit",
+          "supported": false,
+          "permitted": false,
+          "tier": "primary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "x402-foundation/x402 @c9160a6 (main), specs/schemes/exact/scheme_exact.md, Summary",
+          "url": "https://raw.githubusercontent.com/x402-foundation/x402/c9160a6cbf0fc831ac7036d400ef2d671493e392/specs/schemes/exact/scheme_exact.md",
+          "quote": "`exact` is a scheme that transfers a specific amount of funds from a client to a resource server. The resource server must know in advance the exact amount of funds they need to be transferred.",
+          "notes": "The amount is fixed and known before the client signs, so there is no ceiling and no settle-less-than-signed option in this scheme. The EVM binding adds that the facilitator 'cannot modify the amount or destination'.",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 1,
+            "changes": []
+          },
+          "observation": null
+        },
+        {
+          "name": "over_capture",
+          "supported": false,
+          "permitted": false,
+          "tier": "primary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "x402-foundation/x402 @c9160a6 (main), specs/schemes/exact/scheme_exact_evm.md, Summary",
+          "url": "https://raw.githubusercontent.com/x402-foundation/x402/c9160a6cbf0fc831ac7036d400ef2d671493e392/specs/schemes/exact/scheme_exact_evm.md",
+          "quote": "In all cases, the Facilitator cannot modify the amount or destination.",
+          "notes": "The signed amount is what moves; the facilitator only broadcasts the transaction. Several network bindings also state amount-exactness rules (scheme_exact.md, Critical Validation Requirements).",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 1,
+            "changes": []
+          },
+          "observation": null
+        },
+        {
+          "name": "funds_held_in_customer_account",
+          "supported": false,
+          "permitted": false,
+          "tier": "primary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "x402-foundation/x402 @c9160a6 (main), specs/x402-specification-v2.md, 6.1 Payment Flow Models, table row authorization (default)",
+          "url": "https://raw.githubusercontent.com/x402-foundation/x402/c9160a6cbf0fc831ac7036d400ef2d671493e392/specs/x402-specification-v2.md",
+          "quote": "Read-only verify before the resource executes; funds move only after it completes successfully.",
+          "notes": "This is the default flow the exact scheme uses: verify is read-only and value moves at the final settle, so nothing is held in between. Under the upfront flow the payment commits first and the exact spec says it 'defines no refund'.",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 1,
+            "changes": []
+          },
+          "observation": null
+        }
+      ],
+      "limits": []
+    },
+    {
+      "rail_id": "x402_upto_evm",
+      "display_name": "x402 `upto` scheme, EVM (a Permit2 signature: a cap, no hold)",
+      "capabilities": [
+        {
+          "name": "partial_debit",
+          "supported": true,
+          "permitted": true,
+          "tier": "primary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "x402-foundation/x402 @c9160a6 (main), specs/schemes/upto/scheme_upto_evm.md, Phase 4 Settlement Logic, Settle-Time Verification example",
+          "url": "https://raw.githubusercontent.com/x402-foundation/x402/c9160a6cbf0fc831ac7036d400ef2d671493e392/specs/schemes/upto/scheme_upto_evm.md",
+          "quote": "In this example, the buyer signed for up to `20000` atomic units. The resource server consumed `1858` units of work. The facilitator verifies the signature against `permitted.amount` (`20000`), confirms `1858 <= 20000`, then transfers `1858` on-chain.",
+          "notes": "The ceiling is a Permit2 signature and the resource server sets the settled amount at settle time, which may be far below the ceiling (1858 of 20000 in the example) or 0. The client does not choose the settled amount.",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 1,
+            "changes": []
+          },
+          "observation": null
+        },
+        {
+          "name": "over_capture",
+          "supported": false,
+          "permitted": false,
+          "tier": "primary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "x402-foundation/x402 @c9160a6 (main), specs/schemes/upto/scheme_upto.md, Core Properties (MUST) 4. Maximum Amount Enforcement",
+          "url": "https://raw.githubusercontent.com/x402-foundation/x402/c9160a6cbf0fc831ac7036d400ef2d671493e392/specs/schemes/upto/scheme_upto.md",
+          "quote": "The settled amount MUST be less than or equal to the authorized maximum.",
+          "notes": "Network-agnostic rule in the upto scheme; the EVM binding adds error code invalid_upto_evm_payload_settlement_exceeds_amount for an attempt to settle above the authorised amount. The settled amount may be 0.",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 1,
+            "changes": []
+          },
+          "observation": null
+        },
+        {
+          "name": "multiple_captures",
+          "supported": false,
+          "permitted": false,
+          "tier": "primary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "x402-foundation/x402 @c9160a6 (main), specs/schemes/upto/scheme_upto.md, Core Properties (MUST) 1. Single-Use Authorization",
+          "url": "https://raw.githubusercontent.com/x402-foundation/x402/c9160a6cbf0fc831ac7036d400ef2d671493e392/specs/schemes/upto/scheme_upto.md",
+          "quote": "Each authorization MUST be settled at most once. After settlement (regardless of amount), the authorization is consumed and cannot be reused.",
+          "notes": "The scheme rule says an authorization is consumed after settlement 'regardless of amount', while the EVM binding says a $0 settlement needs no on-chain transaction and the authorization 'simply expires unused'. Whether a $0 settlement consumes the Permit2 nonce is not stated.",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 1,
+            "changes": []
+          },
+          "observation": null
+        },
+        {
+          "name": "funds_held_in_customer_account",
+          "supported": false,
+          "permitted": false,
+          "tier": "primary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "x402-foundation/x402 @c9160a6 (main), specs/schemes/upto/scheme_upto_evm.md, Security Considerations 5. Zero Settlement",
+          "url": "https://raw.githubusercontent.com/x402-foundation/x402/c9160a6cbf0fc831ac7036d400ef2d671493e392/specs/schemes/upto/scheme_upto_evm.md",
+          "quote": "Allowing $0 settlements means unused authorizations naturally expire without on-chain transactions, reducing gas costs and blockchain bloat.",
+          "notes": "By necessary implication nothing is locked on-chain at authorization: an unused authorization lapses with no on-chain step. Verification reads the payer's balance and simulates a full-amount settle (Phase 3 steps 3 and 7); no locking step appears in the spec.",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 1,
+            "changes": []
+          },
+          "observation": null
+        },
+        {
+          "name": "settled_amount_verifiable_against_usage",
+          "supported": false,
+          "permitted": false,
+          "tier": "primary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "x402-foundation/x402 @c9160a6 (main), specs/schemes/upto/scheme_upto_evm.md, Security Considerations 2. Server Trust",
+          "url": "https://raw.githubusercontent.com/x402-foundation/x402/c9160a6cbf0fc831ac7036d400ef2d671493e392/specs/schemes/upto/scheme_upto_evm.md",
+          "quote": "The `upto` scheme requires clients to trust that servers will charge fair amounts based on actual usage. Malicious servers could charge up to `amount` regardless of actual usage.",
+          "notes": "New capability name settled_amount_verifiable_against_usage: can the payer verify from protocol data that the settled amount matches actual consumption. The settled amount itself is reported (SettlementResponse has amount and transaction), but the spec offers no usage evidence and says clients 'bear the risk of the full amount being charged'.",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 1,
+            "changes": []
+          },
+          "observation": null
+        }
+      ],
+      "limits": []
+    },
+    {
+      "rail_id": "x402_upto_svm",
+      "display_name": "x402 `upto` scheme, Solana (the ceiling is escrowed)",
+      "capabilities": [
+        {
+          "name": "funds_held_in_customer_account",
+          "supported": true,
+          "permitted": true,
+          "tier": "primary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "x402-foundation/x402 @c9160a6 (main), specs/schemes/upto/scheme_upto_svm.md, 5 Phase 4 Settlement",
+          "url": "https://raw.githubusercontent.com/x402-foundation/x402/c9160a6cbf0fc831ac7036d400ef2d671493e392/specs/schemes/upto/scheme_upto_svm.md",
+          "quote": "Phase 3's `open` has already escrowed the ceiling, so the client is never charged before the resource runs, and the resource server determines the final charge only once execution completes.",
+          "notes": "Unlike the EVM Permit2 binding, SVM upto escrows the full ceiling in an onchain payment channel before the resource runs. The verifier requires the deposit to equal maxAmount exactly.",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 1,
+            "changes": []
+          },
+          "observation": null
+        },
+        {
+          "name": "partial_debit",
+          "supported": true,
+          "permitted": true,
+          "tier": "primary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "x402-foundation/x402 @c9160a6 (main), specs/schemes/upto/scheme_upto_svm.md, 5 Phase 4 Settlement, application result determines the settled amount",
+          "url": "https://raw.githubusercontent.com/x402-foundation/x402/c9160a6cbf0fc831ac7036d400ef2d671493e392/specs/schemes/upto/scheme_upto_svm.md",
+          "quote": "the resource server sets `paymentRequirements.amount` to the actual metered charge (`0 <= actual <= maxAmount`) and signs a `voucherSignature` for that amount.",
+          "notes": "The actual charge may be anywhere from 0 up to the escrowed ceiling, and the server signs a voucher for it. The client signs only the channel open, not the charge.",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 1,
+            "changes": []
+          },
+          "observation": null
+        },
+        {
+          "name": "over_capture",
+          "supported": false,
+          "permitted": false,
+          "tier": "primary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "x402-foundation/x402 @c9160a6 (main), specs/schemes/upto/scheme_upto_svm.md, 8 Security Properties, No overcharge",
+          "url": "https://raw.githubusercontent.com/x402-foundation/x402/c9160a6cbf0fc831ac7036d400ef2d671493e392/specs/schemes/upto/scheme_upto_svm.md",
+          "quote": "Capped by the onchain `deposit`; verifier requires `deposit == maxAmount`.",
+          "notes": "The ceiling is enforced by the escrow balance itself, not only by signature checks. A settle above maxAmount is rejected with invalid_upto_svm_payload_settlement_exceeds_amount.",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 1,
+            "changes": []
+          },
+          "observation": null
+        },
+        {
+          "name": "remainder_auto_released",
+          "supported": true,
+          "permitted": true,
+          "tier": "primary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "x402-foundation/x402 @c9160a6 (main), specs/schemes/upto/scheme_upto_svm.md, 5 Phase 4 Settlement, Facilitator settlement procedure",
+          "url": "https://raw.githubusercontent.com/x402-foundation/x402/c9160a6cbf0fc831ac7036d400ef2d671493e392/specs/schemes/upto/scheme_upto_svm.md",
+          "quote": "`distribute` is the instruction that pays `payTo`, refunds `deposit - actual` to the payer, closes the escrow token account, and advances the channel to its cleanup state.",
+          "notes": "The unused part of the ceiling is refunded inside the same final settlement bundle (settle_and_seal then distribute). If the server never settles, the payer must call request_close and wait out the withdrawDelay grace period.",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 1,
+            "changes": []
+          },
+          "observation": null
+        },
+        {
+          "name": "void_whole_hold",
+          "supported": true,
+          "permitted": true,
+          "tier": "primary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "x402-foundation/x402 @c9160a6 (main), specs/schemes/upto/scheme_upto_svm.md, 5 Phase 4 Settlement, Facilitator settlement procedure",
+          "url": "https://raw.githubusercontent.com/x402-foundation/x402/c9160a6cbf0fc831ac7036d400ef2d671493e392/specs/schemes/upto/scheme_upto_svm.md",
+          "quote": "For the `actual == 0` refund path, `distribute` moves no funds to `payTo` and returns the full deposit to the client.",
+          "notes": "A zero-amount claim settle releases the whole escrowed ceiling. The spec requires the server to settle this way when the resource fails after the deposit.",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 1,
+            "changes": []
+          },
+          "observation": null
+        },
+        {
+          "name": "multiple_captures",
+          "supported": false,
+          "permitted": false,
+          "tier": "primary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "x402-foundation/x402 @c9160a6 (main), specs/schemes/upto/scheme_upto_svm.md, 9 Out of Scope",
+          "url": "https://raw.githubusercontent.com/x402-foundation/x402/c9160a6cbf0fc831ac7036d400ef2d671493e392/specs/schemes/upto/scheme_upto_svm.md",
+          "quote": "`upto` settles at most once per authorization.",
+          "notes": "Streaming and channels reused across many requests are sent to the batch-settlement scheme instead. One authorization is one channel that is sealed and distributed once.",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 1,
+            "changes": []
+          },
+          "observation": null
+        },
+        {
+          "name": "settled_amount_verifiable_against_usage",
+          "supported": false,
+          "permitted": false,
+          "tier": "primary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "x402-foundation/x402 @c9160a6 (main), specs/schemes/upto/scheme_upto_svm.md, 8 Security Properties, Metering trust",
+          "url": "https://raw.githubusercontent.com/x402-foundation/x402/c9160a6cbf0fc831ac7036d400ef2d671493e392/specs/schemes/upto/scheme_upto_svm.md",
+          "quote": "As in the generic `upto` spec, the client trusts the server to meter honestly within the ceiling.",
+          "notes": "New capability name settled_amount_verifiable_against_usage: can the payer verify from protocol data that the settled amount matches actual consumption. The client signs only the channel open; the server signs the voucher that fixes the charge.",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 1,
+            "changes": []
+          },
+          "observation": null
+        }
+      ],
+      "limits": []
+    },
+    {
+      "rail_id": "x402_auth_capture",
+      "display_name": "x402 `auth-capture` scheme (hold, capture, void, reclaim)",
+      "capabilities": [
+        {
+          "name": "funds_held_in_customer_account",
+          "supported": true,
+          "permitted": true,
+          "tier": "primary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "x402-foundation/x402 @c9160a6 (main), specs/schemes/auth-capture/scheme_auth_capture.md, Lifecycle operations table, authorize",
+          "url": "https://raw.githubusercontent.com/x402-foundation/x402/c9160a6cbf0fc831ac7036d400ef2d671493e392/specs/schemes/auth-capture/scheme_auth_capture.md",
+          "quote": "Reserves the client's funds, where they are held.",
+          "notes": "Escrow flow: authorize places the hold before the resource runs, and the EVM binding keeps it in an onchain escrow contract. The alternative authorization flow places no hold, so capture, void and reclaim do not apply to it.",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 1,
+            "changes": []
+          },
+          "observation": null
+        },
+        {
+          "name": "partial_debit",
+          "supported": true,
+          "permitted": true,
+          "tier": "primary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "x402-foundation/x402 @c9160a6 (main), specs/schemes/auth-capture/scheme_auth_capture.md, Summary",
+          "url": "https://raw.githubusercontent.com/x402-foundation/x402/c9160a6cbf0fc831ac7036d400ef2d671493e392/specs/schemes/auth-capture/scheme_auth_capture.md",
+          "quote": "it can be held before it is finalized, finalized for less than the maximum, cancelled outright, or returned after the fact.",
+          "notes": "Capture may be for less than the held maximum, and the rest can be voided in the same settle via the optional voidAuthorizerSignature (EVM binding). See the remainder_auto_released row for what happens if no void is sent.",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 1,
+            "changes": []
+          },
+          "observation": null
+        },
+        {
+          "name": "over_capture",
+          "supported": false,
+          "permitted": false,
+          "tier": "primary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "x402-foundation/x402 @c9160a6 (main), specs/schemes/auth-capture/scheme_auth_capture.md, Core properties, Fund safety",
+          "url": "https://raw.githubusercontent.com/x402-foundation/x402/c9160a6cbf0fc831ac7036d400ef2d671493e392/specs/schemes/auth-capture/scheme_auth_capture.md",
+          "quote": "The amount settled is capped by the client-authorized maximum, and any fee is bounded by client-authorized limits.",
+          "notes": "The EVM binding's capture precondition is 0 < amount <= capturableAmount, so a capture cannot exceed what is held. Fees are separately bounded by client-signed minFeeBps and maxFeeBps.",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 1,
+            "changes": []
+          },
+          "observation": null
+        },
+        {
+          "name": "multiple_captures",
+          "supported": true,
+          "permitted": true,
+          "tier": "primary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "x402-foundation/x402 @c9160a6 (main), specs/schemes/auth-capture/scheme_auth_capture_evm.md, Single-use enforcement",
+          "url": "https://raw.githubusercontent.com/x402-foundation/x402/c9160a6cbf0fc831ac7036d400ef2d671493e392/specs/schemes/auth-capture/scheme_auth_capture_evm.md",
+          "quote": "Partial and repeated captures each get their own signature against the snapshot they expect.",
+          "notes": "The scheme table marks capture as repeatable 'up to the held total'. Each capture consent is single-use because the escrow's payment state is the replay key.",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 1,
+            "changes": []
+          },
+          "observation": null
+        },
+        {
+          "name": "void_whole_hold",
+          "supported": true,
+          "permitted": true,
+          "tier": "primary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "x402-foundation/x402 @c9160a6 (main), specs/schemes/auth-capture/scheme_auth_capture.md, Lifecycle operations table, void",
+          "url": "https://raw.githubusercontent.com/x402-foundation/x402/c9160a6cbf0fc831ac7036d400ef2d671493e392/specs/schemes/auth-capture/scheme_auth_capture.md",
+          "quote": "Releases the remaining hold back to the client.",
+          "notes": "void releases whatever hold remains and is refused once nothing remains (EVM precondition capturableAmount > 0). It can follow a partial capture.",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 1,
+            "changes": []
+          },
+          "observation": null
+        },
+        {
+          "name": "partial_void",
+          "supported": false,
+          "permitted": false,
+          "tier": "primary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "x402-foundation/x402 @c9160a6 (main), specs/schemes/auth-capture/scheme_auth_capture_evm.md, Operator types, escrow ABI table",
+          "url": "https://raw.githubusercontent.com/x402-foundation/x402/c9160a6cbf0fc831ac7036d400ef2d671493e392/specs/schemes/auth-capture/scheme_auth_capture_evm.md",
+          "quote": "`void` | `void(PaymentInfo paymentInfo)`",
+          "notes": "The escrow's void takes no amount, so it releases the whole remaining hold; a hold shrinks only by capturing part of it. Voiding the remainder after a partial capture is supported.",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 1,
+            "changes": []
+          },
+          "observation": null
+        },
+        {
+          "name": "remainder_auto_released",
+          "supported": false,
+          "permitted": false,
+          "tier": "primary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "x402-foundation/x402 @c9160a6 (main), specs/schemes/auth-capture/scheme_auth_capture_evm.md, Lifecycle payloads, capture",
+          "url": "https://raw.githubusercontent.com/x402-foundation/x402/c9160a6cbf0fc831ac7036d400ef2d671493e392/specs/schemes/auth-capture/scheme_auth_capture_evm.md",
+          "quote": "`voidAuthorizerSignature` is OPTIONAL and present only for a sync partial close-out: when set, this single `/settle` performs `capture` and then `void` on the remaining hold.",
+          "notes": "A partial capture leaves the rest held unless a void is added, either atomically through the optional signature or as a separate void; the spec itself describes 'a partial that leaves the hold for later'. If no void is sent, the payer's own route to recover the hold is reclaim after the capture deadline.",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 1,
+            "changes": []
+          },
+          "observation": null
+        },
+        {
+          "name": "incremental_authorization",
+          "supported": false,
+          "permitted": false,
+          "tier": "primary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "x402-foundation/x402 @c9160a6 (main), specs/schemes/auth-capture/scheme_auth_capture.md, Lifecycle operations table, authorize",
+          "url": "https://raw.githubusercontent.com/x402-foundation/x402/c9160a6cbf0fc831ac7036d400ef2d671493e392/specs/schemes/auth-capture/scheme_auth_capture.md",
+          "quote": "`authorize` | Reserves the client's funds, where they are held. | No — once per payment.",
+          "notes": "authorize is once per payment and PaymentInfo, including maxAmount, is committed by paymentInfoHash. The lifecycle table lists no top-up operation.",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 1,
+            "changes": []
+          },
+          "observation": null
+        }
+      ],
+      "limits": []
+    },
+    {
+      "rail_id": "x402_batch_settlement",
+      "display_name": "x402 `batch-settlement` scheme (a long-lived channel)",
+      "capabilities": [
+        {
+          "name": "funds_held_in_customer_account",
+          "supported": true,
+          "permitted": true,
+          "tier": "primary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "x402-foundation/x402 @c9160a6 (main), specs/schemes/batch-settlement/scheme_batch_settlement_evm.md, Channel Lifecycle, Channel creation and deposits",
+          "url": "https://raw.githubusercontent.com/x402-foundation/x402/c9160a6cbf0fc831ac7036d400ef2d671493e392/specs/schemes/batch-settlement/scheme_batch_settlement_evm.md",
+          "quote": "The client deposits funds from the `payer` address into an onchain escrow via one of two asset transfer methods",
+          "notes": "Funds sit in a long-lived channel escrow rather than a per-payment hold. Balance minus totalClaimed is the unclaimed escrow that a refund or withdrawal can return.",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 1,
+            "changes": []
+          },
+          "observation": null
+        },
+        {
+          "name": "partial_debit",
+          "supported": true,
+          "permitted": true,
+          "tier": "primary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "x402-foundation/x402 @c9160a6 (main), specs/schemes/batch-settlement/scheme_batch_settlement_evm.md, Summary",
+          "url": "https://raw.githubusercontent.com/x402-foundation/x402/c9160a6cbf0fc831ac7036d400ef2d671493e392/specs/schemes/batch-settlement/scheme_batch_settlement_evm.md",
+          "quote": "the client authorizes a maximum per-request, and the server charges the actual cost within that ceiling.",
+          "notes": "Dynamic pricing within a per-request maximum; each voucher carries a cumulative ceiling and the server tracks actual charges.",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 1,
+            "changes": []
+          },
+          "observation": null
+        },
+        {
+          "name": "multiple_captures",
+          "supported": true,
+          "permitted": true,
+          "tier": "primary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "x402-foundation/x402 @c9160a6 (main), specs/schemes/batch-settlement/scheme_batch_settlement_evm.md, Channel Lifecycle, Requests and vouchers",
+          "url": "https://raw.githubusercontent.com/x402-foundation/x402/c9160a6cbf0fc831ac7036d400ef2d671493e392/specs/schemes/batch-settlement/scheme_batch_settlement_evm.md",
+          "quote": "The server tracks a running total of actual charges per channel (`chargedCumulativeAmount`).",
+          "notes": "Many claims accumulate against one deposit because vouchers are cumulative, and the server claims onchain at its discretion. Channels are long-lived and can be topped up after a refund.",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 1,
+            "changes": []
+          },
+          "observation": null
+        },
+        {
+          "name": "partial_void",
+          "supported": true,
+          "permitted": true,
+          "tier": "primary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "x402-foundation/x402 @c9160a6 (main), specs/schemes/batch-settlement/scheme_batch_settlement_evm.md, Client: Payment Construction, Refund Payload",
+          "url": "https://raw.githubusercontent.com/x402-foundation/x402/c9160a6cbf0fc831ac7036d400ef2d671493e392/specs/schemes/batch-settlement/scheme_batch_settlement_evm.md",
+          "quote": "The optional `amount` requests a partial refund; omit it for a full refund.",
+          "notes": "A partial cooperative refund of unclaimed escrow is possible but needs receiver-side consent. The unilateral route is a timed withdrawal after the withdrawDelay.",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 1,
+            "changes": []
+          },
+          "observation": null
+        },
+        {
+          "name": "remainder_auto_released",
+          "supported": false,
+          "permitted": false,
+          "tier": "primary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "x402-foundation/x402 @c9160a6 (main), specs/schemes/batch-settlement/scheme_batch_settlement_evm.md, Security and Trust, 2. Withdrawal delay as escape hatch",
+          "url": "https://raw.githubusercontent.com/x402-foundation/x402/c9160a6cbf0fc831ac7036d400ef2d671493e392/specs/schemes/batch-settlement/scheme_batch_settlement_evm.md",
+          "quote": "Cooperative refund returns unclaimed balance immediately when the server cooperates; timed withdrawal is the unilateral fallback.",
+          "notes": "Unclaimed balance is not returned automatically: it takes a cooperative refund or a payer-initiated timed withdrawal. The spec is explicit that servers bear the risk of vouchers left unclaimed when the withdrawal finalizes.",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 1,
+            "changes": []
+          },
+          "observation": null
+        },
+        {
+          "name": "settled_amount_verifiable_against_usage",
+          "supported": false,
+          "permitted": false,
+          "tier": "primary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "x402-foundation/x402 @c9160a6 (main), specs/schemes/batch-settlement/scheme_batch_settlement_evm.md, Security and Trust, 1. Capital risk and cumulative replay protection",
+          "url": "https://raw.githubusercontent.com/x402-foundation/x402/c9160a6cbf0fc831ac7036d400ef2d671493e392/specs/schemes/batch-settlement/scheme_batch_settlement_evm.md",
+          "quote": "Over-claiming is a trust violation, not a protocol violation.",
+          "notes": "New capability name settled_amount_verifiable_against_usage: can the payer verify from protocol data that the settled amount matches actual consumption. The receiver authorizer determines totalClaimed onchain within the signed ceiling, so an over-claim is not something the protocol rejects.",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 1,
+            "changes": []
+          },
+          "observation": null
+        }
+      ],
+      "limits": [
+        {
+          "name": "withdraw_delay_max_days",
+          "value": 30,
+          "unit": "days",
+          "tier": "primary",
+          "usable_as_fact": true,
+          "environment": null,
+          "obtained_on": "2026-09-20",
+          "probe_id": null,
+          "citation": "x402-foundation/x402 @c9160a6 (main), specs/schemes/batch-settlement/scheme_batch_settlement_evm.md, Security and Trust, 2. Withdrawal delay as escape hatch",
+          "url": "https://raw.githubusercontent.com/x402-foundation/x402/c9160a6cbf0fc831ac7036d400ef2d671493e392/specs/schemes/batch-settlement/scheme_batch_settlement_evm.md",
+          "quote": "The 15 min – 30 day bounds prevent a server from indefinitely trapping client funds while giving the server a fair window to claim outstanding vouchers.",
+          "notes": "withdrawDelay must lie between 15 minutes and 30 days, so a payer's unilateral exit completes at least 15 minutes and at most 30 days after it starts. The 15-minute lower bound cannot be expressed in the allowed units.",
+          "verification": {
+            "result": "verified",
+            "detail": "the quote is present verbatim",
+            "checked_on": "2026-09-20",
+            "quote_current": true,
+            "evidence_hash": "40817956da718d1e1d2693c011a545da2d6506b630dda4b1ec3c6233eb2fb764",
+            "checks": 1,
+            "changes": []
+          },
+          "observation": null
+        }
+      ]
     }
   ]
 }

@@ -534,3 +534,80 @@ class TestEvidenceProvenance:
                 found = {f"{y}-{months[m]:02d}-{int(d):02d}" for d, m, y in pat.findall(row.citation)}
                 assert len(found) == 1, (rail.rail_id, row.name, "citation must carry one date", found)
                 assert row.obtained_on in found, (rail.rail_id, row.name, row.obtained_on, found)
+
+
+class TestASharedVocabulary:
+    """A name used by two rails must mean the same thing on both.
+
+    The registry is only comparable if `partial_debit` on Visa and on Cashfree are the same
+    question. A name that two or more rails use is defined once, in CONCEPTS; a name only one rail
+    uses is that rail's own business. The list may not sprawl: every definition is in use, and
+    every shared name is defined.
+    """
+
+    @staticmethod
+    def _uses():
+        from collections import defaultdict
+        uses = defaultdict(set)
+        for rid, rail in RAILS.items():
+            for name in rail.capabilities:
+                uses[name].add(rid)
+        return uses
+
+    def test_every_capability_name_that_two_rails_use_is_defined(self):
+        from amanat.rails.semantics import CONCEPTS
+        undefined = sorted(n for n, rails in self._uses().items() if len(rails) > 1 and n not in CONCEPTS)
+        assert not undefined, f"shared but undefined: {undefined} — add them to CONCEPTS"
+
+    def test_every_definition_is_used_by_some_rail(self):
+        from amanat.rails.semantics import CONCEPTS
+        dead = sorted(n for n in CONCEPTS if n not in self._uses())
+        assert not dead, f"defined but used by no rail: {dead}"
+
+    def test_a_definition_is_a_sentence_about_the_capability(self):
+        from amanat.rails.semantics import CONCEPTS
+        for name, text in CONCEPTS.items():
+            assert len(text) >= 30 and text.endswith(".") and text[0].isupper(), name
+
+    def test_the_questions_the_ceiling_mechanism_asks_are_all_defined(self):
+        from amanat.rails.semantics import CONCEPTS
+        assert {"partial_debit", "over_capture", "multiple_captures", "partial_void", "void_whole_hold",
+                "remainder_auto_released", "funds_held_in_customer_account",
+                "incremental_authorization", "idempotent_replay"} <= set(CONCEPTS)
+
+
+class TestReferenceRailsAreHonestAboutTheirSources:
+    """The reference rails have no adapter, so the only thing that keeps them honest is their tier."""
+
+    REFERENCE = ("visa_card_auth", "stripe_card_manual_capture", "adyen_card_auth", "x402", "x402_exact",
+                 "x402_upto_evm", "x402_upto_svm", "x402_auth_capture", "x402_batch_settlement")
+
+    def test_they_are_registered(self):
+        assert all(r in RAILS for r in self.REFERENCE)
+
+    def test_visas_guide_is_not_primary_because_it_says_the_visa_rules_govern(self):
+        for cap in RAILS["visa_card_auth"].capabilities.values():
+            assert cap.source_tier is not SourceTier.PRIMARY, cap.name
+        for lim in RAILS["visa_card_auth"].limits.values():
+            assert lim.source_tier is not SourceTier.PRIMARY, lim.name
+
+    def test_a_psps_own_documentation_is_secondary_never_primary(self):
+        for rid in ("stripe_card_manual_capture", "adyen_card_auth"):
+            for row in (*RAILS[rid].capabilities.values(), *RAILS[rid].limits.values()):
+                assert row.source_tier in (SourceTier.SECONDARY, SourceTier.UNVERIFIED), (rid, row.name)
+
+    def test_an_x402_row_cites_a_spec_pinned_to_a_commit_not_a_moving_branch(self):
+        import re
+        pin = re.compile(r"^https://raw\.githubusercontent\.com/x402-foundation/x402/[0-9a-f]{40}/specs/")
+        for rid in self.REFERENCE:
+            if not rid.startswith("x402"):
+                continue
+            for row in (*RAILS[rid].capabilities.values(), *RAILS[rid].limits.values()):
+                assert row.source_tier is SourceTier.PRIMARY and pin.match(row.url), (rid, row.name, row.url)
+
+    def test_an_unverified_reference_row_says_what_was_read_and_why_it_does_not_settle_it(self):
+        for rid in self.REFERENCE:
+            for cap in RAILS[rid].capabilities.values():
+                if cap.source_tier is SourceTier.UNVERIFIED:
+                    assert "Not established" in cap.notes and len(cap.notes) > 200, (rid, cap.name)
+                    assert cap.permits if False else RAILS[rid].permits(cap.name) is False

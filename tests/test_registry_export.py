@@ -205,7 +205,9 @@ class TestVerificationInTheExport:
     def test_limits_carry_verification_too(self, tmp_path):
         path = tmp_path / "watch.jsonl"
         self._run(path, [self._res(name="hold_expiry_days", kind="limit")], "2026-09-20T12:00:00Z")
-        v = _first(export.build(store_dir=tmp_path), lambda l: l["name"] == "hold_expiry_days", "limits")["verification"]
+        doc = export.build(store_dir=tmp_path)
+        cashfree = next(r for r in doc["rails"] if r["rail_id"] == "cashfree_preauth")   # several rails have this limit
+        v = next(l for l in cashfree["limits"] if l["name"] == "hold_expiry_days")["verification"]
         assert v["result"] == "verified"
 
     def test_the_head_of_each_store_is_exported_as_a_checkpoint(self, tmp_path):
@@ -337,5 +339,31 @@ class TestProbeObservationsInTheExport:
         bad = copy.deepcopy(export.build())
         row = _first(bad, lambda c: c["name"] == "void_whole_hold")
         row["observation"] = {"probe_id": "x", "runs": 0, "latest": {}, "changes": []}
+        with pytest.raises(jsonschema.ValidationError):
+            _validate(bad)
+
+
+class TestTheVocabularyIsPartOfTheExport:
+    def test_each_concept_lists_the_rails_that_use_it(self):
+        doc = export.build()
+        by_name = {c["name"]: c for c in doc["concepts"]}
+        assert by_name["partial_debit"]["rails"] == [
+            rid for rid, r in RAILS.items() if "partial_debit" in r.capabilities]
+        assert len(by_name["partial_debit"]["rails"]) >= 8, "the comparison the vocabulary exists for"
+
+    def test_every_shared_capability_name_in_the_export_is_a_concept(self):
+        doc = export.build()
+        names = {c["name"] for c in doc["concepts"]}
+        from collections import Counter
+        used = Counter(c["name"] for r in doc["rails"] for c in r["capabilities"])
+        assert {n for n, k in used.items() if k > 1} <= names
+
+    def test_a_concept_needs_a_real_definition_and_a_rail(self):
+        bad = copy.deepcopy(export.build())
+        bad["concepts"][0]["rails"] = []
+        with pytest.raises(jsonschema.ValidationError):
+            _validate(bad)
+        bad = copy.deepcopy(export.build())
+        bad["concepts"][0]["definition"] = "short"
         with pytest.raises(jsonschema.ValidationError):
             _validate(bad)

@@ -226,6 +226,20 @@ ONE PIECE OF GOOD NEWS the circulars do not give you. Razorpay bounds worst-case
 | `partial_debit` | **no** | `OBSERVED` (sandbox) | 2026-08-22 | measured 22 Aug 2026 — POST /payments/{id}/capture, HTTP 400 (docs agree: razorpay.com/docs/api/payments/capture/) |
 | `funds_held_in_customer_account` | **no** | `SECONDARY` | 2026-09-20 | Razorpay docs, Payments, payment states (authorized) |
 | `manual_capture` | yes | `SECONDARY` | 2026-09-20 | Razorpay docs, Payment Capture Settings (Manually Capture Payments) |
+| `expiry_auto_release` | yes | `SECONDARY` | 2026-09-20 | Razorpay Docs, Payment Capture Settings, Manually Capture Payments |
+| `over_capture` | **no** | `SECONDARY` | 2026-09-20 | Razorpay Docs API Reference, Capture a Payment, Errors, Capture amount must be equal to the amount authorized (400), Solution |
+| `multiple_captures` | **no** | `SECONDARY` | 2026-09-20 | Razorpay Docs API Reference, Capture a Payment, Errors, Only payments which have been authorized and not yet captured can be captured (400) |
+
+**Numeric limits** — enforced, not decorative. Unlike capabilities, an unverified limit is still applied: thin evidence means refuse more, never less.
+
+| Limit | Value | Tier | Obtained | Source |
+|---|---|---|---|---|
+| `hold_expiry_days` | 3 days | `SECONDARY` | 2026-09-20 | Razorpay Docs, Payment Capture Settings, Options table, Manual capture timeout |
+| `auto_refund_speed_working_days_max` | 7 days | `SECONDARY` | 2026-09-20 | Razorpay Docs, Payment Capture Settings, Options table, Auto-refund speed |
+
+**`hold_expiry_days`** — Default and maximum manual-capture timeout is 3 days (minimum 12 minutes); an authorised payment not captured in time is refunded automatically. By default payments auto-capture, and the page names late authorization and a merchant choice as the cases where a payment stays authorized.
+
+**`auto_refund_speed_working_days_max`** — Working days, not calendar days: how long an auto-refunded (uncaptured) payment takes to reach the customer after the timeout. The page says this speed applies only to payments that are auto-refunded.
 
 **`partial_debit`**
 
@@ -250,6 +264,30 @@ THE TRAP: Razorpay's 'authorized' state has ALREADY DEBITED the customer. It is 
 — Razorpay docs, Payment Capture Settings (Manually Capture Payments), https://razorpay.com/docs/payments/payments/capture-settings/
 
 Authorize-now / capture-later exists, but capture must be for the full amount (the `partial_debit` row: measured, and stated in the Capture API's error list).
+
+**`expiry_auto_release`**
+
+> All payments that are not captured within the manual timeout period will be auto-refunded.
+
+— Razorpay Docs, Payment Capture Settings, Manually Capture Payments, https://razorpay.com/docs/payments/payments/capture-settings/
+
+New capability name expiry_auto_release: an authorisation that is never captured is released back to the payer automatically at expiry, with no action by merchant or payer. Razorpay auto-refunds it, and the credit reaches the customer in 5-7 working days.
+
+**`over_capture`**
+
+> Ensure that the amount to be captured is equal to the authorised amount.
+
+— Razorpay Docs API Reference, Capture a Payment, Errors, Capture amount must be equal to the amount authorized (400), Solution, https://razorpay.com/docs/api/payments/capture/
+
+Same rule from the other side: the capture amount must equal the authorised amount, so capturing more is refused. The parameter table also says the amount 'should be equal to the order amount'.
+
+**`multiple_captures`**
+
+> Only payments which have been authorized and not yet captured can be captured.
+
+— Razorpay Docs API Reference, Capture a Payment, Errors, Only payments which have been authorized and not yet captured can be captured (400), https://razorpay.com/docs/api/payments/capture/
+
+A captured payment cannot be captured again (HTTP 400), so there is one capture per authorised payment. Neither page describes splitting one authorisation across several captures.
 
 
 ## `upi_otm` — UPI One Time Mandate
@@ -444,13 +482,633 @@ The two hosts the UMAP docs name for sandbox and production do not exist in publ
 [PARTIAL] The only surveyed PSP exposing a modify that preserves the mandate. Direction (whether it may LOWER the amount) is documented nowhere and remains unverified.
 
 
+## `visa_card_auth` — Visa card authorization (merchant requirements guide)
+
+| Capability | Permitted | Tier | Obtained | Source |
+|---|---|---|---|---|
+| `funds_held_in_customer_account` | yes | `SECONDARY` | 2026-09-20 | Visa, Estimated and Incremental Authorization and Reversal Processing Requirements for Visa Merchants (PDF, ©2024 Visa), p. 1, Efficiently managing authorizations |
+| `partial_debit` | yes | `SECONDARY` | 2026-09-20 | Visa, Estimated and Incremental Authorization and Reversal Processing Requirements for Visa Merchants (PDF, ©2024 Visa), p. 3, Authorization reversals |
+| `partial_void` | yes | `SECONDARY` | 2026-09-20 | Visa, Estimated and Incremental Authorization and Reversal Processing Requirements for Visa Merchants (PDF, ©2024 Visa), p. 2, Estimated authorization request |
+| `void_whole_hold` | yes | `SECONDARY` | 2026-09-20 | Visa, Estimated and Incremental Authorization and Reversal Processing Requirements for Visa Merchants (PDF, ©2024 Visa), p. 4, Processing integrity fees, Misuse of authorization system fee |
+| `incremental_authorization` | yes | `SECONDARY` | 2026-09-20 | Visa, Estimated and Incremental Authorization and Reversal Processing Requirements for Visa Merchants (PDF, ©2024 Visa), p. 3, Incremental authorization request |
+| `buffered_authorisation` | **no** | `SECONDARY` | 2026-09-20 | Visa, Estimated and Incremental Authorization and Reversal Processing Requirements for Visa Merchants (PDF, ©2024 Visa), p. 2, Estimated authorization request |
+| `capped_initial_authorization` | yes | `SECONDARY` | 2026-09-20 | Visa, Estimated and Incremental Authorization and Reversal Processing Requirements for Visa Merchants (PDF, ©2024 Visa), p. 6, Common Questions, initial authorization |
+| `remainder_auto_released` | **no** | `UNVERIFIED` | 2026-09-20 | not established |
+| `over_capture` | **no** | `UNVERIFIED` | 2026-09-20 | not established |
+
+**Numeric limits** — enforced, not decorative. Unlike capabilities, an unverified limit is still applied: thin evidence means refuse more, never less.
+
+| Limit | Value | Tier | Obtained | Source |
+|---|---|---|---|---|
+| `hold_expiry_days_lodging_vehicle_rental_cruise` | 30 days | `SECONDARY` | 2026-09-20 | Visa, Estimated and Incremental Authorization and Reversal Processing Requirements for Visa Merchants (PDF, ©2024 Visa), p. 4, Transaction and processing timeframes |
+| `hold_expiry_days_rental_merchant_categories` | 10 days | `SECONDARY` | 2026-09-20 | Visa, Estimated and Incremental Authorization and Reversal Processing Requirements for Visa Merchants (PDF, ©2024 Visa), p. 4, Transaction and processing timeframes |
+| `hold_expiry_days_card_absent_cardholder_initiated` | 10 days | `SECONDARY` | 2026-09-20 | Visa, Estimated and Incremental Authorization and Reversal Processing Requirements for Visa Merchants (PDF, ©2024 Visa), p. 4, Transaction and processing timeframes |
+| `hold_expiry_days_card_present` | 5 days | `SECONDARY` | 2026-09-20 | Visa, Estimated and Incremental Authorization and Reversal Processing Requirements for Visa Merchants (PDF, ©2024 Visa), p. 4, Transaction and processing timeframes |
+| `reversal_deadline_hours` | 24 hours | `SECONDARY` | 2026-09-20 | Visa, Estimated and Incremental Authorization and Reversal Processing Requirements for Visa Merchants (PDF, ©2024 Visa), p. 3, Authorization reversals |
+| `reversal_deadline_hours_excess_after_completion` | 24 hours | `SECONDARY` | 2026-09-20 | Visa, Estimated and Incremental Authorization and Reversal Processing Requirements for Visa Merchants (PDF, ©2024 Visa), p. 3, Authorization reversals |
+
+**`hold_expiry_days_lodging_vehicle_rental_cruise`** — Per the page-4 lead-in, the maximum time from a valid estimated authorization to processing, counted from approval; the Visa Rules govern and country-specific timeframes apply. Incremental authorizations do not extend it, so a longer stay needs a reversal and a new authorization. Visa's own merchant guide, which states that the Visa Rules govern in any conflict: SECONDARY until the Rules are read.
+
+**`hold_expiry_days_rental_merchant_categories`** — Per the page-4 lead-in, the maximum time from a valid estimated authorization to processing, counted from approval; the Visa Rules govern and country-specific timeframes apply. Incremental authorizations do not extend it, so a longer stay needs a reversal and a new authorization. Visa's own merchant guide, which states that the Visa Rules govern in any conflict: SECONDARY until the Rules are read.
+
+**`hold_expiry_days_card_absent_cardholder_initiated`** — Per the page-4 lead-in, the maximum time from a valid estimated authorization to processing, counted from approval; the Visa Rules govern and country-specific timeframes apply. Incremental authorizations do not extend it, so a longer stay needs a reversal and a new authorization. Visa's own merchant guide, which states that the Visa Rules govern in any conflict: SECONDARY until the Rules are read.
+
+**`hold_expiry_days_card_present`** — Per the page-4 lead-in, the maximum time from a valid estimated authorization to processing, counted from approval; the Visa Rules govern and country-specific timeframes apply. Incremental authorizations do not extend it, so a longer stay needs a reversal and a new authorization. Visa's own merchant guide, which states that the Visa Rules govern in any conflict: SECONDARY until the Rules are read.
+
+**`reversal_deadline_hours`** — The 24-hour clock runs from the merchant learning the transaction will not complete, or from the end of the validity period. The lead-in says merchants 'should' reverse in a timely manner while the bullet says 'must'. Visa's own merchant guide, which states that the Visa Rules govern in any conflict: SECONDARY until the Rules are read.
+
+**`reversal_deadline_hours_excess_after_completion`** — Applies when a completed transaction is for less than the authorised sum: the difference must be reversed within 24 hours of completion. The guide is silent on any issuer-side release of that difference. Visa's own merchant guide, which states that the Visa Rules govern in any conflict: SECONDARY until the Rules are read.
+
+**`funds_held_in_customer_account`**
+
+> With each successful authorization, the issuer typically reduces the amount available to the cardholder for other purchases to cover the approved transaction - this is commonly known as an authorization hold.
+
+— Visa, Estimated and Incremental Authorization and Reversal Processing Requirements for Visa Merchants (PDF, ©2024 Visa), p. 1, Efficiently managing authorizations, https://usa.visa.com/content/dam/VCOM/regional/na/us/support-legal/documents/authorization-and-reversal-processing-best-practices-for-merchants.pdf
+
+The hold lowers the cardholder's available amount, and the guide says the issuer 'typically' does this, so it is issuer behaviour rather than a network guarantee. Page 1 says an unsettled hold ties up money the cardholder could use elsewhere. Visa's own merchant guide, which states that the Visa Rules govern in any conflict: SECONDARY until the Rules are read.
+
+**`partial_debit`**
+
+> Completed transaction where the sum of an estimated authorization and any incremental authorization(s) exceeds the final amount: the difference between the authorized amount (or amounts) and the transaction amount must be reversed within 24 hours of when the transaction is completed.
+
+— Visa, Estimated and Incremental Authorization and Reversal Processing Requirements for Visa Merchants (PDF, ©2024 Visa), p. 3, Authorization reversals, https://usa.visa.com/content/dam/VCOM/regional/na/us/support-legal/documents/authorization-and-reversal-processing-best-practices-for-merchants.pdf
+
+By necessary implication a completed transaction may be for less than the authorised sum, with the merchant reversing the difference. The rule is written for estimated and incremental authorizations, not for every Visa authorization. Visa's own merchant guide, which states that the Visa Rules govern in any conflict: SECONDARY until the Rules are read.
+
+**`partial_void`**
+
+> If the estimated authorization exceeds the final amount, the merchant must reduce the authorized amount using a partial authorization reversal.
+
+— Visa, Estimated and Incremental Authorization and Reversal Processing Requirements for Visa Merchants (PDF, ©2024 Visa), p. 2, Estimated authorization request, https://usa.visa.com/content/dam/VCOM/regional/na/us/support-legal/documents/authorization-and-reversal-processing-best-practices-for-merchants.pdf
+
+A partial authorization reversal releases part of a hold, and the guide makes it mandatory when the estimate exceeds the final amount. Reversals notify the issuer that the hold should be removed or adjusted (p.3). Visa's own merchant guide, which states that the Visa Rules govern in any conflict: SECONDARY until the Rules are read.
+
+**`void_whole_hold`**
+
+> If an authorization was attempted and received but the transaction was not settled, merchants must reverse the authorization. In order to maintain the data integrity of the Visa authorization system, a Misuse of Authorization System Fee is assessed by Visa to approved and partially-approved authorizations that cannot be matched to a clearing transaction or an authorization reversal.
+
+— Visa, Estimated and Incremental Authorization and Reversal Processing Requirements for Visa Merchants (PDF, ©2024 Visa), p. 4, Processing integrity fees, Misuse of authorization system fee, https://usa.visa.com/content/dam/VCOM/regional/na/us/support-legal/documents/authorization-and-reversal-processing-best-practices-for-merchants.pdf
+
+Reversing an unused authorization is compulsory, and Visa charges a fee on approved authorizations that match neither a clearing nor a reversal. The 24-hour timing rule is on page 3. Visa's own merchant guide, which states that the Visa Rules govern in any conflict: SECONDARY until the Rules are read.
+
+**`incremental_authorization`**
+
+> A merchant may request an incremental authorization any time the total authorized amount appears to be insufficient. A merchant may request multiple incremental authorizations for a single transaction.
+
+— Visa, Estimated and Incremental Authorization and Reversal Processing Requirements for Visa Merchants (PDF, ©2024 Visa), p. 3, Incremental authorization request, https://usa.visa.com/content/dam/VCOM/regional/na/us/support-legal/documents/authorization-and-reversal-processing-best-practices-for-merchants.pdf
+
+It must follow an estimated or another incremental authorization (p.3), does not extend the validity window (p.4) and has no stated count limit (p.5). An initial authorization cannot be incremented (p.6). Visa's own merchant guide, which states that the Visa Rules govern in any conflict: SECONDARY until the Rules are read.
+
+**`buffered_authorisation`**
+
+> An estimated authorization must be a genuine estimate and must not be an arbitrary amount. … Visa requires that an estimated authorization must not contain incidental spend amounts such as tips or a buffer for damage.
+
+— Visa, Estimated and Incremental Authorization and Reversal Processing Requirements for Visa Merchants (PDF, ©2024 Visa), p. 2, Estimated authorization request, https://usa.visa.com/content/dam/VCOM/regional/na/us/support-legal/documents/authorization-and-reversal-processing-best-practices-for-merchants.pdf
+
+Second statement of the same rule: an estimated authorization may not carry tips or a damage buffer, and the stated aim is to prevent over-authorization. It applies to estimated authorizations; the guide does not extend it to other authorization types. Visa's own merchant guide, which states that the Visa Rules govern in any conflict: SECONDARY until the Rules are read.
+
+**`capped_initial_authorization`**
+
+> The amount of the authorization is capped. The merchant is not permitted to do an incremental authorization following an initial authorization and must stop the transaction if the purchase hits the authorized amount.
+
+— Visa, Estimated and Incremental Authorization and Reversal Processing Requirements for Visa Merchants (PDF, ©2024 Visa), p. 6, Common Questions, initial authorization, https://usa.visa.com/content/dam/VCOM/regional/na/us/support-legal/documents/authorization-and-reversal-processing-best-practices-for-merchants.pdf
+
+New capability name capped_initial_authorization: a fixed capped amount is authorised before the final amount is known, with no increments and a hard stop at the cap. From April 2025 only automated fuel dispensers may use it, while other unattended merchants are encouraged to move to estimated authorizations (p.6). Visa's own merchant guide, which states that the Visa Rules govern in any conflict: SECONDARY until the Rules are read.
+
+**`remainder_auto_released`**
+Not established. Reading 1: the merchant must send a reversal for the difference within 24 hours (p.3), so release is not automatic from the merchant's side. Reading 2: issuers match reversals and clearings to the authorization and a failed match leaves funds held longer, but the guide does not say whether the difference is freed without a reversal. Visa's own merchant guide, which states that the Visa Rules govern in any conflict: SECONDARY until the Rules are read. The closest sentence read: “Visa processing requirements are designed to assist issuers in matching these multiple authorization messages with the clearing. Missing or non-matching data elements may mean issuers are not able to affect a match, which often means that funds remain held for a longer period or in duplicate.”
+
+**`over_capture`**
+Not established. The guide's only stated route to a higher final amount is an incremental authorization; it is silent on whether clearing above the authorised sum is allowed. Marked null because the absence of a stated permission does not settle the question. Visa's own merchant guide, which states that the Visa Rules govern in any conflict: SECONDARY until the Rules are read. The closest sentence read: “If the cardholder spends more than expected, the merchant may obtain an additional authorization using an incremental authorization request.”
+
+
+## `stripe_card_manual_capture` — Stripe cards, manual capture (hold, then capture)
+
+| Capability | Permitted | Tier | Obtained | Source |
+|---|---|---|---|---|
+| `funds_held_in_customer_account` | yes | `SECONDARY` | 2026-09-20 | Stripe Docs: Place a hold on a payment method, introduction |
+| `payment_guarantee` | yes | `SECONDARY` | 2026-09-20 | Stripe Docs: Place a hold on a payment method, introduction |
+| `partial_debit` | yes | `SECONDARY` | 2026-09-20 | Stripe API Reference: Capture a PaymentIntent, Parameters > amount_to_capture |
+| `remainder_auto_released` | yes | `SECONDARY` | 2026-09-20 | Stripe Docs: Place a hold on a payment method, Capture the funds |
+| `multiple_captures` | yes | `SECONDARY` | 2026-09-20 | Stripe Docs: Capture a payment multiple times, page summary |
+| `over_capture` | yes | `SECONDARY` | 2026-09-20 | Stripe Docs: Capture more than the authorised amount on a payment, introduction |
+| `void_whole_hold` | yes | `SECONDARY` | 2026-09-20 | Stripe Docs: How Payment Intents and Setup Intents work, Lifecycle table, Cancelled row |
+| `incremental_authorization` | yes | `SECONDARY` | 2026-09-20 | Stripe Docs: Increment an authorisation, introduction |
+| `idempotent_replay` | yes | `SECONDARY` | 2026-09-20 | Stripe API Reference: Idempotent requests, introduction |
+| `partial_void` | **no** | `UNVERIFIED` | 2026-09-20 | not established |
+
+**Numeric limits** — enforced, not decorative. Unlike capabilities, an unverified limit is still applied: thin evidence means refuse more, never less.
+
+| Limit | Value | Tier | Obtained | Source |
+|---|---|---|---|---|
+| `hold_expiry_days` | 7 days | `SECONDARY` | 2026-09-20 | Stripe Docs: Place a hold on a payment method, Extended authorisations note (under Tell Stripe to authorise only) |
+| `hold_expiry_days_extended` | 30 days | `SECONDARY` | 2026-09-20 | Stripe Docs: Place an extended hold on an online card payment, introduction |
+| `idempotency_key_retention_hours_min` | 24 hours | `SECONDARY` | 2026-09-20 | Stripe API Reference: Idempotent requests, introduction |
+
+**`hold_expiry_days`** — Default validity for online card payments; in-person Terminal card payments are usually 2 days and Visa merchant-initiated card-not-present is 5 days (separate row). On expiry the funds are released and the PaymentIntent status changes to canceled.
+
+**`hold_expiry_days_extended`** — Opt-in for online cards (request_extended_authorization=if_available), only on Visa, Mastercard, American Express and Discover, offered to IC+ pricing users, with merchant-category limits on some networks. The exact Visa window is 29 days and 18 hours, and Stripe says to rely on the capture_before field because the rules can change without notice.
+
+**`idempotency_key_retention_hours_min`** — Keys may be removed once at least 24 hours old, so 24 hours is a floor and not a guaranteed maximum. A key reused after pruning generates a new request.
+
+**`funds_held_in_customer_account`**
+
+> When you create a payment, you can place a hold on an eligible payment method to reserve funds that you can capture later.
+
+— Stripe Docs: Place a hold on a payment method, introduction, https://docs.stripe.com/payments/place-a-hold-on-a-payment-method.md
+
+Stripe describes card authorisation as a hold that reserves funds until capture. Only some payment methods support hold-then-capture: cards do, ACH and iDEAL do not.
+
+**`payment_guarantee`**
+
+> Authorising a payment guarantees the amount by holding it on the customer’s payment method.
+
+— Stripe Docs: Place a hold on a payment method, introduction, https://docs.stripe.com/payments/place-a-hold-on-a-payment-method.md
+
+Stripe's own wording, so secondary evidence about Stripe and not network rules. The guarantee lasts only until the authorisation expires; after that the funds are released.
+
+**`partial_debit`**
+
+> The amount to capture from the PaymentIntent, which must be less than or equal to the original amount.
+
+— Stripe API Reference: Capture a PaymentIntent, Parameters > amount_to_capture, https://docs.stripe.com/api/payment_intents/capture.md
+
+Capturing less than the authorised amount is allowed, and the hold page's worked example captures 7.50 USD of an authorised 10.99 USD payment. The same sentence says less than or equal to the original amount; capturing more is a separate opt-in feature (overcapture).
+
+**`remainder_auto_released`**
+
+> A partial capture automatically releases the remaining amount.
+
+— Stripe Docs: Place a hold on a payment method, Capture the funds, https://docs.stripe.com/payments/place-a-hold-on-a-payment-method.md
+
+Default after a single partial capture. With multicapture (final_capture=false) the remainder stays authorised until a final capture, an explicit release or expiry.
+
+**`multiple_captures`**
+
+> Capture a PaymentIntent multiple times, up to the authorised amount.
+
+— Stripe Docs: Capture a payment multiple times, page summary, https://docs.stripe.com/payments/multicapture.md?platform=web&ui=stripe-hosted
+
+Opt-in: IC+ pricing, online card payments, capture_method=manual, and multicapture must show as available on the charge. Stripe allows up to 50 non-final captures plus one final capture per PaymentIntent.
+
+**`over_capture`**
+
+> Overcapture allows you to capture with an amount that’s higher than the authorised amount for a card payment.
+
+— Stripe Docs: Capture more than the authorised amount on a payment, introduction, https://docs.stripe.com/payments/overcapture.md?platform=web&ui=stripe-hosted
+
+Opt-in per PaymentIntent (request_overcapture=if_available), offered to IC+ pricing users on Visa, Mastercard, American Express or Discover, with per-brand and per-category caps. The API capture reference still says amount_to_capture must be less than or equal to the original amount, so the two Stripe pages read differently.
+
+**`void_whole_hold`**
+
+> Cancellation invalidates the PaymentIntent for future payment attempts, releases any held funds and can’t be undone.
+
+— Stripe Docs: How Payment Intents and Setup Intents work, Lifecycle table, Cancelled row, https://docs.stripe.com/payments/paymentintents/lifecycle.md
+
+Cancelling the PaymentIntent releases held funds and cannot be undone; it must happen before the PaymentIntent reaches processing or succeeded. The cancel API reference adds that for requires_capture the remaining amount_capturable is automatically refunded.
+
+**`incremental_authorization`**
+
+> Incremental authorisation allows you to increase the authorised amount on a confirmed PaymentIntent before you capture it.
+
+— Stripe Docs: Increment an authorisation, introduction, https://docs.stripe.com/payments/incremental-authorization.md?platform=web&ui=stripe-hosted
+
+Only for Visa, Mastercard, American Express and Discover, offered to IC+ pricing users, and only while the PaymentIntent is completely uncaptured. Maximum of 10 attempts per PaymentIntent, each increment capped at the higher of 500 USD or 500% over the previously authorised amount, and increments do not extend the validity window.
+
+**`idempotent_replay`**
+
+> Stripe’s idempotency works by saving the resulting status code and body of the first request made for any given idempotency key, regardless of whether it succeeds or fails. Subsequent requests with the same key return the same result
+
+— Stripe API Reference: Idempotent requests, introduction, https://docs.stripe.com/api/idempotent_requests.md
+
+POST requests accept an Idempotency-Key of up to 255 characters, and a replay returns the stored result including 500 errors. Reusing a key with different parameters returns an error.
+
+**`partial_void`**
+Not established. Closest analogue only: the sentence continues 'to 0 and set final_capture to true', which releases the whole remainder back to the cardholder after at least one capture and moves the PaymentIntent to succeeded. None of the Stripe pages read describes reducing an uncaptured authorisation by a partial amount, so partial_void stays unverified for Stripe. The closest sentence read: “If you performed at least one capture and want to release the remaining uncaptured funds, set the amount to”
+
+
+## `adyen_card_auth` — Adyen cards, pre-authorization and capture
+
+| Capability | Permitted | Tier | Obtained | Source |
+|---|---|---|---|---|
+| `funds_held_in_customer_account` | yes | `SECONDARY` | 2026-09-20 | Adyen Docs: Capture, introduction |
+| `partial_debit` | yes | `SECONDARY` | 2026-09-20 | Adyen Docs: Capture, Partial manual capture |
+| `remainder_auto_released` | yes | `SECONDARY` | 2026-09-20 | Adyen Docs: Capture, Partial manual capture > Single partial capture |
+| `multiple_captures` | yes | `SECONDARY` | 2026-09-20 | Adyen Docs: Capture, Partial manual capture > Multiple partial captures |
+| `over_capture` | **no** | `SECONDARY` | 2026-09-20 | Adyen Docs: API idempotency, introduction (default accounting rules) |
+| `partial_void` | yes | `SECONDARY` | 2026-09-20 | Adyen Docs: Authorization adjustment, Authorization type > Pre-authorization |
+| `incremental_authorization` | yes | `SECONDARY` | 2026-09-20 | Adyen Docs: Authorization adjustment, introduction |
+| `void_whole_hold` | yes | `SECONDARY` | 2026-09-20 | Adyen Docs: Cancel, introduction |
+| `idempotent_replay` | yes | `SECONDARY` | 2026-09-20 | Adyen Docs: API idempotency, Enable idempotency |
+
+**Numeric limits** — enforced, not decorative. Unlike capabilities, an unverified limit is still applied: thin evidence means refuse more, never less.
+
+| Limit | Value | Tier | Obtained | Source |
+|---|---|---|---|---|
+| `hold_expiry_days` | 28 days | `SECONDARY` | 2026-09-20 | Adyen Docs: Authorization adjustment, Expiration of pre-authorizations |
+| `idempotency_key_retention_hours_min` | 168 hours | `SECONDARY` | 2026-09-20 | Adyen Docs: API idempotency, Key scope and validity time |
+
+**`hold_expiry_days`** — Adyen's own expiry, layered on the card scheme's validity period and changeable through Adyen Support per merchant account and scheme. Manual capture after the scheme-side expiry is possible but raises the risk of a failed capture, extra fees and 'No Authorization' or 'Late Presentment' chargebacks; after Adyen's own expiry the payment can no longer be captured or cancelled.
+
+**`idempotency_key_retention_hours_min`** — Adyen states a range of 7 to 14 days (168 to 336 hours), so the value is the lower bound. Keys are stored per company account and are not checked across regional endpoints.
+
+**`funds_held_in_customer_account`**
+
+> The authorization reserves the funds on the shopper's bank account.
+
+— Adyen Docs: Capture, introduction, https://docs.adyen.com/online-payments/capture/
+
+Applies when separate (manual or delayed) capture is used; Adyen's default is to capture automatically, immediately after authorization. Pre-authorization is described as checking sufficient funds without debiting the account.
+
+**`partial_debit`**
+
+> Any unclaimed amount that is left over after partially capturing a payment is automatically cancelled.
+
+— Adyen Docs: Capture, Partial manual capture, https://docs.adyen.com/online-payments/capture/
+
+Partial capture is a documented mode, and the capture amount must be the same as or, for a partial capture, less than the authorized amount. Some payment methods return 'Only possible to capture the full amount', so support is per payment method.
+
+**`remainder_auto_released`**
+
+> Any unclaimed amount that is left over after partially capturing a payment is automatically cancelled.
+
+— Adyen Docs: Capture, Partial manual capture > Single partial capture, https://docs.adyen.com/online-payments/capture/
+
+Holds for the single partial capture type; with multiple partial captures enabled the leftover is not cancelled automatically. The pages say the leftover is cancelled but do not say when the issuer frees the shopper-side hold.
+
+**`multiple_captures`**
+
+> The unclaimed amount after an initial partial capture is not automatically cancelled.
+
+— Adyen Docs: Capture, Partial manual capture > Multiple partial captures, https://docs.adyen.com/online-payments/capture/
+
+Disabled by default; Adyen Support must enable it. The related 'Adjust an authorization' page adds that the number of partial captures depends on the issuer and that some issuers may flag multiple partial captures as a fraud risk that can make the capture fail.
+
+**`over_capture`**
+
+> when partial captures are allowed, it is not possible to capture a higher amount than the authorized one.
+
+— Adyen Docs: API idempotency, introduction (default accounting rules), https://docs.adyen.com/development-resources/api-idempotency/
+
+The capture page's failure reason 'The requested capture amount is more than the balance on the payment' says the same. No overcapture feature is described on the pages read.
+
+**`partial_void`**
+
+> It allows you to increase or decrease the initially authorized amount at a later point in time.
+
+— Adyen Docs: Authorization adjustment, Authorization type > Pre-authorization, https://docs.adyen.com/online-payments/adjust-authorisation/
+
+Decreasing works only for the pre-authorization type on eligible card schemes and merchant category codes, and is ultimately up to the issuing bank. The related 'Adjust an authorization' page adds that a zero-value adjustment is not allowed and that at most 50 adjustments are allowed per payment.
+
+**`incremental_authorization`**
+
+> Using the authorization type pre-authorization for your payment request, you can increase or decrease the authorized amount at a later stage, and then capture the payment manually.
+
+— Adyen Docs: Authorization adjustment, introduction, https://docs.adyen.com/online-payments/adjust-authorisation/
+
+Same pre-authorization-only mechanism, with eligibility set by card scheme and merchant category code. The related 'Adjust an authorization' page adds that a Mastercard amount adjustment automatically extends the validity period.
+
+**`void_whole_hold`**
+
+> When you cancel the payment, the financial institution releases the funds back to the shopper's bank account.
+
+— Adyen Docs: Cancel, introduction, https://docs.adyen.com/online-payments/cancel/
+
+Only before capture: after a payment has been captured it can no longer be cancelled, and an expired authorization can no longer be cancelled either. Cancelling by your own reference works only within 24 hours of authorization.
+
+**`idempotent_replay`**
+
+> If the Adyen payments platform already processed the request, the response to the first attempt will be returned without duplication.
+
+— Adyen Docs: API idempotency, Enable idempotency, https://docs.adyen.com/development-resources/api-idempotency/
+
+Send an idempotency-key header on POST requests; keys are at most 64 characters. A duplicate sent while the first is still running returns HTTP 422 or 409 with error code 704, and a transient-error header marks retryable failures.
+
+
+## `x402` — x402 protocol extensions
+
+| Capability | Permitted | Tier | Obtained | Source |
+|---|---|---|---|---|
+| `idempotent_replay` | yes | `PRIMARY` | 2026-09-20 | x402-foundation/x402 @c9160a6 (main), specs/extensions/payment_identifier.md, Summary |
+
+**`idempotent_replay`**
+
+> The `payment-identifier` extension enables clients to provide an `id` that serves as an idempotency key. Both resource servers and facilitators consume `PaymentPayload`, so this can be leveraged at either or both points in the stack to deduplicate requests and return cached responses for repeated submissions.
+
+— x402-foundation/x402 @c9160a6 (main), specs/extensions/payment_identifier.md, Summary, https://raw.githubusercontent.com/x402-foundation/x402/c9160a6cbf0fc831ac7036d400ef2d671493e392/specs/extensions/payment_identifier.md
+
+Optional extension: a repeated id with the same payload returns the cached response and a different payload returns 409 Conflict. A server may leave it off (required defaults to false), and the scheme rules themselves rely on nonces.
+
+
+## `x402_exact` — x402 `exact` scheme (a fixed amount, no ceiling)
+
+| Capability | Permitted | Tier | Obtained | Source |
+|---|---|---|---|---|
+| `partial_debit` | **no** | `PRIMARY` | 2026-09-20 | x402-foundation/x402 @c9160a6 (main), specs/schemes/exact/scheme_exact.md, Summary |
+| `over_capture` | **no** | `PRIMARY` | 2026-09-20 | x402-foundation/x402 @c9160a6 (main), specs/schemes/exact/scheme_exact_evm.md, Summary |
+| `funds_held_in_customer_account` | **no** | `PRIMARY` | 2026-09-20 | x402-foundation/x402 @c9160a6 (main), specs/x402-specification-v2.md, 6.1 Payment Flow Models, table row authorization (default) |
+
+**`partial_debit`**
+
+> `exact` is a scheme that transfers a specific amount of funds from a client to a resource server. The resource server must know in advance the exact amount of funds they need to be transferred.
+
+— x402-foundation/x402 @c9160a6 (main), specs/schemes/exact/scheme_exact.md, Summary, https://raw.githubusercontent.com/x402-foundation/x402/c9160a6cbf0fc831ac7036d400ef2d671493e392/specs/schemes/exact/scheme_exact.md
+
+The amount is fixed and known before the client signs, so there is no ceiling and no settle-less-than-signed option in this scheme. The EVM binding adds that the facilitator 'cannot modify the amount or destination'.
+
+**`over_capture`**
+
+> In all cases, the Facilitator cannot modify the amount or destination.
+
+— x402-foundation/x402 @c9160a6 (main), specs/schemes/exact/scheme_exact_evm.md, Summary, https://raw.githubusercontent.com/x402-foundation/x402/c9160a6cbf0fc831ac7036d400ef2d671493e392/specs/schemes/exact/scheme_exact_evm.md
+
+The signed amount is what moves; the facilitator only broadcasts the transaction. Several network bindings also state amount-exactness rules (scheme_exact.md, Critical Validation Requirements).
+
+**`funds_held_in_customer_account`**
+
+> Read-only verify before the resource executes; funds move only after it completes successfully.
+
+— x402-foundation/x402 @c9160a6 (main), specs/x402-specification-v2.md, 6.1 Payment Flow Models, table row authorization (default), https://raw.githubusercontent.com/x402-foundation/x402/c9160a6cbf0fc831ac7036d400ef2d671493e392/specs/x402-specification-v2.md
+
+This is the default flow the exact scheme uses: verify is read-only and value moves at the final settle, so nothing is held in between. Under the upfront flow the payment commits first and the exact spec says it 'defines no refund'.
+
+
+## `x402_upto_evm` — x402 `upto` scheme, EVM (a Permit2 signature: a cap, no hold)
+
+| Capability | Permitted | Tier | Obtained | Source |
+|---|---|---|---|---|
+| `partial_debit` | yes | `PRIMARY` | 2026-09-20 | x402-foundation/x402 @c9160a6 (main), specs/schemes/upto/scheme_upto_evm.md, Phase 4 Settlement Logic, Settle-Time Verification example |
+| `over_capture` | **no** | `PRIMARY` | 2026-09-20 | x402-foundation/x402 @c9160a6 (main), specs/schemes/upto/scheme_upto.md, Core Properties (MUST) 4. Maximum Amount Enforcement |
+| `multiple_captures` | **no** | `PRIMARY` | 2026-09-20 | x402-foundation/x402 @c9160a6 (main), specs/schemes/upto/scheme_upto.md, Core Properties (MUST) 1. Single-Use Authorization |
+| `funds_held_in_customer_account` | **no** | `PRIMARY` | 2026-09-20 | x402-foundation/x402 @c9160a6 (main), specs/schemes/upto/scheme_upto_evm.md, Security Considerations 5. Zero Settlement |
+| `settled_amount_verifiable_against_usage` | **no** | `PRIMARY` | 2026-09-20 | x402-foundation/x402 @c9160a6 (main), specs/schemes/upto/scheme_upto_evm.md, Security Considerations 2. Server Trust |
+
+**`partial_debit`**
+
+> In this example, the buyer signed for up to `20000` atomic units. The resource server consumed `1858` units of work. The facilitator verifies the signature against `permitted.amount` (`20000`), confirms `1858 <= 20000`, then transfers `1858` on-chain.
+
+— x402-foundation/x402 @c9160a6 (main), specs/schemes/upto/scheme_upto_evm.md, Phase 4 Settlement Logic, Settle-Time Verification example, https://raw.githubusercontent.com/x402-foundation/x402/c9160a6cbf0fc831ac7036d400ef2d671493e392/specs/schemes/upto/scheme_upto_evm.md
+
+The ceiling is a Permit2 signature and the resource server sets the settled amount at settle time, which may be far below the ceiling (1858 of 20000 in the example) or 0. The client does not choose the settled amount.
+
+**`over_capture`**
+
+> The settled amount MUST be less than or equal to the authorized maximum.
+
+— x402-foundation/x402 @c9160a6 (main), specs/schemes/upto/scheme_upto.md, Core Properties (MUST) 4. Maximum Amount Enforcement, https://raw.githubusercontent.com/x402-foundation/x402/c9160a6cbf0fc831ac7036d400ef2d671493e392/specs/schemes/upto/scheme_upto.md
+
+Network-agnostic rule in the upto scheme; the EVM binding adds error code invalid_upto_evm_payload_settlement_exceeds_amount for an attempt to settle above the authorised amount. The settled amount may be 0.
+
+**`multiple_captures`**
+
+> Each authorization MUST be settled at most once. After settlement (regardless of amount), the authorization is consumed and cannot be reused.
+
+— x402-foundation/x402 @c9160a6 (main), specs/schemes/upto/scheme_upto.md, Core Properties (MUST) 1. Single-Use Authorization, https://raw.githubusercontent.com/x402-foundation/x402/c9160a6cbf0fc831ac7036d400ef2d671493e392/specs/schemes/upto/scheme_upto.md
+
+The scheme rule says an authorization is consumed after settlement 'regardless of amount', while the EVM binding says a $0 settlement needs no on-chain transaction and the authorization 'simply expires unused'. Whether a $0 settlement consumes the Permit2 nonce is not stated.
+
+**`funds_held_in_customer_account`**
+
+> Allowing $0 settlements means unused authorizations naturally expire without on-chain transactions, reducing gas costs and blockchain bloat.
+
+— x402-foundation/x402 @c9160a6 (main), specs/schemes/upto/scheme_upto_evm.md, Security Considerations 5. Zero Settlement, https://raw.githubusercontent.com/x402-foundation/x402/c9160a6cbf0fc831ac7036d400ef2d671493e392/specs/schemes/upto/scheme_upto_evm.md
+
+By necessary implication nothing is locked on-chain at authorization: an unused authorization lapses with no on-chain step. Verification reads the payer's balance and simulates a full-amount settle (Phase 3 steps 3 and 7); no locking step appears in the spec.
+
+**`settled_amount_verifiable_against_usage`**
+
+> The `upto` scheme requires clients to trust that servers will charge fair amounts based on actual usage. Malicious servers could charge up to `amount` regardless of actual usage.
+
+— x402-foundation/x402 @c9160a6 (main), specs/schemes/upto/scheme_upto_evm.md, Security Considerations 2. Server Trust, https://raw.githubusercontent.com/x402-foundation/x402/c9160a6cbf0fc831ac7036d400ef2d671493e392/specs/schemes/upto/scheme_upto_evm.md
+
+New capability name settled_amount_verifiable_against_usage: can the payer verify from protocol data that the settled amount matches actual consumption. The settled amount itself is reported (SettlementResponse has amount and transaction), but the spec offers no usage evidence and says clients 'bear the risk of the full amount being charged'.
+
+
+## `x402_upto_svm` — x402 `upto` scheme, Solana (the ceiling is escrowed)
+
+| Capability | Permitted | Tier | Obtained | Source |
+|---|---|---|---|---|
+| `funds_held_in_customer_account` | yes | `PRIMARY` | 2026-09-20 | x402-foundation/x402 @c9160a6 (main), specs/schemes/upto/scheme_upto_svm.md, 5 Phase 4 Settlement |
+| `partial_debit` | yes | `PRIMARY` | 2026-09-20 | x402-foundation/x402 @c9160a6 (main), specs/schemes/upto/scheme_upto_svm.md, 5 Phase 4 Settlement, application result determines the settled amount |
+| `over_capture` | **no** | `PRIMARY` | 2026-09-20 | x402-foundation/x402 @c9160a6 (main), specs/schemes/upto/scheme_upto_svm.md, 8 Security Properties, No overcharge |
+| `remainder_auto_released` | yes | `PRIMARY` | 2026-09-20 | x402-foundation/x402 @c9160a6 (main), specs/schemes/upto/scheme_upto_svm.md, 5 Phase 4 Settlement, Facilitator settlement procedure |
+| `void_whole_hold` | yes | `PRIMARY` | 2026-09-20 | x402-foundation/x402 @c9160a6 (main), specs/schemes/upto/scheme_upto_svm.md, 5 Phase 4 Settlement, Facilitator settlement procedure |
+| `multiple_captures` | **no** | `PRIMARY` | 2026-09-20 | x402-foundation/x402 @c9160a6 (main), specs/schemes/upto/scheme_upto_svm.md, 9 Out of Scope |
+| `settled_amount_verifiable_against_usage` | **no** | `PRIMARY` | 2026-09-20 | x402-foundation/x402 @c9160a6 (main), specs/schemes/upto/scheme_upto_svm.md, 8 Security Properties, Metering trust |
+
+**`funds_held_in_customer_account`**
+
+> Phase 3's `open` has already escrowed the ceiling, so the client is never charged before the resource runs, and the resource server determines the final charge only once execution completes.
+
+— x402-foundation/x402 @c9160a6 (main), specs/schemes/upto/scheme_upto_svm.md, 5 Phase 4 Settlement, https://raw.githubusercontent.com/x402-foundation/x402/c9160a6cbf0fc831ac7036d400ef2d671493e392/specs/schemes/upto/scheme_upto_svm.md
+
+Unlike the EVM Permit2 binding, SVM upto escrows the full ceiling in an onchain payment channel before the resource runs. The verifier requires the deposit to equal maxAmount exactly.
+
+**`partial_debit`**
+
+> the resource server sets `paymentRequirements.amount` to the actual metered charge (`0 <= actual <= maxAmount`) and signs a `voucherSignature` for that amount.
+
+— x402-foundation/x402 @c9160a6 (main), specs/schemes/upto/scheme_upto_svm.md, 5 Phase 4 Settlement, application result determines the settled amount, https://raw.githubusercontent.com/x402-foundation/x402/c9160a6cbf0fc831ac7036d400ef2d671493e392/specs/schemes/upto/scheme_upto_svm.md
+
+The actual charge may be anywhere from 0 up to the escrowed ceiling, and the server signs a voucher for it. The client signs only the channel open, not the charge.
+
+**`over_capture`**
+
+> Capped by the onchain `deposit`; verifier requires `deposit == maxAmount`.
+
+— x402-foundation/x402 @c9160a6 (main), specs/schemes/upto/scheme_upto_svm.md, 8 Security Properties, No overcharge, https://raw.githubusercontent.com/x402-foundation/x402/c9160a6cbf0fc831ac7036d400ef2d671493e392/specs/schemes/upto/scheme_upto_svm.md
+
+The ceiling is enforced by the escrow balance itself, not only by signature checks. A settle above maxAmount is rejected with invalid_upto_svm_payload_settlement_exceeds_amount.
+
+**`remainder_auto_released`**
+
+> `distribute` is the instruction that pays `payTo`, refunds `deposit - actual` to the payer, closes the escrow token account, and advances the channel to its cleanup state.
+
+— x402-foundation/x402 @c9160a6 (main), specs/schemes/upto/scheme_upto_svm.md, 5 Phase 4 Settlement, Facilitator settlement procedure, https://raw.githubusercontent.com/x402-foundation/x402/c9160a6cbf0fc831ac7036d400ef2d671493e392/specs/schemes/upto/scheme_upto_svm.md
+
+The unused part of the ceiling is refunded inside the same final settlement bundle (settle_and_seal then distribute). If the server never settles, the payer must call request_close and wait out the withdrawDelay grace period.
+
+**`void_whole_hold`**
+
+> For the `actual == 0` refund path, `distribute` moves no funds to `payTo` and returns the full deposit to the client.
+
+— x402-foundation/x402 @c9160a6 (main), specs/schemes/upto/scheme_upto_svm.md, 5 Phase 4 Settlement, Facilitator settlement procedure, https://raw.githubusercontent.com/x402-foundation/x402/c9160a6cbf0fc831ac7036d400ef2d671493e392/specs/schemes/upto/scheme_upto_svm.md
+
+A zero-amount claim settle releases the whole escrowed ceiling. The spec requires the server to settle this way when the resource fails after the deposit.
+
+**`multiple_captures`**
+
+> `upto` settles at most once per authorization.
+
+— x402-foundation/x402 @c9160a6 (main), specs/schemes/upto/scheme_upto_svm.md, 9 Out of Scope, https://raw.githubusercontent.com/x402-foundation/x402/c9160a6cbf0fc831ac7036d400ef2d671493e392/specs/schemes/upto/scheme_upto_svm.md
+
+Streaming and channels reused across many requests are sent to the batch-settlement scheme instead. One authorization is one channel that is sealed and distributed once.
+
+**`settled_amount_verifiable_against_usage`**
+
+> As in the generic `upto` spec, the client trusts the server to meter honestly within the ceiling.
+
+— x402-foundation/x402 @c9160a6 (main), specs/schemes/upto/scheme_upto_svm.md, 8 Security Properties, Metering trust, https://raw.githubusercontent.com/x402-foundation/x402/c9160a6cbf0fc831ac7036d400ef2d671493e392/specs/schemes/upto/scheme_upto_svm.md
+
+New capability name settled_amount_verifiable_against_usage: can the payer verify from protocol data that the settled amount matches actual consumption. The client signs only the channel open; the server signs the voucher that fixes the charge.
+
+
+## `x402_auth_capture` — x402 `auth-capture` scheme (hold, capture, void, reclaim)
+
+| Capability | Permitted | Tier | Obtained | Source |
+|---|---|---|---|---|
+| `funds_held_in_customer_account` | yes | `PRIMARY` | 2026-09-20 | x402-foundation/x402 @c9160a6 (main), specs/schemes/auth-capture/scheme_auth_capture.md, Lifecycle operations table, authorize |
+| `partial_debit` | yes | `PRIMARY` | 2026-09-20 | x402-foundation/x402 @c9160a6 (main), specs/schemes/auth-capture/scheme_auth_capture.md, Summary |
+| `over_capture` | **no** | `PRIMARY` | 2026-09-20 | x402-foundation/x402 @c9160a6 (main), specs/schemes/auth-capture/scheme_auth_capture.md, Core properties, Fund safety |
+| `multiple_captures` | yes | `PRIMARY` | 2026-09-20 | x402-foundation/x402 @c9160a6 (main), specs/schemes/auth-capture/scheme_auth_capture_evm.md, Single-use enforcement |
+| `void_whole_hold` | yes | `PRIMARY` | 2026-09-20 | x402-foundation/x402 @c9160a6 (main), specs/schemes/auth-capture/scheme_auth_capture.md, Lifecycle operations table, void |
+| `partial_void` | **no** | `PRIMARY` | 2026-09-20 | x402-foundation/x402 @c9160a6 (main), specs/schemes/auth-capture/scheme_auth_capture_evm.md, Operator types, escrow ABI table |
+| `remainder_auto_released` | **no** | `PRIMARY` | 2026-09-20 | x402-foundation/x402 @c9160a6 (main), specs/schemes/auth-capture/scheme_auth_capture_evm.md, Lifecycle payloads, capture |
+| `incremental_authorization` | **no** | `PRIMARY` | 2026-09-20 | x402-foundation/x402 @c9160a6 (main), specs/schemes/auth-capture/scheme_auth_capture.md, Lifecycle operations table, authorize |
+
+**`funds_held_in_customer_account`**
+
+> Reserves the client's funds, where they are held.
+
+— x402-foundation/x402 @c9160a6 (main), specs/schemes/auth-capture/scheme_auth_capture.md, Lifecycle operations table, authorize, https://raw.githubusercontent.com/x402-foundation/x402/c9160a6cbf0fc831ac7036d400ef2d671493e392/specs/schemes/auth-capture/scheme_auth_capture.md
+
+Escrow flow: authorize places the hold before the resource runs, and the EVM binding keeps it in an onchain escrow contract. The alternative authorization flow places no hold, so capture, void and reclaim do not apply to it.
+
+**`partial_debit`**
+
+> it can be held before it is finalized, finalized for less than the maximum, cancelled outright, or returned after the fact.
+
+— x402-foundation/x402 @c9160a6 (main), specs/schemes/auth-capture/scheme_auth_capture.md, Summary, https://raw.githubusercontent.com/x402-foundation/x402/c9160a6cbf0fc831ac7036d400ef2d671493e392/specs/schemes/auth-capture/scheme_auth_capture.md
+
+Capture may be for less than the held maximum, and the rest can be voided in the same settle via the optional voidAuthorizerSignature (EVM binding). See the remainder_auto_released row for what happens if no void is sent.
+
+**`over_capture`**
+
+> The amount settled is capped by the client-authorized maximum, and any fee is bounded by client-authorized limits.
+
+— x402-foundation/x402 @c9160a6 (main), specs/schemes/auth-capture/scheme_auth_capture.md, Core properties, Fund safety, https://raw.githubusercontent.com/x402-foundation/x402/c9160a6cbf0fc831ac7036d400ef2d671493e392/specs/schemes/auth-capture/scheme_auth_capture.md
+
+The EVM binding's capture precondition is 0 < amount <= capturableAmount, so a capture cannot exceed what is held. Fees are separately bounded by client-signed minFeeBps and maxFeeBps.
+
+**`multiple_captures`**
+
+> Partial and repeated captures each get their own signature against the snapshot they expect.
+
+— x402-foundation/x402 @c9160a6 (main), specs/schemes/auth-capture/scheme_auth_capture_evm.md, Single-use enforcement, https://raw.githubusercontent.com/x402-foundation/x402/c9160a6cbf0fc831ac7036d400ef2d671493e392/specs/schemes/auth-capture/scheme_auth_capture_evm.md
+
+The scheme table marks capture as repeatable 'up to the held total'. Each capture consent is single-use because the escrow's payment state is the replay key.
+
+**`void_whole_hold`**
+
+> Releases the remaining hold back to the client.
+
+— x402-foundation/x402 @c9160a6 (main), specs/schemes/auth-capture/scheme_auth_capture.md, Lifecycle operations table, void, https://raw.githubusercontent.com/x402-foundation/x402/c9160a6cbf0fc831ac7036d400ef2d671493e392/specs/schemes/auth-capture/scheme_auth_capture.md
+
+void releases whatever hold remains and is refused once nothing remains (EVM precondition capturableAmount > 0). It can follow a partial capture.
+
+**`partial_void`**
+
+> `void` | `void(PaymentInfo paymentInfo)`
+
+— x402-foundation/x402 @c9160a6 (main), specs/schemes/auth-capture/scheme_auth_capture_evm.md, Operator types, escrow ABI table, https://raw.githubusercontent.com/x402-foundation/x402/c9160a6cbf0fc831ac7036d400ef2d671493e392/specs/schemes/auth-capture/scheme_auth_capture_evm.md
+
+The escrow's void takes no amount, so it releases the whole remaining hold; a hold shrinks only by capturing part of it. Voiding the remainder after a partial capture is supported.
+
+**`remainder_auto_released`**
+
+> `voidAuthorizerSignature` is OPTIONAL and present only for a sync partial close-out: when set, this single `/settle` performs `capture` and then `void` on the remaining hold.
+
+— x402-foundation/x402 @c9160a6 (main), specs/schemes/auth-capture/scheme_auth_capture_evm.md, Lifecycle payloads, capture, https://raw.githubusercontent.com/x402-foundation/x402/c9160a6cbf0fc831ac7036d400ef2d671493e392/specs/schemes/auth-capture/scheme_auth_capture_evm.md
+
+A partial capture leaves the rest held unless a void is added, either atomically through the optional signature or as a separate void; the spec itself describes 'a partial that leaves the hold for later'. If no void is sent, the payer's own route to recover the hold is reclaim after the capture deadline.
+
+**`incremental_authorization`**
+
+> `authorize` | Reserves the client's funds, where they are held. | No — once per payment.
+
+— x402-foundation/x402 @c9160a6 (main), specs/schemes/auth-capture/scheme_auth_capture.md, Lifecycle operations table, authorize, https://raw.githubusercontent.com/x402-foundation/x402/c9160a6cbf0fc831ac7036d400ef2d671493e392/specs/schemes/auth-capture/scheme_auth_capture.md
+
+authorize is once per payment and PaymentInfo, including maxAmount, is committed by paymentInfoHash. The lifecycle table lists no top-up operation.
+
+
+## `x402_batch_settlement` — x402 `batch-settlement` scheme (a long-lived channel)
+
+| Capability | Permitted | Tier | Obtained | Source |
+|---|---|---|---|---|
+| `funds_held_in_customer_account` | yes | `PRIMARY` | 2026-09-20 | x402-foundation/x402 @c9160a6 (main), specs/schemes/batch-settlement/scheme_batch_settlement_evm.md, Channel Lifecycle, Channel creation and deposits |
+| `partial_debit` | yes | `PRIMARY` | 2026-09-20 | x402-foundation/x402 @c9160a6 (main), specs/schemes/batch-settlement/scheme_batch_settlement_evm.md, Summary |
+| `multiple_captures` | yes | `PRIMARY` | 2026-09-20 | x402-foundation/x402 @c9160a6 (main), specs/schemes/batch-settlement/scheme_batch_settlement_evm.md, Channel Lifecycle, Requests and vouchers |
+| `partial_void` | yes | `PRIMARY` | 2026-09-20 | x402-foundation/x402 @c9160a6 (main), specs/schemes/batch-settlement/scheme_batch_settlement_evm.md, Client: Payment Construction, Refund Payload |
+| `remainder_auto_released` | **no** | `PRIMARY` | 2026-09-20 | x402-foundation/x402 @c9160a6 (main), specs/schemes/batch-settlement/scheme_batch_settlement_evm.md, Security and Trust, 2. Withdrawal delay as escape hatch |
+| `settled_amount_verifiable_against_usage` | **no** | `PRIMARY` | 2026-09-20 | x402-foundation/x402 @c9160a6 (main), specs/schemes/batch-settlement/scheme_batch_settlement_evm.md, Security and Trust, 1. Capital risk and cumulative replay protection |
+
+**Numeric limits** — enforced, not decorative. Unlike capabilities, an unverified limit is still applied: thin evidence means refuse more, never less.
+
+| Limit | Value | Tier | Obtained | Source |
+|---|---|---|---|---|
+| `withdraw_delay_max_days` | 30 days | `PRIMARY` | 2026-09-20 | x402-foundation/x402 @c9160a6 (main), specs/schemes/batch-settlement/scheme_batch_settlement_evm.md, Security and Trust, 2. Withdrawal delay as escape hatch |
+
+**`withdraw_delay_max_days`** — withdrawDelay must lie between 15 minutes and 30 days, so a payer's unilateral exit completes at least 15 minutes and at most 30 days after it starts. The 15-minute lower bound cannot be expressed in the allowed units.
+
+**`funds_held_in_customer_account`**
+
+> The client deposits funds from the `payer` address into an onchain escrow via one of two asset transfer methods
+
+— x402-foundation/x402 @c9160a6 (main), specs/schemes/batch-settlement/scheme_batch_settlement_evm.md, Channel Lifecycle, Channel creation and deposits, https://raw.githubusercontent.com/x402-foundation/x402/c9160a6cbf0fc831ac7036d400ef2d671493e392/specs/schemes/batch-settlement/scheme_batch_settlement_evm.md
+
+Funds sit in a long-lived channel escrow rather than a per-payment hold. Balance minus totalClaimed is the unclaimed escrow that a refund or withdrawal can return.
+
+**`partial_debit`**
+
+> the client authorizes a maximum per-request, and the server charges the actual cost within that ceiling.
+
+— x402-foundation/x402 @c9160a6 (main), specs/schemes/batch-settlement/scheme_batch_settlement_evm.md, Summary, https://raw.githubusercontent.com/x402-foundation/x402/c9160a6cbf0fc831ac7036d400ef2d671493e392/specs/schemes/batch-settlement/scheme_batch_settlement_evm.md
+
+Dynamic pricing within a per-request maximum; each voucher carries a cumulative ceiling and the server tracks actual charges.
+
+**`multiple_captures`**
+
+> The server tracks a running total of actual charges per channel (`chargedCumulativeAmount`).
+
+— x402-foundation/x402 @c9160a6 (main), specs/schemes/batch-settlement/scheme_batch_settlement_evm.md, Channel Lifecycle, Requests and vouchers, https://raw.githubusercontent.com/x402-foundation/x402/c9160a6cbf0fc831ac7036d400ef2d671493e392/specs/schemes/batch-settlement/scheme_batch_settlement_evm.md
+
+Many claims accumulate against one deposit because vouchers are cumulative, and the server claims onchain at its discretion. Channels are long-lived and can be topped up after a refund.
+
+**`partial_void`**
+
+> The optional `amount` requests a partial refund; omit it for a full refund.
+
+— x402-foundation/x402 @c9160a6 (main), specs/schemes/batch-settlement/scheme_batch_settlement_evm.md, Client: Payment Construction, Refund Payload, https://raw.githubusercontent.com/x402-foundation/x402/c9160a6cbf0fc831ac7036d400ef2d671493e392/specs/schemes/batch-settlement/scheme_batch_settlement_evm.md
+
+A partial cooperative refund of unclaimed escrow is possible but needs receiver-side consent. The unilateral route is a timed withdrawal after the withdrawDelay.
+
+**`remainder_auto_released`**
+
+> Cooperative refund returns unclaimed balance immediately when the server cooperates; timed withdrawal is the unilateral fallback.
+
+— x402-foundation/x402 @c9160a6 (main), specs/schemes/batch-settlement/scheme_batch_settlement_evm.md, Security and Trust, 2. Withdrawal delay as escape hatch, https://raw.githubusercontent.com/x402-foundation/x402/c9160a6cbf0fc831ac7036d400ef2d671493e392/specs/schemes/batch-settlement/scheme_batch_settlement_evm.md
+
+Unclaimed balance is not returned automatically: it takes a cooperative refund or a payer-initiated timed withdrawal. The spec is explicit that servers bear the risk of vouchers left unclaimed when the withdrawal finalizes.
+
+**`settled_amount_verifiable_against_usage`**
+
+> Over-claiming is a trust violation, not a protocol violation.
+
+— x402-foundation/x402 @c9160a6 (main), specs/schemes/batch-settlement/scheme_batch_settlement_evm.md, Security and Trust, 1. Capital risk and cumulative replay protection, https://raw.githubusercontent.com/x402-foundation/x402/c9160a6cbf0fc831ac7036d400ef2d671493e392/specs/schemes/batch-settlement/scheme_batch_settlement_evm.md
+
+New capability name settled_amount_verifiable_against_usage: can the payer verify from protocol data that the settled amount matches actual consumption. The receiver authorizer determines totalClaimed onchain within the signed ceiling, so an over-claim is not something the protocol rejects.
+
+
 ## Outstanding verification
 
-3 capabilities are still unverified and therefore refused:
+6 capabilities are still unverified and therefore refused:
 
 - `sbmd.block_amount_reducible_without_revoke`
 - `upi_otm.post_delivery_debit_goods`
 - `cashfree_preauth.remainder_auto_released`
+- `visa_card_auth.remainder_auto_released`
+- `visa_card_auth.over_capture`
+- `stripe_card_manual_capture.partial_void`
 
 ## Why this file exists
 
