@@ -250,6 +250,21 @@ class Limit:
         return f"{self.value} {self.unit}"
 
 
+# Hyperswitch (Apache-2.0) publishes a per-connector capability flag. A rail that is one of its
+# connectors carries that connector's name, so the registry can be joined to their matrix. The
+# mapping is checked offline against this committed, unmodified copy of their `Connector` enum at a
+# pinned commit. Cashfree and Setu are not connectors there, and networks, schemes and protocols
+# never are, so those rails carry none.
+HYPERSWITCH = {
+    "repo": "juspay/hyperswitch",
+    "commit": "329f7d7d3d3d178c9be1efa08ec39c3eaaf9fc0a",
+    "file": "crates/common_enums/src/connector_enums.rs",
+    "snapshot_path": "docs/sources/hyperswitch-connector_enums-329f7d7.rs",
+    "snapshot_sha256": "f2356327613a3c791777089593bd166d30213a534471be5bc99f63a5e5e85840",
+    "checked_on": "2026-09-21",
+}
+
+
 @dataclass
 class RailProfile:
     """One payment rail and everything we can evidence about it."""
@@ -258,12 +273,15 @@ class RailProfile:
     display_name: str
     capabilities: dict[str, Capability] = field(default_factory=dict)
     limits: dict[str, Limit] = field(default_factory=dict)
+    hyperswitch_connector: str | None = None
 
     def __init__(self, rail_id: str, display_name: str,
                  capabilities: list[Capability] | None = None,
-                 limits: list[Limit] | None = None) -> None:
+                 limits: list[Limit] | None = None,
+                 hyperswitch_connector: str | None = None) -> None:
         self.rail_id = rail_id
         self.display_name = display_name
+        self.hyperswitch_connector = hyperswitch_connector
         self.capabilities = {c.name: c for c in (capabilities or [])}
         self.limits = {l.name: l for l in (limits or [])}
 
@@ -1100,6 +1118,7 @@ SBMD = RailProfile(
 RAZORPAY_AUTH_CAPTURE = RailProfile(
     rail_id="razorpay_auth_capture",
     display_name="Razorpay manual capture (payment_capture=0)",
+    hyperswitch_connector="razorpay",
     capabilities=[
         Capability(
             name="partial_debit", supported=False,

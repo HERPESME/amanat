@@ -18,7 +18,7 @@ import json
 from pathlib import Path
 
 from amanat.rails.semantics import (
-    CONCEPTS, RAILS, SOURCE_COPIES, Capability, Limit, RailProfile, SourceTier,
+    CONCEPTS, HYPERSWITCH, RAILS, SOURCE_COPIES, Capability, Limit, RailProfile, SourceTier,
 )
 from amanat.probes import runner
 from amanat.registry import store, watch
@@ -142,6 +142,7 @@ def build(store_dir: Path | None = None) -> dict:
         {
             "rail_id": rail.rail_id,
             "display_name": rail.display_name,
+            "hyperswitch_connector": rail.hyperswitch_connector,
             "capabilities": [_capability(rail, c, history, probes) for c in rail.capabilities.values()],
             "limits": [_limit(rail, l, history, probes) for l in rail.limits.values()],
         }
@@ -157,6 +158,7 @@ def build(store_dir: Path | None = None) -> dict:
         "tiers": [{"tier": t.value, "usable_as_fact": t.is_fact, "meaning": t.meaning}
                   for t in SourceTier],
         "concepts": _concepts(),
+        "overlays": {"hyperswitch": dict(HYPERSWITCH)},
         "sources": _sources(),
         "stores": _stores(paths),
         "rails": rails,

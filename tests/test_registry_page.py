@@ -306,6 +306,22 @@ class TestWhatItSaysAboutItsOwnEvidence:
             assert s["sha256"] in HTML
 
 
+class TestTheHyperswitchJoinKey:
+    def test_a_rail_that_is_a_connector_says_so_and_a_rail_that_is_not_does_not(self):
+        for rail in DOC["rails"]:
+            section = re.search(rf'<section class="rail-sec" id="rail-{re.escape(rail["rail_id"].replace("_", "-"))}">.*?</h3>',
+                                HTML, flags=re.S).group(0)
+            if rail["hyperswitch_connector"]:
+                assert f'hyperswitch: {rail["hyperswitch_connector"]}</span>' in section, rail["rail_id"]
+            else:
+                assert "hyperswitch:" not in section, rail["rail_id"]
+
+    def test_the_connector_name_is_escaped(self):
+        bad = copy.deepcopy(DOC)
+        bad["rails"][0]["hyperswitch_connector"] = "<b>x</b>"
+        assert "<b>x</b>" not in page.render(bad) and "&lt;b&gt;x&lt;/b&gt;" in page.render(bad)
+
+
 class TestThePublishedFileIsCurrent:
     def test_the_committed_page_is_the_one_the_code_writes(self):
         committed = (ROOT / "docs" / "registry" / "index.html").read_text(encoding="utf-8")

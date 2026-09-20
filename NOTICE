@@ -2,3 +2,9 @@ Amanat
 Copyright 2026 Eeshan Singh Pokharia
 
 This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+This repository keeps one unmodified third-party file for checking a list of names:
+docs/sources/hyperswitch-connector_enums-329f7d7.rs is crates/common_enums/src/connector_enums.rs from
+github.com/juspay/hyperswitch at commit 329f7d7d3d3d178c9be1efa08ec39c3eaaf9fc0a, licensed under the
+Apache License, Version 2.0 by Juspay Technologies. It is used only to verify the connector names in
+docs/registry/registry.json.

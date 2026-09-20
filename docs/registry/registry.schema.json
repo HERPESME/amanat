@@ -10,6 +10,7 @@
     "as_of",
     "tiers",
     "concepts",
+    "overlays",
     "sources",
     "stores",
     "rails"
@@ -40,6 +41,50 @@
       "type": "array",
       "items": {
         "$ref": "#/$defs/concept"
+      }
+    },
+    "overlays": {
+      "description": "Keys that join this registry to other projects' data, and what each was checked against.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "hyperswitch"
+      ],
+      "properties": {
+        "hyperswitch": {
+          "description": "Hyperswitch publishes a per-connector capability flag. A rail that is one of its connectors carries that connector's name (`hyperswitch_connector`); the mapping was checked against an unmodified, committed copy of their Connector enum at this commit.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "repo",
+            "commit",
+            "file",
+            "snapshot_path",
+            "snapshot_sha256",
+            "checked_on"
+          ],
+          "properties": {
+            "repo": {
+              "type": "string"
+            },
+            "commit": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            "file": {
+              "type": "string"
+            },
+            "snapshot_path": {
+              "type": "string"
+            },
+            "snapshot_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "checked_on": {
+              "$ref": "#/$defs/date"
+            }
+          }
+        }
       }
     },
     "sources": {
@@ -347,6 +392,7 @@
       "required": [
         "rail_id",
         "display_name",
+        "hyperswitch_connector",
         "capabilities",
         "limits"
       ],
@@ -358,6 +404,18 @@
         "display_name": {
           "type": "string",
           "minLength": 1
+        },
+        "hyperswitch_connector": {
+          "description": "The Hyperswitch connector this rail is, or null. Networks, schemes and protocols are not connectors.",
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^[a-z]+$"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "capabilities": {
           "type": "array",

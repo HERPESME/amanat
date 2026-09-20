@@ -8,7 +8,7 @@
 
 *Block a ceiling. Debit the actual. Prove what the money did.*
 
-[![tests](https://img.shields.io/badge/tests-1242%20passing-2ea44f?style=flat-square)](#testing)
+[![tests](https://img.shields.io/badge/tests-1254%20passing-2ea44f?style=flat-square)](#testing)
 [![python](https://img.shields.io/badge/python-3.11%2B-3776ab?style=flat-square)](#quick-start)
 [![live rail](https://img.shields.io/badge/live%20rail-%E2%82%B9470%20of%20%E2%82%B9620%20%C2%B7%20HTTP%20200-2ea44f?style=flat-square)](#what-it-does)
 [![rails](https://img.shields.io/badge/rails-UPI%20SBMD%20%C2%B7%20Cashfree%20%C2%B7%20Razorpay%20%C2%B7%20Setu-6c5ce7?style=flat-square)](#the-evidence-table)
@@ -132,7 +132,7 @@ git clone https://github.com/HERPESME/amanat && cd amanat
 # The eight-act walkthrough — the whole argument in one command
 uv run --with cryptography python -m amanat.demo
 
-# 1242 tests. No API key, no network (Node.js runs the browser-verifier tests).
+# 1254 tests. No API key, no network (Node.js runs the browser-verifier tests).
 uv run --with pytest --with cryptography --with httpx --with fastapi --with pydantic \
        --with numpy --with scikit-learn --with pandas --with pyarrow --with hypothesis pytest tests/ -q
 ```
@@ -473,6 +473,12 @@ matrix — questions down, rails across — where every cell is one rail's answe
 rests on, the date, and whether the source has been re-read since. It works without JavaScript and
 loads nothing from outside. Open the file, or run the console and visit `/registry/`.
 
+Rails that are [Hyperswitch](https://github.com/juspay/hyperswitch) connectors — Stripe, Adyen, Razorpay — carry the
+connector's name (`hyperswitch_connector` in the export), so the registry can be joined to Hyperswitch's own
+per-connector capability flag: theirs says whether, this says what the quote, the date and the probe are. The mapping is
+checked offline against an unmodified copy of their `Connector` enum at a pinned commit. Cashfree and Setu are not
+connectors there, and networks, schemes and protocols never are, so those rails carry none.
+
 A dated snapshot in prose: [Rail Semantics Report #1](docs/reports/rail-semantics-report-1.md), generated from the
 registry and the evidence streams behind it, so every number and list in it is computed and CI fails if it drifts. It
 is a draft for a person to publish. Anything in it that reads as a bug in a vendor's product should reach that vendor
@@ -584,7 +590,7 @@ uv run --with pytest --with cryptography --with httpx --with fastapi --with pyda
        --with numpy --with scikit-learn --with pandas --with pyarrow --with hypothesis pytest tests/ -q
 ```
 
-**1242 tests, no credential and no network.** If proving the agent is bounded ever
+**1254 tests, no credential and no network.** If proving the agent is bounded ever
 required a live model, the agent would not be bounded.
 
 | Suite | What it pins |

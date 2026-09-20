@@ -177,7 +177,10 @@ def _rails(doc: dict) -> str:
         rows = [_row_details(rail, "capability", c) for c in rail["capabilities"]]
         rows += [_row_details(rail, "limit", l) for l in rail["limits"]]
         out.append(f'<section class="rail-sec" id="rail-{_e(rail["rail_id"].replace("_", "-"))}"><h3>{_e(rail["display_name"])} '
-                   f'<span class="mono dim">{_e(rail["rail_id"])}</span></h3>{"".join(rows)}</section>')
+                   f'<span class="mono dim">{_e(rail["rail_id"])}</span>'
+                   + (f' <span class="chip" title="the name Hyperswitch gives this connector">hyperswitch: {_e(rail["hyperswitch_connector"])}</span>'
+                      if rail["hyperswitch_connector"] else "")
+                   + f'</h3>{"".join(rows)}</section>')
     return "".join(out)
 
 

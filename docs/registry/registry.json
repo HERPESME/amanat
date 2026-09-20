@@ -240,6 +240,16 @@
       ]
     }
   ],
+  "overlays": {
+    "hyperswitch": {
+      "repo": "juspay/hyperswitch",
+      "commit": "329f7d7d3d3d178c9be1efa08ec39c3eaaf9fc0a",
+      "file": "crates/common_enums/src/connector_enums.rs",
+      "snapshot_path": "docs/sources/hyperswitch-connector_enums-329f7d7.rs",
+      "snapshot_sha256": "f2356327613a3c791777089593bd166d30213a534471be5bc99f63a5e5e85840",
+      "checked_on": "2026-09-21"
+    }
+  },
   "sources": [
     {
       "url": "https://www.npci.org.in/uploads/UPI_OC_No_228_FY_2025_26_Enhancement_in_UPI_Single_Block_Multiple_Debits_UPI_Reserve_Pay_a9095c181d.pdf",
@@ -270,6 +280,7 @@
     {
       "rail_id": "sbmd",
       "display_name": "UPI Reserve Pay (NPCI Single Block Multiple Debit)",
+      "hyperswitch_connector": null,
       "capabilities": [
         {
           "name": "payment_guarantee",
@@ -726,6 +737,7 @@
     {
       "rail_id": "razorpay_auth_capture",
       "display_name": "Razorpay manual capture (payment_capture=0)",
+      "hyperswitch_connector": "razorpay",
       "capabilities": [
         {
           "name": "partial_debit",
@@ -918,6 +930,7 @@
     {
       "rail_id": "upi_otm",
       "display_name": "UPI One Time Mandate",
+      "hyperswitch_connector": null,
       "capabilities": [
         {
           "name": "post_delivery_debit_goods",
@@ -965,6 +978,7 @@
     {
       "rail_id": "cashfree_preauth",
       "display_name": "Cashfree UPI pre-authorization",
+      "hyperswitch_connector": null,
       "capabilities": [
         {
           "name": "partial_debit",
@@ -1304,6 +1318,7 @@
     {
       "rail_id": "setu_umap",
       "display_name": "Setu UMAP (UPI mandates)",
+      "hyperswitch_connector": null,
       "capabilities": [
         {
           "name": "credentials_self_serve",
@@ -1367,6 +1382,7 @@
     {
       "rail_id": "visa_card_auth",
       "display_name": "Visa card authorization (merchant requirements guide)",
+      "hyperswitch_connector": null,
       "capabilities": [
         {
           "name": "funds_held_in_customer_account",
@@ -1719,6 +1735,7 @@
     {
       "rail_id": "stripe_card_manual_capture",
       "display_name": "Stripe cards, manual capture (hold, then capture)",
+      "hyperswitch_connector": "stripe",
       "capabilities": [
         {
           "name": "funds_held_in_customer_account",
@@ -2031,6 +2048,7 @@
     {
       "rail_id": "adyen_card_auth",
       "display_name": "Adyen cards, pre-authorization and capture",
+      "hyperswitch_connector": "adyen",
       "capabilities": [
         {
           "name": "funds_held_in_customer_account",
@@ -2303,6 +2321,7 @@
     {
       "rail_id": "x402",
       "display_name": "x402 protocol extensions",
+      "hyperswitch_connector": null,
       "capabilities": [
         {
           "name": "idempotent_replay",
@@ -2334,6 +2353,7 @@
     {
       "rail_id": "x402_exact",
       "display_name": "x402 `exact` scheme (a fixed amount, no ceiling)",
+      "hyperswitch_connector": null,
       "capabilities": [
         {
           "name": "partial_debit",
@@ -2413,6 +2433,7 @@
     {
       "rail_id": "x402_upto_evm",
       "display_name": "x402 `upto` scheme, EVM (a Permit2 signature: a cap, no hold)",
+      "hyperswitch_connector": null,
       "capabilities": [
         {
           "name": "partial_debit",
@@ -2540,6 +2561,7 @@
     {
       "rail_id": "x402_upto_svm",
       "display_name": "x402 `upto` scheme, Solana (the ceiling is escrowed)",
+      "hyperswitch_connector": null,
       "capabilities": [
         {
           "name": "funds_held_in_customer_account",
@@ -2715,6 +2737,7 @@
     {
       "rail_id": "x402_auth_capture",
       "display_name": "x402 `auth-capture` scheme (hold, capture, void, reclaim)",
+      "hyperswitch_connector": null,
       "capabilities": [
         {
           "name": "funds_held_in_customer_account",
@@ -2914,6 +2937,7 @@
     {
       "rail_id": "x402_batch_settlement",
       "display_name": "x402 `batch-settlement` scheme (a long-lived channel)",
+      "hyperswitch_connector": null,
       "capabilities": [
         {
           "name": "funds_held_in_customer_account",

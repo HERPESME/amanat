@@ -382,6 +382,7 @@ VISA_CARD_AUTH = RailProfile(
 
 STRIPE_CARD_MANUAL_CAPTURE = RailProfile(
     rail_id='stripe_card_manual_capture',
+    hyperswitch_connector='stripe',
     display_name='Stripe cards, manual capture (hold, then capture)',
     capabilities=[
         Capability(
@@ -570,6 +571,7 @@ STRIPE_CARD_MANUAL_CAPTURE = RailProfile(
 
 ADYEN_CARD_AUTH = RailProfile(
     rail_id='adyen_card_auth',
+    hyperswitch_connector='adyen',
     display_name='Adyen cards, pre-authorization and capture',
     capabilities=[
         Capability(
