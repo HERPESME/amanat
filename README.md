@@ -512,6 +512,22 @@ response, on eight different orders, carries the same `action_reference` (`CAP_1
 "Duplicate capture_id" wording is probably a sandbox artefact. And none of it says where the
 uncaptured remainder goes — that leg is measured separately (see the release log above).
 
+### Clocks — a hold that outlives what it was for
+
+A ceiling is the customer's money, held, and a forgotten remainder does its harm slowly. An SBMD
+block stays until it is revoked or expires; Cashfree documents that an authorisation not captured
+within seven days is released and is silent about the remainder of a partial capture; Razorpay
+refunds an uncaptured payment after at most three days. `session.obligations()` reads three clocks
+off the chain: the rail's own deadline where the registry cites one (`hold_expiry_days`), the
+deadline the human gave (`release_remainder_within` — what is not drawn is released within so long
+of the last debit), and the end of the envelope. `session.sweep()` writes each overdue one into the
+chain as an `obligation` entry, once. It releases nothing and asks the rail nothing: noticing is
+evidence; acting on it is a person's decision, or a later step's. The human's deadline is switched
+off only where the registry has evidence usable as fact that the rail returns the remainder by
+itself, so on Cashfree, whose release is `UNVERIFIED`, it keeps running. The detector is a pure
+function of a chain's entries and a time (`amanat.policy.obligations`), so it reads an exported
+packet as well as a live session, and no model is anywhere near it.
+
 ---
 
 ## Project structure
@@ -532,6 +548,7 @@ src/amanat/
 ├── policy/
 │   ├── envelope.py     ← the human's grant. Frozen; widening leaves a trace.
 │   ├── consent.py      ← the human's signed widening: signed elsewhere, verified here
+│   ├── obligations.py  ← the clocks a hold carries; a pure read of the chain
 │   └── engine.py       ← deterministic. No model call, ever.
 ├── evidence/
 │   ├── chain.py        ← Ed25519 + SHA-256, append-only, records refusals; keys, checkpoints
@@ -568,6 +585,7 @@ required a live model, the agent would not be bounded.
 | `test_packet_trust.py` | what verification proves: a forgery and a truncation pass unpinned and **fail** when pinned to a key or checkpoint |
 | `test_envelope_and_ledger.py` | a frozen grant; budget = spent + held; one standing block; the rail and the ledger agree |
 | `test_recovery.py` | a crash or a lost response converges exactly once: write-ahead intent, idempotent rail, IN_DOUBT |
+| `test_obligations.py` | a forgotten remainder is noticed at its deadline, once, and the notice is evidence; no money moves |
 | `test_consent.py` | the human's consent is signed elsewhere and verified here — including a consent signed by Node's WebCrypto |
 | `test_cashfree_adapter.py` · `test_cashfree_settle.py` | the adapter and the signed receipt state only what the rail said |
 | `test_session.py` | no path to money skips policy |

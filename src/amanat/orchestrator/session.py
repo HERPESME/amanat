@@ -17,6 +17,7 @@ agent is not bounded.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import datetime, timedelta, timezone
 
 from amanat.evidence.canonical import MAX_SAFE_INT, sanitize_text
 from amanat.evidence.chain import Actor, EventType, EvidenceChain
@@ -26,6 +27,7 @@ from amanat.policy.consent import (
 )
 from amanat.policy.engine import Action, PolicyEngine, Proposal, Verdict
 from amanat.policy.envelope import Envelope, LedgerState
+from amanat.policy.obligations import Obligation, ObligationPolicy, obligations as _obligations, overdue
 from amanat.rails.base import BlockRef, RailError
 from amanat.rails.simulator import SimulatedRail
 
@@ -84,8 +86,10 @@ class AgentSession:
 
     def __init__(self, envelope: Envelope, rail: SimulatedRail,
                  chain: EvidenceChain | None = None, *, resume: bool = False,
-                 mandate: dict | None = None) -> None:
+                 mandate: dict | None = None,
+                 release_remainder_within: timedelta | None = None) -> None:
         self.envelope = envelope
+        self.release_remainder_within = release_remainder_within   # the human's deadline, if any
         self.rail = rail
         self.chain = chain or EvidenceChain.new(envelope.subject)
         self.engine = PolicyEngine(chain=self.chain)
@@ -141,6 +145,35 @@ class AgentSession:
 
     def status(self) -> ActionResult:
         return ActionResult(True, "current position", state=self._snapshot())
+
+    # -- clocks: a hold that outlives what it was for --------------------------
+
+    def obligations(self, now: datetime | None = None) -> list[Obligation]:
+        """The deadlines running on this session's holds: the rail's own (where the registry
+        cites one), the human's release deadline, and the end of the envelope. Reads the chain;
+        moves no money."""
+        policy = ObligationPolicy(release_remainder_within=self.release_remainder_within,
+                                  resolve_by=self.envelope.expires_at)
+        return _obligations(self.chain.entries, rail_id=self.rail.rail_id,
+                            now=now or datetime.now(timezone.utc), policy=policy)
+
+    def sweep(self, now: datetime | None = None) -> list[Obligation]:
+        """Write each overdue obligation into the chain, once, and return the ones just written.
+
+        Noticing an orphan is evidence too. Nothing is released and the rail is not asked: what
+        to do about a forgotten remainder is a decision for a person or a later, separate step.
+        """
+        now = now or datetime.now(timezone.utc)
+        noted = {(e.payload.get("kind"), e.payload.get("block_id"))
+                 for e in self.chain.entries if e.event_type is EventType.OBLIGATION}
+        fresh = []
+        for o in overdue(self.obligations(now)):
+            if (o.kind, o.block_id) in noted:
+                continue
+            self.chain.append(Actor.POLICY, EventType.OBLIGATION, o.to_payload(now))
+            noted.add((o.kind, o.block_id))
+            fresh.append(o)
+        return fresh
 
     # -- re-approval: the cap is the human's, and only the human can raise it ----
 

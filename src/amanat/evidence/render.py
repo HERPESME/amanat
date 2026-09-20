@@ -330,6 +330,7 @@ button:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
   border:1px solid var(--line);color:var(--dim)}
 .chip.rail_transition{color:var(--brand);border-color:var(--brand);background:var(--brand-soft)}
 .chip.refusal{color:var(--bad);border-color:var(--bad);background:var(--bad-soft)}
+.chip.obligation{color:var(--bad);border-color:var(--bad);background:var(--bad-soft)}
 .chip.policy_decision,.chip.intent,.chip.envelope,.chip.proposal{color:var(--dim)}
 .actor{font-size:12.5px;color:var(--dim)}
 .chk{margin-left:auto;font-family:var(--mono);font-size:11.5px;font-weight:500;

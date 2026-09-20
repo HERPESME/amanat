@@ -189,6 +189,7 @@ fieldset legend{font-family:var(--mono);font-size:10px;text-transform:uppercase;
   padding:.1rem .42rem;border-radius:5px;border:1px solid var(--line);color:var(--faint)}
 .chip.rail_transition{color:var(--brand);border-color:color-mix(in srgb,var(--brand) 40%,transparent)}
 .chip.refusal{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 40%,transparent)}
+.chip.obligation{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 40%,transparent)}
 .chip.policy_decision{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 40%,transparent)}
 .summ{font-size:13px;flex:1;min-width:8rem}
 .summ .amt{font-family:var(--mono);font-variant-numeric:tabular-nums}
@@ -494,6 +495,7 @@ function summarize(e){
     case 'refusal': return '<b>refused</b> — '+esc(p.reason||p.rule||'');
     case 'rail_intent': return 'about to ask the rail to <b>'+esc(p.action)+'</b> <span class="amt">'+rs(p.amount)+'</span> — written before the call';
     case 'rail_in_doubt': return '<b>outcome unknown</b> — the '+esc(p.action)+' of '+rs(p.amount)+' did not complete; no further money moves until it is resolved';
+    case 'obligation': return '<b>overdue</b> — <span class="amt">'+rs(p.remainder||0)+'</span> still held on '+esc(p.block_id)+' past its '+esc(String(p.kind||'').replace(/_/g,' '))+' deadline';
     case 'compensation': return '<b>compensation owed</b> — '+rs(p.refund_due||0)+' captured but not yet returned after '+esc(p.attempts)+' refund attempts';
     case 'rail_transition': {
       const verb=esc((p.transition||p.action||'').toString());

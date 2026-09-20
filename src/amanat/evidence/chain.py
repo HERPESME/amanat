@@ -90,6 +90,7 @@ class EventType(Enum):
     RAIL_IN_DOUBT = "rail_in_doubt"      # the call did not complete; its outcome is unknown
     REFUSAL = "refusal"                  # a boundary the system declined to cross
     COMPENSATION = "compensation"        # money moved, the follow-up failed: owed, not forgotten
+    OBLIGATION = "obligation"            # a deadline a hold carries has passed with money still held
 
 
 def _canonical_v1(payload: Any) -> bytes:
