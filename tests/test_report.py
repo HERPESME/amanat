@@ -430,3 +430,31 @@ class TestTheQuestionThatSeparatesCashfreeFromX402IsInTheReport:
 
     def test_it_sits_beside_partial_void_so_the_two_are_read_together(self):
         assert MD.index("### `partial_void`") < MD.index("### `void_after_partial_capture`") < MD.index("### `void_whole_hold`")
+
+
+class TestTheReportSaysWhatHappenedAboutTellingTheVendors:
+    """The protocol says a vendor is told before anything that reads as a bug is published. This
+    repository was published first, by the owner's decision. A document that goes on saying "should
+    reach the vendor first" while it is public would be a claim the project does not keep."""
+
+    def test_the_report_ends_by_saying_it_was_published_before_the_vendors_were_told_and_where_to_correct_it(self):
+        tail = _flat(MD[MD.index("## Telling the vendors"):])
+        assert "was published before the vendors it discusses were told" in tail
+        assert "open an issue titled `row: <rail_id>.<capability>`" in tail
+        assert "Corrections are dated and marked as corrections, never silently edited." in tail
+        assert "## Before this is published" not in MD
+
+    def test_the_vendor_note_opens_with_its_status_and_says_the_protocol_was_not_followed_this_time(self):
+        note = _flat(TestTheVendorNote.NOTE)
+        head = note[:note.index("## What triggers it")]
+        assert "## Status" in head and "**before** any vendor was told" in head and "was not followed" in head
+        assert "Nothing has been sent" in head
+
+    def test_the_readme_says_it_too(self):
+        readme = _flat((ROOT / "README.md").read_text(encoding="utf-8"))
+        assert "was published before that happened" in readme
+
+    def test_claude_md_records_the_exception_and_keeps_the_rule_for_what_comes_next(self):
+        text = _flat((ROOT / "CLAUDE.md").read_text(encoding="utf-8"))
+        assert "published on 21 Sep 2026 before any vendor was told" in text
+        assert "for anything new" in text

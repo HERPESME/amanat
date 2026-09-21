@@ -4,6 +4,15 @@ A measurement can read as an accusation. This registry records what a vendor's d
 what its sandbox did, on a date. Anything that could be read as a bug, an inconsistency or a gap in a
 vendor's product reaches that vendor **before** it is published.
 
+## Status
+
+This repository, this protocol and the four candidates below were published on 21 Sep 2026 **before** any
+vendor was told, at the owner's decision, so the protocol was not followed in this instance. Nothing has
+been sent yet: the notes are drafted, and they go out after publication instead of fourteen days before it.
+A row a vendor says is wrong is corrected, and the correction is dated and marked as one (open an issue titled
+`row: <rail_id>.<capability>`). For anything new that reads as a bug in a vendor's product the protocol below
+is the default again.
+
 ## What triggers it
 
 1. A sandbox behaves differently from what the vendor documents.
@@ -49,8 +58,8 @@ the observation; a correction is marked as one, not silently edited.
 
 ## Candidates, as of 2026-09-21
 
-Nothing has been sent. These are the items in the current data that would need this step before a
-report is published.
+Nothing has been sent. These are the items in the current data that would have needed this step before
+publication.
 
 1. **Cashfree sandbox: a constant capture reference.** On every hold that saw a successful capture, the
    capture carries `action_reference: CAP_12121` (and every voided hold carries `VOID_12121`), and a second

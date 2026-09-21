@@ -206,7 +206,11 @@ Source documents committed to the repository:
 | `docs/sources/NPCI-UPI-OC-228-2025-26-Enhancements-in-UPI-Single-Block-Multiple-Debits-Reserve-Pay.pdf` | `f478fbc17a0391c8e18864ee46e0f0839e685a98c750d36fed48566a37d2a3fc` |
 | `docs/sources/NPCI-UPI-OC-200-2024-25-Enablement-of-UPI-Mandate-feature-of-Single-Block-Multiple-Debits.pdf` | `ddc20a6733b54448a2586a3b6085dc8b24f2f450f529d11bfbaabd799208fb9c` |
 
-## Before this is published
+## Telling the vendors
 
-Anything here that reads as a bug or an inconsistency in a vendor's product should reach that vendor first. See
-[`VENDOR-NOTIFICATION.md`](VENDOR-NOTIFICATION.md).
+Anything here that reads as a bug or an inconsistency in a vendor's product should reach that vendor before it is
+published. This report was published before the vendors it discusses were told, by the repository owner's decision, so
+that protocol was not followed here. What would have gone to them beforehand is in
+[`VENDOR-NOTIFICATION.md`](VENDOR-NOTIFICATION.md), with notes drafted; nothing has been sent yet. A row a vendor says is
+wrong is corrected: open an issue titled `row: <rail_id>.<capability>` with the sentence you would put instead.
+Corrections are dated and marked as corrections, never silently edited.

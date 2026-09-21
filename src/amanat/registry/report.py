@@ -366,10 +366,14 @@ Source documents committed to the repository:
 |---|---|
 {docs}
 
-## Before this is published
+## Telling the vendors
 
-Anything here that reads as a bug or an inconsistency in a vendor's product should reach that vendor first. See
-[`VENDOR-NOTIFICATION.md`](VENDOR-NOTIFICATION.md).
+Anything here that reads as a bug or an inconsistency in a vendor's product should reach that vendor before it is
+published. This report was published before the vendors it discusses were told, by the repository owner's decision, so
+that protocol was not followed here. What would have gone to them beforehand is in
+[`VENDOR-NOTIFICATION.md`](VENDOR-NOTIFICATION.md), with notes drafted; nothing has been sent yet. A row a vendor says is
+wrong is corrected: open an issue titled `row: <rail_id>.<capability>` with the sentence you would put instead.
+Corrections are dated and marked as corrections, never silently edited.
 """
 
 

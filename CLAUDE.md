@@ -42,7 +42,7 @@ committing to it.** They killed the first design; that is what they are for.
 ## Commands
 
 ```bash
-uv run --extra ml --extra web --extra dev pytest tests/ -q   # 1524 tests (Node.js runs the browser-verifier tests)
+uv run --extra ml --extra web --extra dev pytest tests/ -q   # 1528 tests (Node.js runs the browser-verifier tests)
 uv run --extra dev python -m amanat.demo                     # end-to-end walkthrough
 uv run --extra dev python -m amanat.registry.watch           # re-check every cited quote against its source (network)
 uv run --extra dev python -m amanat.probes run               # re-measure the Cashfree sandbox (network, sandbox credentials in .env)
@@ -66,8 +66,10 @@ admitted were later found not to say what the row said, so read the sentence in 
 that the rail keeps the remainder, and *unresolved* otherwise: the chain's remainder is arithmetic, and the
 rail was never asked.
 Evidence lives in `docs/observations/store/` as append-only hash-chained JSONL: never edit a line. Anything
-that reads as a bug in a vendor's product goes to the vendor first (`docs/reports/VENDOR-NOTIFICATION.md`),
-so do not push or publish the report or the raw probe data without the owner's say-so.
+that reads as a bug in a vendor's product goes to the vendor first (`docs/reports/VENDOR-NOTIFICATION.md`).
+Phase 1 was published on 21 Sep 2026 before any vendor was told, at the owner's explicit instruction; the rule
+stands for anything new, so do not publish a fresh vendor-facing finding without telling the vendor or the
+owner's say-so.
 
 ## Open research
 
