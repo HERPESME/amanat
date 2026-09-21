@@ -186,10 +186,14 @@ uv run --with httpx --with cryptography python -m amanat.rails.settle \
 Docker:
 
 ```bash
-docker compose run --rm demo      # walkthrough
-docker compose run --rm tests     # containment suite
+docker compose up web             # the interactive demo, credential-free
 docker compose run --rm frontier  # ceiling frontier
 ```
+
+The `demo` and `tests` targets are out of date and should not be used: their images hold `src/` and
+`tests/` only, and the suite now also reads `docs/`, `.github/` and the project notes, so it stops at
+collection inside them (checked by recreating that file layout, not by building the images). Run the suite
+and the walkthrough with `uv run`, as above, until those images are rebuilt from a full checkout.
 
 </details>
 
