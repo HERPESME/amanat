@@ -84,8 +84,8 @@ one because the earlier "auto-released" result was an inference, not a reading. 
 review read their sentences in context; the first is SECONDARY again on a PSP page, the second stays
 unverified. A dated
 measurement is running: `python -m amanat.rails.probe_cashfree_release poll` appends to
-`docs/observations/cashfree-release/` (run it at about +24 h and +7 d 1 h after the start,
-18:23 IST on 20 Sep 2026; reads so far show no change).
+`docs/observations/cashfree-release/` (start: 18:23 IST on 20 Sep 2026; reads so far show no change,
+the latest at +29.8 h; the one still due is +7 d 1 h, at or after 19:23 IST on 27 Sep 2026).
 
 Round-6 audit and strategy are in `.claude/decisions/round6-*.md` (local): read them before
 conceptual changes.
