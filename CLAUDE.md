@@ -60,7 +60,10 @@ needs an `environment` and, unless it is on the legacy list in `tests/test_regis
 quote on the page). A row that names a probe fails the suite if the rail's latest conclusive run disagrees.
 `supported` is `None` exactly when a row is UNVERIFIED (a row with no answer says neither yes nor no), and an
 OBSERVED row needs its date. Editing or adding a quote fails a ratchet test until the watcher has run again,
-so a row change needs the network. **A quote check admits words, not meaning**: two rows the watcher had
+so a row change needs the network. `watch.yml` re-reads every source nightly from GitHub's servers (no
+credentials) and uploads the run as an artifact; from there the NPCI rows answer 403 and the Razorpay
+Reserve Pay page answers 404, so those are only ever re-read by running the watcher yourself from an address
+they serve. **A quote check admits words, not meaning**: two rows the watcher had
 admitted were later found not to say what the row said, so read the sentence in its context and run
 `payments-architect` on new rows. A passed obligation deadline is *overdue* only where the registry evidences
 that the rail keeps the remainder, and *unresolved* otherwise: the chain's remainder is arithmetic, and the

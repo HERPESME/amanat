@@ -532,10 +532,13 @@ serial comma to another), so the watcher asks for `Accept-Language: en-US` and e
 rendering; a quote checked from another locale can fail legitimately, which is a property of the source and
 not a change to it. Results go to a hash-chained, append-only log, [`docs/observations/store/watch.jsonl`](docs/observations/store/watch.jsonl),
 and each row in the JSON export says when it was last checked and how that went; the page and the report
-give the counts for the latest run. Two things the check cannot do. It cannot read the two NPCI
+give the counts for the latest run. Three things the check cannot do. It cannot read the two NPCI
 circulars: the regulator's site answers scripted clients with HTTP 403, so those rows are reported as
 unreadable (the committed copies' SHA-256 are in the export, so anyone can compare against a browser
-download) and were transcribed from pages read by a person. And it cannot show drift for a source
+download) and were transcribed from pages read by a person. It cannot always reach a page from every
+network: on 21 Sep 2026 Razorpay's UPI Reserve Pay page answered GitHub's hosted runners with HTTP 404 in
+two runs while it loaded from India, so the nightly job reports the rows that cite it as unreadable and a
+person re-reads them from an address the page answers. And it cannot show drift for a source
 pinned to a commit: the x402 rows cite specification files at a fixed revision, so re-reading them
 shows that a quote was transcribed correctly and can never show that anything changed. The vendor
 pages are what it guards, and the page and the report count the two apart.
@@ -721,7 +724,8 @@ so neither the prose nor the export can claim more than the runtime honours.
 **Not built** — stated so nobody has to ask:
 - witnessed checkpoints and per-actor keys: today a packet on its own proves internal consistency only;
 - probes beyond Cashfree's sandbox (Stripe test mode and an x402 testnet need accounts; Razorpay's
-  authorisation needs a browser), and a nightly run (it needs sandbox credentials as repository secrets);
+  authorisation needs a browser), and a nightly probe run (the workflow is in the repository and does
+  nothing until sandbox credentials are set as repository secrets);
 - any integration with a partner's product, an MCP proxy included;
 - push rails (FedNow, ACH, SEPA Instant) in the registry.
 
@@ -784,8 +788,10 @@ Stated here rather than waiting to be asked.
   what its note concludes, was read by a person and can be wrong (two rows have already been downgraded after
   a reviewer read their sentences in context, and one re-graded on better evidence). A row that a vendor believes is wrong is
   a bug to report.
-- **The registry is a snapshot.** Pages change and sandboxes change; the nightly jobs that would say so
-  exist but do nothing until credentials are configured.
+- **The registry is a snapshot.** Pages change and sandboxes change. A nightly job re-reads the cited pages
+  and goes red if a quote has gone (it needs no credentials, and it runs from GitHub's servers, which some
+  sources refuse); the job that re-measures the Cashfree sandbox does nothing until sandbox credentials are
+  set as repository secrets.
 - **The rows that cite the NPCI circulars cannot be re-read by machine:** the regulator's site answers
   scripted clients with HTTP 403. Those quotes were transcribed from committed PDFs whose hashes are published.
 - **Visa's guide says it is confidential.** Visa hosts it publicly, and its last page says the information
