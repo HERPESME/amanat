@@ -31,6 +31,14 @@ def test_the_scheduled_jobs_can_only_read_the_repository(name):
     assert "contents: write" not in text and "git push" not in text and "git commit" not in text
 
 
+def test_the_watch_job_installs_the_pdf_reader_before_it_needs_it():
+    """Without `pdftotext` a cited PDF is `unfetchable`, and that does not turn the job red: the first run on a
+    hosted runner checked none of the fifteen Visa quotes and still finished green."""
+    text = (WORKFLOWS / "watch.yml").read_text(encoding="utf-8")
+    assert re.search(r"apt-get install\b[^\n]*\bpoppler-utils\b", text)
+    assert text.index("poppler-utils") < text.index("amanat.registry.watch")
+
+
 def test_the_probe_job_does_nothing_without_credentials_rather_than_failing():
     text = (WORKFLOWS / "probes.yml").read_text(encoding="utf-8")
     assert "are not set as repository secrets" in text and "exit 0" in text

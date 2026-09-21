@@ -8,7 +8,7 @@
 
 *Block a ceiling. Debit the actual. Prove what the money did.*
 
-[![tests](https://img.shields.io/badge/tests-1528-2ea44f?style=flat-square)](#testing)
+[![tests](https://img.shields.io/badge/tests-1529-2ea44f?style=flat-square)](#testing)
 [![python](https://img.shields.io/badge/python-3.11%2B-3776ab?style=flat-square)](#quick-start)
 [![Cashfree sandbox](https://img.shields.io/badge/Cashfree%20sandbox-%E2%82%B9470%20of%20%E2%82%B9620%20%C2%B7%20HTTP%20200-2ea44f?style=flat-square)](#what-it-does)
 [![rails](https://img.shields.io/badge/rails-UPI%20SBMD%20%C2%B7%20Cashfree%20%C2%B7%20Razorpay%20%C2%B7%20Setu-6c5ce7?style=flat-square)](#the-evidence-table)
@@ -133,7 +133,7 @@ git clone https://github.com/HERPESME/amanat && cd amanat
 # The eight-act walkthrough — the whole argument in one command
 uv run --with cryptography python -m amanat.demo
 
-# 1528 tests. No API key, no network (Node.js runs the browser-verifier tests).
+# 1529 tests. No API key, no network (Node.js runs the browser-verifier tests).
 uv run --with pytest --with cryptography --with httpx --with fastapi --with pydantic \
        --with numpy --with scikit-learn --with pandas --with pyarrow --with hypothesis pytest tests/ -q
 ```
@@ -672,7 +672,7 @@ uv run --with pytest --with cryptography --with httpx --with fastapi --with pyda
        --with numpy --with scikit-learn --with pandas --with pyarrow --with hypothesis pytest tests/ -q
 ```
 
-**1528 tests, no credential and no network.** If proving the agent is bounded ever
+**1529 tests, no credential and no network.** If proving the agent is bounded ever
 required a live model, the agent would not be bounded.
 
 | Suite | What it pins |

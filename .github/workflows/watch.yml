@@ -23,6 +23,10 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
+      # A cited PDF is read with `pdftotext`; without it the watcher can only call those rows
+      # `unfetchable`, which does not fail the job, so install it rather than skip fifteen quotes.
+      - name: Install the PDF reader
+        run: sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends poppler-utils
       - name: Fetch every source and check its quotes
         run: uv run --extra dev python -m amanat.registry.watch
       - name: Keep the run
