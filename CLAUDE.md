@@ -42,7 +42,7 @@ committing to it.** They killed the first design; that is what they are for.
 ## Commands
 
 ```bash
-uv run --extra ml --extra web --extra dev pytest tests/ -q   # 1529 tests (Node.js runs the browser-verifier tests)
+uv run --extra ml --extra web --extra dev pytest tests/ -q   # 1531 tests (Node.js runs the browser-verifier tests)
 uv run --extra dev python -m amanat.demo                     # end-to-end walkthrough
 uv run --extra dev python -m amanat.registry.watch           # re-check every cited quote against its source (network)
 uv run --extra dev python -m amanat.probes run               # re-measure the Cashfree sandbox (network, sandbox credentials in .env)
@@ -82,10 +82,15 @@ lists them under "Outstanding verification", and `cashfree_preauth.remainder_aut
 one because the earlier "auto-released" result was an inference, not a reading. Two rows
 (`sbmd.merchant_revocable`, `stripe_card_manual_capture.payment_guarantee`) were cited until a
 review read their sentences in context; the first is SECONDARY again on a PSP page, the second stays
-unverified. A dated
-measurement is running: `python -m amanat.rails.probe_cashfree_release poll` appends to
-`docs/observations/cashfree-release/` (start: 18:23 IST on 20 Sep 2026; reads so far show no change,
-the latest at +29.8 h; the one still due is +7 d 1 h, at or after 19:23 IST on 27 Sep 2026).
+unverified. The dated sandbox measurement of the remainder (`python -m amanat.rails.probe_cashfree_release
+poll`, appending to `docs/observations/cashfree-release/`) ran 20 Sep – 3 Oct 2026, 8 reads to 304.3 h
+(12.68 days), and did not settle the question: its own control, a hold Cashfree documents as released
+after 7 days, was equally unchanged at every read, so the instrument cannot show a release even where one
+is documented. `payments-architect` read this result (3 Oct 2026) and found it invalidated by the control,
+not confirming; the row stayed UNVERIFIED and `obligations.py` was changed so an OBSERVED absence can never
+flip a deadline from unresolved to overdue by itself — only PRIMARY or SECONDARY evidence of the
+mechanism may. Settling the actual question needs a different instrument (a production account with a real
+issuer) or the named-but-unidentified Cashfree operation mentioned in the row's notes.
 
 Round-6 audit and strategy are in `.claude/decisions/round6-*.md` (local): read them before
 conceptual changes.

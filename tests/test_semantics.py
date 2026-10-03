@@ -437,13 +437,22 @@ class TestRazorpayPartialCaptureWasMeasured:
 class TestTheCashfreeReleaseLegIsNotAssumed:
     """A refused VOID after a capture is a rule Cashfree documents ("Once captured, a
     transaction cannot be voided"); it is not evidence that the uncaptured remainder
-    was returned. The registry says what was observed and marks the rest unverified."""
+    was returned. A dated sandbox measurement (12.68 days, no change across eight reads)
+    tried to settle it and could not: its own control, a hold Cashfree documents as
+    released after 7 days, was also unchanged, so the instrument cannot show a release
+    even where one is documented. The registry says what was observed and marks the
+    rest unverified."""
 
     def test_the_engine_will_not_plan_around_an_instant_remainder_release(self):
         rail = RAILS["cashfree_preauth"]
         assert rail.permits("remainder_auto_released") is False
         d = rail.explain("remainder_auto_released")
         assert d.allowed is False and "unverified" in d.reason
+
+    def test_the_failed_measurement_is_recorded_as_a_failed_instrument_not_a_finding(self):
+        cap = RAILS["cashfree_preauth"].capabilities["remainder_auto_released"]
+        assert cap.source_tier is SourceTier.UNVERIFIED and cap.supported is None
+        assert "control" in cap.notes and "7-day" in cap.notes and "cannot be read as" in cap.notes
 
     def test_the_observed_refusal_of_a_void_after_capture_is_kept_as_what_it_is(self):
         cap = RAILS["cashfree_preauth"].capabilities["void_after_partial_capture"]

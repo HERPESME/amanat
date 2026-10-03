@@ -186,6 +186,23 @@ class TestTheDeadlineTheHumanGave:
     def test_sbmd_never_frees_the_remainder_so_the_clock_applies(self):
         assert one(cab(), "remainder_release", now=T0 + timedelta(days=1), rail="sbmd", policy=self.POLICY).status == "overdue"
 
+    def test_an_observed_sandbox_absence_is_not_enough_to_sign_overdue(self):
+        """A probe that saw nothing happen over some window is not a rail's documented rule. Writing
+        'overdue' claims the registry evidences the rail keeps the remainder; an OBSERVED sandbox 'no'
+        built on an event not occurring is weaker than that, however long the window. Only a tier that
+        states the mechanism (PRIMARY, SECONDARY) may switch the clock from unresolved to overdue."""
+        from amanat.rails import semantics as s
+        rail = s.RailProfile("observed_no", "Observed-no", [s.Capability(
+            name="remainder_auto_released", supported=False, source_tier=s.SourceTier.OBSERVED,
+            environment=s.Environment.SANDBOX, obtained_on="2026-10-03",
+            citation="c", url="u", quote="unchanged across every read")])
+        s.RAILS["observed_no"] = rail
+        try:
+            o = one(cab(), "remainder_release", now=T0 + timedelta(days=1), rail="observed_no", policy=self.POLICY)
+            assert o.status == "unresolved"
+        finally:
+            del s.RAILS["observed_no"]
+
 
 class TestTheEndOfTheHumansAuthority:
     END = T0 + timedelta(hours=6)

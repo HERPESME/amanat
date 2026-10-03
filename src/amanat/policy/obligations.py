@@ -19,8 +19,12 @@ When a clock passes with money still shown held, the hold is either **overdue** 
 and the difference is the point. The remainder is arithmetic over the transitions the chain
 recorded (held, less debited, less released); the rail was never asked. Where the registry says on
 evidence usable as fact that the rail keeps the remainder (Reserve Pay), the chain's number is a
-fair statement and the deadline is *overdue*. Where the rail itself acts at the deadline, or may
-already have returned the money (its release is UNVERIFIED, or the registry has no row), a signed
+fair statement and the deadline is *overdue* — but a measured absence of a release is never read as
+the rail keeping the remainder; only a text that states the mechanism is (PRIMARY, SECONDARY). An
+OBSERVED "no" built on a window where nothing happened proves the instrument saw nothing, which is
+not the same claim, however long the window ran. Where the rail itself acts at the deadline, or may
+already have returned the money (its release is UNVERIFIED or merely OBSERVED-absent, or the registry
+has no row), a signed
 "still held" would be a guess, so the deadline is *unresolved*: it passed, the chain shows no
 release, and nobody has confirmed either way. The rule is the project's own, applied here too:
 absence of evidence is not an assertion.
@@ -41,7 +45,7 @@ from datetime import datetime, timedelta
 from typing import Any, Iterable
 
 from amanat.evidence.transitions import is_effective, transition_name
-from amanat.rails.semantics import RAILS
+from amanat.rails.semantics import RAILS, SourceTier
 
 PENDING, OVERDUE, UNRESOLVED, MET = "pending", "overdue", "unresolved", "met"
 RAIL_HOLD_EXPIRY = "rail_hold_expiry"
@@ -191,7 +195,13 @@ def obligations(entries: Iterable[Any], *, rail_id: str, now: datetime,
     release = rail.capabilities.get("remainder_auto_released") if rail else None
     release_tier = release.source_tier.value if release else "absent"
     rail_frees_remainder = bool(rail and rail.permits("remainder_auto_released"))
-    rail_keeps_remainder = bool(release and release.is_fact and release.supported is False)
+    # A measured absence of a release is never read as the rail keeping the remainder; only a text
+    # that states the mechanism is. An OBSERVED "no" built on a window where nothing happened can be
+    # the instrument's fault, not the rail's rule (a probe that cannot see a release Cashfree itself
+    # documents cannot be trusted to show the absence of one it does not document) — so it still
+    # leaves the deadline unresolved, however long the window.
+    rail_keeps_remainder = bool(release and release.supported is False
+                                and release.source_tier in (SourceTier.PRIMARY, SourceTier.SECONDARY))
     many_debits = bool(rail and rail.permits("multi_debit"))
     idle, ceiling = policy.release_remainder_within, policy.release_remainder_absolute
     out: list[Obligation] = []

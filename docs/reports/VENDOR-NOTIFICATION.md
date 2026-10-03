@@ -69,7 +69,10 @@ publication.
    `docs/observations/store/probes.cashfree_preauth.jsonl`.
 2. **Cashfree: the uncaptured remainder.** The pre-authorisation guide says an authorisation not
    captured within seven days is released and does not say what becomes of the remainder of a partial
-   capture. A dated measurement is running; the question, not a defect, is what to ask.
+   capture. A dated measurement (20 Sep – 3 Oct 2026, 8 reads over 12.68 days) tried to settle it and
+   could not: its own control, a hold documented as released after 7 days, was equally unchanged, so the
+   two endpoints polled do not appear to be where a release would show up. The question, not a defect, is
+   what to ask — now sharper: which endpoint or signal would show it.
 3. **Stripe: two pages that read differently.** The capture API reference says the amount to capture
    "must be less than or equal to the original amount", while the overcapture page says "Overcapture
    allows you to capture with an amount that’s higher than the authorized amount for a card payment."
